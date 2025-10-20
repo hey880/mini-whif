@@ -1,0 +1,40 @@
+{
+  "name": "mini-whif",
+  "version": "1.0.0",
+  "main": "main.ts",
+  "type": "module",
+  "scripts": {
+    "start:build": "tsc -w --project tsconfig.json && npx -p tsconfig.json",
+    "build:live": "nodemon --watch 'src/' --exec node --loader ts-node/esm src/main.ts --verbose",
+    "start": "npm run build:live"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/dotenv": "^6.1.1",
+    "@types/node": "^24.3.0",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.17.1",
+    "supabase": "^2.48.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/swagger": "^9.5.2",
+    "@fastify/swagger-ui": "^5.2.3",
+    "@fastify/type-provider-typebox": "^5.2.0",
+    "@prisma/client": "^6.17.1",
+    "@sinclair/typebox": "^0.34.41",
+    "@types/jsonwebtoken": "^9.0.5",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.2",
+    "fastify": "^5.5.0",
+    "fastify-plugin": "^5.0.1",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
