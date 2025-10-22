@@ -8,14 +8,14 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "ES2022",
+    "module": "ESNext",
     "esModuleInterop": true,
     "target": "ES2022",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "outDir": "./dist",
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "types": [],
+    "types": ["node"],
     "noImplicitAny": true,
     "useUnknownInCatchVariables": false,
     "inlineSourceMap": true,
@@ -49,17 +49,12 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+    "resolveJsonModule": true
   },
-  "include":[
-    "src/**/*", 
-    "node_modules/prisma" 
-  ],
-  "exclude": [
-    "document",
-    "backup"
-  ],
-  "ts-node":{
-    "esm":true,
+  "include": ["src/**/*", "node_modules/prisma"],
+  "exclude": ["document", "backup"],
+  "ts-node": {
+    "esm": true,
     "experimentalSpecifierResolution": "node"
   }
 }
