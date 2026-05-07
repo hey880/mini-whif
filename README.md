@@ -34,6 +34,7 @@ persona-chat/
 ### 기술 스택
 
 **프론트엔드** (apps/web):
+
 - Next.js 15 with App Router
 - TypeScript 5.5
 - Tailwind CSS (다크 사이버펑크 디자인 시스템)
@@ -42,6 +43,7 @@ persona-chat/
 - React Query (서버 상태 관리)
 
 **백엔드 API** (apps/api):
+
 - Fastify 4.28 (Express보다 2-3배 빠름)
 - ConnectRPC (타입 안전 RPC)
 - Prisma ORM with PostgreSQL
@@ -49,12 +51,14 @@ persona-chat/
 - Swagger/OpenAPI 문서
 
 **AI 서비스** (apps/ai-server):
+
 - FastAPI (async Python)
 - OpenRouter (멀티 모델 AI 접근)
 - Langfuse (LLM 모니터링 및 분석)
 - Server-Sent Events (스트리밍)
 
 **인프라**:
+
 - Turborepo (모노레포 빌드 오케스트레이션)
 - pnpm (효율적인 패키지 관리)
 - PostgreSQL (Supabase)
@@ -88,6 +92,7 @@ cp .env.example .env
 ```
 
 필수 환경 변수:
+
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
@@ -127,6 +132,7 @@ pnpm dev
 ```
 
 접속:
+
 - 프론트엔드: http://localhost:3001
 - API 문서: http://localhost:3000/docs
 - API 헬스체크: http://localhost:3000/health
@@ -135,7 +141,7 @@ pnpm dev
 
 ### 왜 ConnectRPC인가?
 
-- **타입 안전성**: .proto 파일을 기준으로 FE, BE가 동일한 API 명세를 공유 (single source of truth) 
+- **타입 안전성**: .proto 파일을 기준으로 FE, BE가 동일한 API 명세를 공유 (single source of truth)
 - **드리프트 없음**: .proto 파일을 기반으로 자동 생성된 타입을 사용하므로 프론트/백 간 요청·응답 형식 차이를 줄일 수 있음
 - **더 나은 DX**: 자동완성, 컴파일 단계 오류 검출, 타입 자동 생성 기능이 있어 수동 fetch() 불필요
 - **HTTP/2**: 하나의 연결에서 여러 요청을 동시에 처리할 수 있어, 빈번한 API 호출 환경에서 REST보다 효율적
@@ -169,28 +175,33 @@ vs Express/NestJS: NestJS보다 단순하고, Express보다 빠름
 최적화된 인덱스를 가진 14개 테이블 (`apps/api/prisma/schema.prisma` 참조):
 
 **핵심 엔티티**:
+
 - `profiles` - 사용자 계정 (Supabase Auth 통합)
 - `llm_models` - 사용 가능한 AI 모델 (Claude, Gemini 등)
 - `characters` - 성격 데이터를 가진 AI 캐릭터
 - `universes` - 캐릭터 세계관 그룹
 
 **채팅 시스템**:
+
 - `chat_rooms` - 대화 세션
 - `messages` - 버저닝을 가진 개별 메시지
 - `message_versions` - 대체 AI 응답
 - `user_reactions` - 좋아요/싫어요 피드백
 
 **Gems (가상 화폐)**:
+
 - `gem_wallets` - 사용자 젬 잔액 (유료, 일일 무료, 프로모)
 - `gem_logs` - 거래 내역
 - `gem_orders` - 결제 기록
 
 **기타**:
+
 - `user_personas` - 사용자 롤플레이 페르소나
 - `keywords` - 인기 검색어
 - `user_reactions` - 메시지 피드백
 
 **성능 최적화**:
+
 - 빠른 배열 검색을 위한 `character.keywords`의 GIN 인덱스
 - 페이지네이션을 위한 `(userId, createdAt DESC)` 복합 인덱스
 - 모든 관계에 대한 외래 키 인덱스
@@ -200,17 +211,20 @@ vs Express/NestJS: NestJS보다 단순하고, Express보다 빠름
 57개 컬러 토큰을 가진 다크 사이버펑크 미학:
 
 **색상**:
+
 - Primary: 보라색 (`#842BD2`)
 - Background: 진한 회색 (`#0F0F0F`, `#1A1A1A`)
 - Surface: 블러 효과를 가진 글래스 카드
 - Accent: 네온 보라/핑크 그라데이션
 
 **타이포그래피**:
+
 - Display/Headlines: Sora
 - Body/Labels: Inter
 - Monospace: JetBrains Mono
 
 **컴포넌트**:
+
 - `.glass-card` - 글래스모피즘 효과
 - `.glow-button` - 네온 그림자 버튼
 - `.ai-bubble` / `.user-bubble` - 채팅 메시지
@@ -265,16 +279,19 @@ vs Express/NestJS: NestJS보다 단순하고, Express보다 빠름
 ## 💎 Gem 경제
 
 **Gem 종류**:
+
 1. **Free Daily** (200/일) - 매일 충전, 먼저 사용
 2. **Free Promo** - 프로모션 지급, 두 번째로 사용
 3. **Paid** - 구매한 젬, 마지막으로 사용
 
 **비용**:
+
 - 프리즘 (Haiku): 5 gems/메시지
 - 아이리스 (Sonnet 4.5): 10 gems/메시지
 - 벨벳 (Gemini Flash): 8 gems/메시지
 
 **결제** (PortOne):
+
 - Starter: 500 gems → ₩1,100
 - Pro: 1,200 gems → ₩2,200
 - Whale: 3,000 gems → ₩5,500
@@ -308,12 +325,14 @@ docker-compose down
 ## 📊 모니터링 및 분석
 
 **Langfuse 통합** (선택사항):
+
 - `@observe()` 데코레이터를 통한 자동 LLM 추적
 - 캡처: 입력, 출력, 지연시간, 비용
 - 사용자 피드백 기록 (좋아요/싫어요)
 - 대시보드: https://cloud.langfuse.com
 
 **로그**:
+
 - Fastify: 개발 환경에서 pretty-print를 사용한 Pino 로거
 - FastAPI: Uvicorn 접근 로그
 - 프로덕션 환경에서 구조화된 로깅
@@ -340,6 +359,7 @@ pnpm proto:gen    # .proto 파일에서 TypeScript 생성
 ## 📝 API 문서
 
 **REST 엔드포인트**:
+
 - `POST /auth/signup` - 계정 생성
 - `POST /auth/login` - 로그인
 - `GET /auth/me` - 현재 사용자 가져오기 (보호됨)
@@ -347,6 +367,7 @@ pnpm proto:gen    # .proto 파일에서 TypeScript 생성
 - `GET /docs` - Swagger UI
 
 **ConnectRPC 서비스**:
+
 - `CharacterService` - 캐릭터 CRUD
 - `PersonaService` - 사용자 페르소나 관리
 - `ChatRoomService` - 채팅 세션
@@ -357,24 +378,28 @@ pnpm proto:gen    # .proto 파일에서 TypeScript 생성
 ## 🗺️ 로드맵
 
 **Phase 1** ✅ - 기반
+
 - [x] 모노레포 설정
 - [x] 데이터베이스 스키마
 - [x] 인증 시스템
 - [x] 기본 API 구조
 
 **Phase 2** ✅ - 핵심 기능
+
 - [x] ConnectRPC 핸들러 (Character, Persona, ChatRoom, LlmModel)
 - [x] AI 스트리밍 서비스 (FastAPI with OpenRouter)
 - [x] 프론트엔드 페이지 (5개 주요 페이지)
 - [x] 스트리밍을 포함한 SSE 채팅 인터페이스
 
 **Phase 3** ✅ - 마무리
+
 - [x] 결제 통합 (PortOne)
 - [x] Gem 경제 시스템
 - [x] 사용자 프로필 & 페르소나
 - [x] 전체 채팅 기능
 
 **Phase 4** ✅ - 프로덕션
+
 - [x] GitHub Actions CI/CD
 - [x] Docker Compose 배포
 - [x] 종합 문서

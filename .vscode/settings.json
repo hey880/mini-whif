@@ -1,0 +1,15 @@
+{
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  // Prettier를 프로젝트의 node_modules에서 탐색 (모노레포 대비용)
+  "prettier.prettierPath": "./node_modules/prettier",
+  // Prettier 설정 파일 요구 (prettier.config.js가 반드시 있어야 함)
+  "prettier.requireConfig": true,
+  "files.eol": "\n"
+}
