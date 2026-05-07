@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package persona_chat.persona.v1;
+
+// Persona Service - Manage user personas for roleplay
+service PersonaService {
+  rpc ListPersonas(ListPersonasRequest) returns (ListPersonasResponse);
+  rpc GetPersona(GetPersonaRequest) returns (GetPersonaResponse);
+  rpc CreatePersona(CreatePersonaRequest) returns (CreatePersonaResponse);
+  rpc UpdatePersona(UpdatePersonaRequest) returns (UpdatePersonaResponse);
+  rpc DeletePersona(DeletePersonaRequest) returns (DeletePersonaResponse);
+  rpc SetDefaultPersona(SetDefaultPersonaRequest) returns (SetDefaultPersonaResponse);
+}
+
+message ListPersonasRequest {
+  // Empty - returns all personas for authenticated user
+}
+
+message ListPersonasResponse {
+  repeated Persona personas = 1;
+}
+
+message GetPersonaRequest {
+  string id = 1;
+}
+
+message GetPersonaResponse {
+  Persona persona = 1;
+}
+
+message CreatePersonaRequest {
+  string name = 1;
+  string persona = 2;
+  bool is_default = 3;
+}
+
+message CreatePersonaResponse {
+  Persona persona = 1;
+}
+
+message UpdatePersonaRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string persona = 3;
+}
+
+message UpdatePersonaResponse {
+  Persona persona = 1;
+}
+
+message DeletePersonaRequest {
+  string id = 1;
+}
+
+message DeletePersonaResponse {
+  bool success = 1;
+}
+
+message SetDefaultPersonaRequest {
+  string id = 1;
+}
+
+message SetDefaultPersonaResponse {
+  Persona persona = 1;
+}
+
+message Persona {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string persona = 4;
+  bool is_default = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}

@@ -1,0 +1,43 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@persona-chat/shared-types": "workspace:*",
+    "@persona-chat/proto": "workspace:*",
+    "fastify": "^4.28.0",
+    "@fastify/cors": "^9.0.0",
+    "@fastify/swagger": "^8.14.0",
+    "@fastify/swagger-ui": "^4.0.0",
+    "@fastify/jwt": "^8.0.0",
+    "@connectrpc/connect": "^1.4.0",
+    "@connectrpc/connect-fastify": "^1.4.0",
+    "@supabase/supabase-js": "^2.43.0",
+    "@prisma/client": "^5.15.0",
+    "zod": "^3.23.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "prisma": "^5.15.0",
+    "tsx": "^4.15.0",
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0",
+    "eslint": "^9.5.0"
+  }
+}

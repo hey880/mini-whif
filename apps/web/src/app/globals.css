@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sora: 'Sora', system-ui, sans-serif;
+    --font-inter: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-background text-on-surface antialiased;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Components */
+  .glass-card {
+    @apply bg-surface-container-high/40 backdrop-blur-glass border border-outline-variant/30 rounded-2xl shadow-glass;
+  }
+
+  .glass-panel {
+    @apply bg-surface-container/40 backdrop-blur-glass border border-outline-variant/20 rounded-xl;
+  }
+
+  /* Message Bubbles */
+  .ai-bubble {
+    @apply bg-surface-container-high/60 backdrop-blur-md rounded-2xl rounded-tl-sm p-4 border border-outline-variant/20;
+  }
+
+  .user-bubble {
+    @apply bg-primary-container/15 backdrop-blur-md rounded-2xl rounded-tr-sm p-4 border border-primary/30;
+  }
+
+  /* Special Effects */
+  .persona-pulse {
+    @apply relative overflow-hidden;
+  }
+
+  .persona-pulse::before {
+    @apply content-[''] absolute inset-0 rounded-[inherit] p-[2px] bg-gradient-to-br from-primary via-tertiary to-secondary;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: pulse-slow 3s infinite;
+  }
+
+  .glow-button {
+    @apply bg-primary hover:bg-primary-container text-on-primary font-medium rounded-xl px-6 py-3 transition-all duration-200 shadow-glow-primary hover:shadow-glow-primary hover:scale-105;
+  }
+
+  .input-glow {
+    @apply bg-surface-container border border-outline-variant rounded-lg px-4 py-3 text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all;
+  }
+
+  /* Scrollbar Styling */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-surface-container rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary/50 rounded-full hover:bg-primary/70;
+  }
+
+  /* Ambiance Background Blurs */
+  .ambiance-blur {
+    @apply absolute rounded-full blur-[120px] opacity-20;
+  }
+
+  .ambiance-primary {
+    @apply ambiance-blur bg-primary;
+  }
+
+  .ambiance-secondary {
+    @apply ambiance-blur bg-secondary;
+  }
+
+  .ambiance-tertiary {
+    @apply ambiance-blur bg-tertiary;
+  }
+
+  /* Tag Chips */
+  .tag-chip {
+    @apply inline-flex items-center px-3 py-1.5 rounded-full text-label-small bg-surface-container-high border border-outline-variant/30 hover:bg-surface-container-highest hover:border-primary/50 transition-colors cursor-pointer;
+  }
+
+  .tag-chip-active {
+    @apply bg-primary-container/30 border-primary text-primary;
+  }
+
+  /* Card Hover Effects */
+  .character-card {
+    @apply glass-card overflow-hidden transition-all duration-300 hover:-translate-y-2 cursor-pointer;
+  }
+
+  .character-card img {
+    @apply transition-transform duration-300;
+  }
+
+  .character-card:hover img {
+    @apply scale-110;
+  }
+
+  /* Gradient Overlays */
+  .gradient-overlay-bottom {
+    background: linear-gradient(to top, rgba(10, 14, 20, 0.9) 0%, rgba(10, 14, 20, 0.6) 50%, transparent 100%);
+  }
+
+  .gradient-overlay-top {
+    background: linear-gradient(to bottom, rgba(10, 14, 20, 0.9) 0%, rgba(10, 14, 20, 0.6) 50%, transparent 100%);
+  }
+
+  /* Material Symbols Icon */
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  .material-symbols-filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  /* Loading States */
+  .skeleton {
+    @apply animate-pulse bg-surface-container-high rounded;
+  }
+
+  /* Typing Indicator */
+  .typing-indicator {
+    @apply flex gap-1;
+  }
+
+  .typing-indicator span {
+    @apply w-2 h-2 bg-on-surface-variant rounded-full animate-bounce;
+  }
+
+  .typing-indicator span:nth-child(1) {
+    animation-delay: 0ms;
+  }
+
+  .typing-indicator span:nth-child(2) {
+    animation-delay: 150ms;
+  }
+
+  .typing-indicator span:nth-child(3) {
+    animation-delay: 300ms;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

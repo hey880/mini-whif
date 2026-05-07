@@ -1,0 +1,35 @@
+{
+  "name": "@persona-chat/proto",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Protocol Buffers and ConnectRPC generated code",
+  "type": "module",
+  "main": "./gen/ts/index.js",
+  "types": "./gen/ts/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./gen/ts/index.js",
+      "types": "./gen/ts/index.d.ts"
+    },
+    "./gen/ts/*": "./gen/ts/*"
+  },
+  "files": [
+    "gen"
+  ],
+  "scripts": {
+    "generate": "buf generate",
+    "lint": "buf lint",
+    "format": "buf format -w"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.32.0",
+    "@bufbuild/protoc-gen-es": "^1.10.0",
+    "@connectrpc/protoc-gen-connect-es": "^1.4.0",
+    "@bufbuild/protobuf": "^1.10.0",
+    "@connectrpc/connect": "^1.4.0"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^1.10.0",
+    "@connectrpc/connect": "^1.4.0"
+  }
+}

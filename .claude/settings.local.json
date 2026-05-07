@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test -d apps)",
+      "Bash(test -d packages)",
+      "Bash(test:*)",
+      "Bash(pnpm install:*)",
+      "Bash(npm install:*)",
+      "Bash(npx buf:*)",
+      "Bash(pnpm generate:*)",
+      "Bash(pnpm db:generate:*)",
+      "Bash(pnpm build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm type-check:*)",
+      "Bash(pnpm exec tsc:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

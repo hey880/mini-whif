@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package persona_chat.chatroom.v1;
+
+// ChatRoom Service - Manage chat sessions
+service ChatRoomService {
+  rpc ListChatRooms(ListChatRoomsRequest) returns (ListChatRoomsResponse);
+  rpc GetChatRoom(GetChatRoomRequest) returns (GetChatRoomResponse);
+  rpc CreateChatRoom(CreateChatRoomRequest) returns (CreateChatRoomResponse);
+  rpc UpdateChatRoom(UpdateChatRoomRequest) returns (UpdateChatRoomResponse);
+  rpc DeleteChatRoom(DeleteChatRoomRequest) returns (DeleteChatRoomResponse);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+}
+
+message ListChatRoomsRequest {
+  optional string character_id = 1;
+  optional bool is_pinned = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListChatRoomsResponse {
+  repeated ChatRoomWithCharacter chat_rooms = 1;
+  int32 total = 2;
+  bool has_more = 3;
+}
+
+message GetChatRoomRequest {
+  string id = 1;
+}
+
+message GetChatRoomResponse {
+  ChatRoomWithCharacter chat_room = 1;
+}
+
+message CreateChatRoomRequest {
+  string character_id = 1;
+  optional string persona_id = 2;
+  optional string user_note = 3;
+}
+
+message CreateChatRoomResponse {
+  ChatRoomWithCharacter chat_room = 1;
+}
+
+message UpdateChatRoomRequest {
+  string id = 1;
+  optional string persona_id = 2;
+  optional string user_note = 3;
+  optional string conversation_summary = 4;
+  optional bool is_pinned = 5;
+}
+
+message UpdateChatRoomResponse {
+  ChatRoomWithCharacter chat_room = 1;
+}
+
+message DeleteChatRoomRequest {
+  string id = 1;
+}
+
+message DeleteChatRoomResponse {
+  bool success = 1;
+}
+
+message ListMessagesRequest {
+  string room_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListMessagesResponse {
+  repeated Message messages = 1;
+  int32 total = 2;
+  bool has_more = 3;
+}
+
+message ChatRoom {
+  string id = 1;
+  string user_id = 2;
+  string character_id = 3;
+  optional string persona_id = 4;
+  optional string user_note = 5;
+  optional string conversation_summary = 6;
+  optional string last_message_at = 7;
+  bool is_pinned = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+
+message ChatRoomWithCharacter {
+  string id = 1;
+  string user_id = 2;
+  string character_id = 3;
+  optional string persona_id = 4;
+  optional string user_note = 5;
+  optional string conversation_summary = 6;
+  optional string last_message_at = 7;
+  bool is_pinned = 8;
+  string created_at = 9;
+  string updated_at = 10;
+  CharacterInfo character = 11;
+  int32 message_count = 12;
+  optional LastMessage last_message = 13;
+  optional PersonaInfo persona = 14;
+}
+
+message CharacterInfo {
+  string id = 1;
+  string name = 2;
+  optional string image_url = 3;
+  optional string tagline = 4;
+}
+
+message PersonaInfo {
+  string id = 1;
+  string name = 2;
+}
+
+message LastMessage {
+  string content = 1;
+  string created_at = 2;
+}
+
+message Message {
+  string id = 1;
+  string room_id = 2;
+  string role = 3; // user, assistant, system
+  string content = 4;
+  optional string model_slug = 5;
+  int32 version_number = 6;
+  optional string parent_message_id = 7;
+  int32 positive_reaction_count = 8;
+  int32 negative_reaction_count = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}

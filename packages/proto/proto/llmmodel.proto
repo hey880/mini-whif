@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package persona_chat.llmmodel.v1;
+
+// LLM Model Service - Manage available AI models
+service LlmModelService {
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+  rpc GetCurrentModel(GetCurrentModelRequest) returns (GetCurrentModelResponse);
+  rpc UpdateCurrentModel(UpdateCurrentModelRequest) returns (UpdateCurrentModelResponse);
+}
+
+message ListModelsRequest {
+  optional bool is_active = 1;
+}
+
+message ListModelsResponse {
+  repeated LlmModel models = 1;
+}
+
+message GetCurrentModelRequest {
+  // Returns the user's chosen model or default
+}
+
+message GetCurrentModelResponse {
+  LlmModel model = 1;
+}
+
+message UpdateCurrentModelRequest {
+  string model_id = 1;
+}
+
+message UpdateCurrentModelResponse {
+  LlmModel model = 1;
+}
+
+message LlmModel {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string provider = 4;
+  int32 context_window = 5;
+  int32 max_output_tokens = 6;
+  int32 gem_cost_per_message = 7;
+  bool is_active = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}

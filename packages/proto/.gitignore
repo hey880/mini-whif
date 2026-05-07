@@ -1,0 +1,5 @@
+# Dependencies
+node_modules
+
+# Note: We commit generated code for reproducibility
+# gen/
