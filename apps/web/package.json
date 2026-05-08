@@ -10,28 +10,28 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@connectrpc/connect": "^1.4.0",
+    "@connectrpc/connect-web": "^1.4.0",
+    "@persona-chat/proto": "workspace:*",
+    "@persona-chat/shared-types": "workspace:*",
+    "@supabase/supabase-js": "^2.105.3",
+    "@tanstack/react-query": "^5.17.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^3.0.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@connectrpc/connect": "^1.4.0",
-    "@connectrpc/connect-web": "^1.4.0",
-    "@supabase/supabase-js": "^2.39.0",
-    "@tanstack/react-query": "^5.17.0",
-    "zustand": "^4.4.7",
-    "@persona-chat/proto": "workspace:*",
-    "@persona-chat/shared-types": "workspace:*",
-    "clsx": "^2.0.0",
-    "date-fns": "^3.0.0"
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript": "^5.3.0",
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.32",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.56.0",
-    "eslint-config-next": "^15.0.0"
+    "eslint-config-next": "^15.0.0",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0"
   }
 }
