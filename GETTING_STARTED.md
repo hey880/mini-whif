@@ -24,6 +24,7 @@ pnpm install
 ```
 
 다음 항목에 대한 의존성이 설치됩니다:
+
 - 루트 워크스페이스
 - `packages/shared-types`
 - `packages/proto`
@@ -44,17 +45,16 @@ pnpm install
 
 #### 자격 증명 가져오기
 
-1. **Settings** > **API**로 이동
+1. **Settings** > **Data API**로 이동
 2. 복사:
    - **Project URL**: `https://your-project.supabase.co`
-   - **anon/public key**: `eyJ...` (eyJ로 시작)
-   - **service_role key**: `eyJ...` (비밀 유지 - 서버 전용)
+   - **anon/public key**: `eyJ...` (eyJ로 시작, API Key에서 legacy 탭으로 이동하여 획득)
+   - **service_role key**: `eyJ...` (비밀 유지 - 서버 전용, API Key에서 legacy 탭으로 이동하여 획득)
 
-3. **Settings** > **Database**로 이동
-4. **Connection string** > **Connection pooling**으로 스크롤
-5. 복사:
-   - **Transaction mode** (DATABASE_URL용)
-   - **Session mode** (DIRECT_URL용)
+3. 상단의 **Connect 클릭** > **Direct Connection string 클릭**
+4. 복사:
+   - **Transaction mode의 Connection string** (DATABASE_URL용)
+   - **Session mode의 Connection string** (DIRECT_URL용)
 
 ### 3. 환경 변수 구성
 
@@ -111,6 +111,7 @@ pnpm proto:gen
 타입 안전 RPC를 위해 `.proto` 파일에서 TypeScript 코드를 생성합니다.
 
 **예상 출력**:
+
 ```
 packages/proto/gen/ts/
 ├── character_pb.ts
@@ -142,6 +143,7 @@ pnpm db:studio
 ```
 
 **시드 데이터 포함**:
+
 - 3개 LLM 모델 (프리즘, 아이리스, 벨벳)
 - 22개 인기 키워드 (romance, fantasy, sci-fi 등)
 - 1개 데모 세계관
@@ -180,6 +182,7 @@ pnpm dev
 ```
 
 **예상 출력**:
+
 ```
 🚀 Persona Chat API Server
    Server listening on http://localhost:3000
@@ -187,6 +190,7 @@ pnpm dev
 ```
 
 **확인**:
+
 - http://localhost:3000/health 방문
 - `{"status":"ok","timestamp":"..."}` 표시되어야 함
 
@@ -199,6 +203,7 @@ fastapi dev
 ```
 
 **예상 출력**:
+
 ```
 INFO:     Uvicorn running on http://127.0.0.1:8000
 INFO:     Application startup complete.
@@ -207,6 +212,7 @@ INFO:     Langfuse configured: True/False
 ```
 
 **확인**:
+
 - http://localhost:8000/health 방문
 - http://localhost:8000/docs 방문 (FastAPI 대화형 문서)
 
@@ -218,6 +224,7 @@ pnpm dev
 ```
 
 **예상 출력**:
+
 ```
   ▲ Next.js 15.0.0
   - Local:        http://localhost:3001
@@ -262,6 +269,7 @@ pnpm db:studio
 ```
 
 http://localhost:5555 열림 - 다음이 표시되어야 함:
+
 - `llm_models`에 3개 레코드
 - `keywords`에 22개 레코드
 - `profiles`에 생성한 사용자
@@ -273,6 +281,7 @@ http://localhost:5555 열림 - 다음이 표시되어야 함:
 **에러**: `Can't reach database server`
 
 **해결책**:
+
 1. `.env`의 `DIRECT_URL`이 포트 **5432** 사용 확인 (6543 아님)
 2. Supabase 프로젝트가 활성 상태인지 확인 (일시 중지되지 않음)
 3. 데이터베이스 비밀번호가 올바른지 확인
@@ -282,6 +291,7 @@ http://localhost:5555 열림 - 다음이 표시되어야 함:
 **에러**: `buf: command not found`
 
 **해결책**:
+
 ```bash
 # buf CLI 전역 설치
 npm install -g @bufbuild/buf
@@ -295,6 +305,7 @@ npx @bufbuild/buf generate
 **에러**: `Authentication failed`
 
 **해결책**:
+
 1. `OPENROUTER_API_KEY`가 `sk-or-v1-`로 시작하는지 확인
 2. https://openrouter.ai/keys에서 API 키가 활성 상태인지 확인
 3. 키가 누락된 경우 서버는 모의 응답 사용 (예상된 동작)
@@ -304,6 +315,7 @@ npx @bufbuild/buf generate
 **에러**: 패키지 설치 에러
 
 **해결책**:
+
 ```bash
 # pip 먼저 업그레이드
 python -m pip install --upgrade pip
@@ -321,6 +333,7 @@ uv pip install -r requirements.txt
 **에러**: `EADDRINUSE: address already in use :::3000`
 
 **해결책**:
+
 ```bash
 # 포트를 사용하는 프로세스 찾기 (Windows)
 netstat -ano | findstr :3000
