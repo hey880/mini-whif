@@ -60,6 +60,8 @@ pnpm install
 
 ```bash
 # 템플릿 복사
+# 루트 경로 뿐만 아니라 apps/web, apps/api, apps/ai-server도 각각 env를 가지기 때문에
+# 각각에 맞는 설정을 모두 해주어야 한다.
 cp .env.example .env
 
 # 자격 증명으로 .env 편집
