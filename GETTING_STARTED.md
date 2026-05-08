@@ -128,6 +128,8 @@ packages/proto/gen/ts/
 
 ```bash
 cd apps/api
+# .env 파일 생성 후 각 값에 맞는 값으로 수정할 것
+cp .env.example .env
 
 # Prisma Client 생성
 pnpm db:generate
