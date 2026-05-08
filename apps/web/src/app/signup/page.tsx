@@ -6,15 +6,17 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
 
-function LoginForm() {
+function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams?.get('returnUrl') || '/';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
 
   const { setSession } = useAuthStore();
 
@@ -24,17 +26,26 @@ function LoginForm() {
     setError('');
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            display_name: displayName,
+          },
+        },
       });
 
       if (error) throw error;
 
-      setSession(data.session);
-      router.push(returnUrl);
+      if (data.session) {
+        setSession(data.session);
+        router.push(returnUrl);
+      } else {
+        setShowEmailConfirmModal(true);
+      }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      setError(err.message || 'Sign up failed');
     } finally {
       setLoading(false);
     }
@@ -61,6 +72,25 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      {showEmailConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="glass-card p-8 max-w-sm w-full mx-4 text-center">
+            <p className="text-body-large mb-6">
+              Please check your email to confirm your account
+            </p>
+            <button
+              onClick={() => {
+                setShowEmailConfirmModal(false);
+                router.push('/login');
+              }}
+              className="glow-button px-8"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Ambiance backgrounds */}
       <div className="fixed top-0 left-1/4 w-96 h-96 ambiance-primary" />
       <div className="fixed bottom-0 right-1/4 w-96 h-96 ambiance-tertiary" />
@@ -92,7 +122,7 @@ function LoginForm() {
 
           <div className="glass-card p-8">
             <h2 className="text-headline-medium font-headline mb-6">
-              Welcome Back
+              Create Account
             </h2>
 
             {error && (
@@ -102,6 +132,20 @@ function LoginForm() {
             )}
 
             <form onSubmit={handleEmailAuth} className="space-y-4">
+              <div>
+                <label className="block text-label-large mb-2">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  required
+                  className="w-full input-glow"
+                  placeholder="Your name"
+                />
+              </div>
+
               <div>
                 <label className="block text-label-large mb-2">Email</label>
                 <input
@@ -132,7 +176,7 @@ function LoginForm() {
                 disabled={loading}
                 className="w-full glow-button disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Loading...' : 'Login'}
+                {loading ? 'Loading...' : 'Sign Up'}
               </button>
             </form>
 
@@ -174,11 +218,11 @@ function LoginForm() {
               Continue with Google
             </button>
 
-            {/* Link to sign up */}
+            {/* Link to login */}
             <div className="mt-6 text-center text-body-medium text-on-surface-variant">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-primary hover:underline font-medium">
-                Sign Up
+              Already have an account?{' '}
+              <Link href="/login" className="text-primary hover:underline font-medium">
+                Login
               </Link>
             </div>
 
@@ -198,7 +242,7 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+export default function SignUpPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -208,7 +252,7 @@ export default function LoginPage() {
         </div>
       </div>
     }>
-      <LoginForm />
+      <SignUpForm />
     </Suspense>
   );
 }
