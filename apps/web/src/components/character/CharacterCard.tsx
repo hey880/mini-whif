@@ -87,7 +87,7 @@ export function CharacterCard({
       <div className="p-4">
         {/* Keywords */}
         <div className="flex flex-wrap gap-1 mb-3">
-          {keywords.slice(0, 3).map((keyword) => (
+          {keywords?.slice(0, 3).map((keyword) => (
             <span
               key={keyword}
               className="px-2 py-0.5 rounded-full bg-surface-container-high text-label-small text-on-surface-variant"

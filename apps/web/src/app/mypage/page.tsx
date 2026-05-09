@@ -1,7 +1,6 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { TopNav } from '@/components/layout/TopNav';
 import { useAuthStore } from '@/stores/authStore';
 import { formatNumber, formatDate } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -47,17 +46,14 @@ export default function MyPage() {
   const logs = logsData?.data || [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-
-      <main className="max-w-5xl mx-auto px-container-padding py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-display-small font-display mb-2">My Page</h1>
-          <p className="text-body-large text-on-surface-variant">
-            Manage your profile and gems
-          </p>
-        </div>
+    <>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-display-small font-display mb-2">Profile</h1>
+        <p className="text-body-large text-on-surface-variant">
+          Manage your profile and gems
+        </p>
+      </div>
 
         {/* Profile Card */}
         <div className="glass-card p-6 mb-6">
@@ -208,7 +204,6 @@ export default function MyPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+    </>
   );
 }
