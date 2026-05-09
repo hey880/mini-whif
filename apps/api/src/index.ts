@@ -22,6 +22,7 @@ import { personaHandler } from './rpc/persona.handler.js';
 import { chatRoomHandler } from './rpc/chatroom.handler.js';
 import { llmModelHandler } from './rpc/llmmodel.handler.js';
 import { userContextKey } from './context.js';
+import { supabase } from './config/supabase.js';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = '0.0.0.0';
@@ -30,6 +31,38 @@ async function start() {
   const server = createServer();
 
   try {
+    // Auth hook for ConnectRPC routes
+    server.addHook('preHandler', async (request, reply) => {
+      // Only apply to ConnectRPC routes
+      if (request.url.startsWith('/persona_chat.')) {
+        try {
+          const authHeader = request.headers.authorization;
+
+          if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+
+            // Verify JWT with Supabase
+            const { data: { user }, error } = await supabase.auth.getUser(token);
+
+            if (!error && user) {
+              // Attach user to request
+              request.user = {
+                id: user.id,
+                email: user.email!,
+              };
+              request.log.debug({ userId: user.id }, 'User authenticated for ConnectRPC');
+            } else {
+              request.log.debug('No valid user found in token');
+            }
+          } else {
+            request.log.debug('No authorization header found');
+          }
+        } catch (error) {
+          request.log.error({ error }, 'Failed to authenticate user for ConnectRPC');
+        }
+      }
+    });
+
     // Register ConnectRPC plugin
     await server.register(fastifyConnectPlugin, {
       routes(router) {
@@ -38,9 +71,10 @@ async function start() {
         router.service(ChatRoomService, chatRoomHandler);
         router.service(LlmModelService, llmModelHandler);
       },
-      // Pass user context from auth middleware to RPC handlers
+      // Pass user context from request to RPC handlers
       contextValues(req) {
         const values = createContextValues();
+        // req.user is set by preHandler hook above
         values.set(userContextKey, req.user);
         return values;
       },
