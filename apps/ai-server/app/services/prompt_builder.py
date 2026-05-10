@@ -11,6 +11,7 @@ class PromptBuilder:
         user_persona: str | None,
         user_note: str | None,
         conversation_summary: str | None,
+        situational_triggers: list[dict[str, Any]] | None = None,
     ) -> str:
         """
         Construct system prompt from character and context.
@@ -36,6 +37,33 @@ class PromptBuilder:
 
         if system_prompt := character_data.get("systemPrompt"):
             sections.append(f"# Instructions\n{system_prompt}")
+
+        # Narration style guidance
+        sections.append("""# Writing Style Guide (CRITICAL - MUST FOLLOW EXACTLY)
+
+## Format Rules:
+1. **Actions/Gestures** → Wrap in *single asterisks* (for italic)
+2. **Dialogue** → Wrap in "quotation marks"
+3. **Narration** → Plain text
+
+## Tone Rules (ABSOLUTELY REQUIRED):
+- ALL narration/actions MUST use 반말체 (casual): ~다, ~네, ~어, ~아, ~지
+- FORBIDDEN: ~습니다, ~합니다, ~ㅂ니다, ~였습니다 (NEVER USE THESE)
+
+## Example Response (FOLLOW THIS FORMAT):
+"안녕하세요. 오늘 날씨가 좋네요." *미소를 지으며 손을 흔든다* 창밖을 바라보니 햇살이 눈부시다. *의자를 가리킨다* "여기 앉으세요."
+
+## Breakdown:
+- "안녕하세요. 오늘 날씨가 좋네요." ← Dialogue (quotation marks)
+- *미소를 지으며 손을 흔든다* ← Action (single asterisks + 반말: ~다)
+- 창밖을 바라보니 햇살이 눈부시다 ← Narration (plain + 반말: ~다)
+- *의자를 가리킨다* ← Action (single asterisks + 반말: ~다)
+- "여기 앉으세요." ← Dialogue (quotation marks)
+
+## CRITICAL REMINDERS:
+✓ Use *single asterisks* for ALL physical actions (NOT double **)
+✓ End ALL narration/actions with ~다/~네/~어 (NOT ~습니다)
+✓ Mix dialogue, actions, and narration naturally""")
 
         # Lorebook
         if lorebook and (entries := lorebook.get("entries")):
@@ -66,7 +94,66 @@ class PromptBuilder:
             if isinstance(examples, list) and examples:
                 sections.append("# Example Dialogue\n" + "\n".join(examples))
 
+        # Situational Image Triggers
+        if situational_triggers:
+            trigger_hints = []
+            for item in situational_triggers:
+                triggers = item.get("triggers", [])
+                description = item.get("description", "")
+                if triggers:
+                    trigger_text = ", ".join(triggers)
+                    hint = f"- {trigger_text}"
+                    if description:
+                        hint += f" ({description})"
+                    trigger_hints.append(hint)
+
+            if trigger_hints:
+                sections.append(
+                    "# Visual Context Keywords\n"
+                    "When appropriate to the situation, naturally incorporate these keywords to enhance the scene description:\n" +
+                    "\n".join(trigger_hints) +
+                    "\n\nUse these words organically when they fit the context, not forcefully."
+                )
+
         return "\n\n".join(sections) if sections else "You are a helpful AI assistant."
+
+    @staticmethod
+    def filter_triggered_lorebook_entries(
+        lorebook_entries: list[dict[str, Any]],
+        message_history: list[dict[str, str]],
+        new_message: str
+    ) -> list[dict[str, Any]]:
+        """
+        Filter lorebook entries that are triggered by keywords in messages.
+
+        Args:
+            lorebook_entries: All lorebook entries
+            message_history: Recent message history
+            new_message: New user message
+
+        Returns:
+            List of triggered lorebook entries
+        """
+        # Combine all messages to check for triggers
+        all_text = new_message.lower()
+        for msg in message_history[-10:]:  # Check last 10 messages
+            all_text += " " + msg.get("content", "").lower()
+
+        triggered = []
+        for entry in lorebook_entries:
+            if not entry.get("enabled", True):
+                continue
+
+            # Check both 'triggers' and 'keys' fields (frontend vs backend naming)
+            triggers = entry.get("triggers") or entry.get("keys") or []
+
+            # Check if any trigger keyword is in the combined text
+            for trigger in triggers:
+                if trigger.lower() in all_text:
+                    triggered.append(entry)
+                    break  # Don't add the same entry multiple times
+
+        return triggered
 
     @staticmethod
     def format_messages_history(messages: list[dict[str, Any]]) -> list[dict[str, str]]:

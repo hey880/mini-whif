@@ -1,6 +1,7 @@
 'use client';
 
-import { formatDate } from '@/lib/utils';
+import { formatDate, replacePlaceholders } from '@/lib/utils';
+import { parseMessage } from '@/lib/messageParser';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
@@ -8,6 +9,12 @@ interface MessageBubbleProps {
   timestamp: string;
   characterName?: string;
   characterImageUrl?: string;
+  userName?: string;
+  triggeredImages?: Array<{
+    id: string;
+    imageUrl: string;
+    description?: string;
+  }>;
   onRegenerate?: () => void;
   onViewVersions?: () => void;
   onReaction?: (positive: boolean) => void;
@@ -19,11 +26,16 @@ export function MessageBubble({
   timestamp,
   characterName,
   characterImageUrl,
+  userName,
+  triggeredImages,
   onRegenerate,
   onViewVersions,
   onReaction,
 }: MessageBubbleProps) {
   const isAI = role === 'assistant';
+
+  // Replace placeholders in content
+  const processedContent = replacePlaceholders(content, userName, characterName);
 
   return (
     <div className={`flex gap-3 ${isAI ? '' : 'flex-row-reverse'}`}>
@@ -61,8 +73,57 @@ export function MessageBubble({
 
         {/* Bubble */}
         <div className={isAI ? 'ai-bubble' : 'user-bubble'}>
-          <p className="text-body-medium whitespace-pre-wrap">{content}</p>
+          {isAI ? (
+            <div className="text-body-medium whitespace-pre-wrap">
+              {parseMessage(processedContent).map((segment, idx) => {
+                if (segment.type === 'dialogue') {
+                  return (
+                    <span key={idx} className="dialogue">
+                      &quot;{segment.text}&quot;
+                    </span>
+                  );
+                } else if (segment.type === 'action') {
+                  return (
+                    <em key={idx} className="action">
+                      {segment.text}
+                    </em>
+                  );
+                } else {
+                  return <span key={idx}>{segment.text} </span>;
+                }
+              })}
+            </div>
+          ) : (
+            <p className="text-body-medium whitespace-pre-wrap">
+              {processedContent}
+            </p>
+          )}
         </div>
+
+        {/* Situational Images (AI messages only) */}
+        {isAI && triggeredImages && triggeredImages.length > 0 && (
+          <div className="mt-2 grid grid-cols-2 gap-2 max-w-md">
+            {triggeredImages.map((img) => (
+              <div
+                key={img.id}
+                className="relative aspect-square rounded-lg overflow-hidden glass-card"
+              >
+                <img
+                  src={img.imageUrl}
+                  alt={img.description || 'Situational image'}
+                  className="w-full h-full object-cover"
+                />
+                {img.description && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                    <p className="text-label-small text-white">
+                      {img.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center gap-2 mt-1 text-label-small text-on-surface-variant">

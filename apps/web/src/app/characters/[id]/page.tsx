@@ -7,6 +7,7 @@ import { TopNav } from '@/components/layout/TopNav';
 import { useAuthStore } from '@/stores/authStore';
 import { useState } from 'react';
 import { formatNumber } from '@/lib/utils';
+import { RelatedContentCard } from '@/components/character/components/RelatedContentCard';
 
 export default function CharacterDetailPage() {
   const params = useParams();
@@ -36,6 +37,21 @@ export default function CharacterDetailPage() {
     },
     enabled: !!user,
   });
+
+  // Parse dataJson to extract additional info
+  let characterData: any = {};
+  try {
+    if (character?.dataJson) {
+      characterData = JSON.parse(character.dataJson);
+    }
+  } catch (e) {
+    console.error('Failed to parse character data:', e);
+  }
+
+  const relatedContent = characterData.relatedContent || [];
+  const situationalImages = characterData.situationalImages || [];
+  const exampleDialogues = characterData.exampleDialogues || [];
+  const authorComments = characterData.authorComments;
 
   // Create chat room mutation
   const createChatMutation = useMutation({
@@ -198,6 +214,86 @@ export default function CharacterDetailPage() {
                     </span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Related Content */}
+            {relatedContent.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-title-medium mb-2">관련 콘텐츠</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {relatedContent.map((content: any) => (
+                    <RelatedContentCard
+                      key={content.id}
+                      content={content}
+                      readOnly={true}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Situational Images */}
+            {situationalImages.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-title-medium mb-2">상황별 이미지</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {situationalImages.map((img: any) => (
+                    <div key={img.id} className="space-y-2">
+                      <div className="relative aspect-square rounded-lg overflow-hidden bg-surface-container">
+                        <img
+                          src={img.imageUrl}
+                          alt={img.description || '상황별 이미지'}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {img.description && (
+                        <p className="text-label-small text-on-surface-variant">
+                          {img.description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {img.triggers.map((trigger: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-1 text-label-small bg-surface-container-high rounded"
+                          >
+                            {trigger}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Example Dialogues */}
+            {exampleDialogues.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-title-medium mb-2">예제 대화</h3>
+                <div className="space-y-3">
+                  {exampleDialogues.map((dialogue: any) => (
+                    <div key={dialogue.id} className="space-y-2">
+                      <p className="text-label-medium text-on-surface-variant">
+                        {dialogue.situation}
+                      </p>
+                      <div className="pl-4 border-l-2 border-primary">
+                        <p className="text-body-medium">{dialogue.response}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Author Comments */}
+            {authorComments && (
+              <div className="mb-6">
+                <h3 className="text-title-medium mb-2">작성자 코멘트</h3>
+                <p className="text-body-medium text-on-surface-variant whitespace-pre-wrap">
+                  {authorComments}
+                </p>
               </div>
             )}
 

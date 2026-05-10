@@ -2,6 +2,8 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { authenticateUser } from '../plugins/auth.js';
 import { prisma } from '../config/prisma.js';
 import { GemService } from '../services/gem.service.js';
+import { replacePlaceholders } from '../utils/placeholder.js';
+import { matchTriggeredImages } from '../utils/imageMatcher.js';
 
 export async function chatRoutes(server: FastifyInstance) {
   // Send a chat message with SSE streaming
@@ -33,7 +35,19 @@ export async function chatRoutes(server: FastifyInstance) {
     // 1. Verify room ownership
     const room = await prisma.chatRoom.findUnique({
       where: { id: roomId },
-      include: { character: true },
+      include: {
+        character: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            greeting: true,
+            tagline: true,
+            lorebook: true,
+            data: true, // Includes situationalImages
+          },
+        },
+      },
     });
 
     if (!room || room.userId !== request.user!.id) {
@@ -92,7 +106,63 @@ export async function chatRoutes(server: FastifyInstance) {
       },
     });
 
-    // 5. Forward to AI server
+    // 5. Get persona name for placeholder replacement
+    let personaName = '사용자';
+    if (room.personaId) {
+      const persona = await prisma.userPersona.findUnique({
+        where: { id: room.personaId },
+        select: { name: true },
+      });
+      if (persona) {
+        personaName = persona.name;
+      }
+    }
+
+    // 6. Prepare character context with placeholder replacement
+    const replacements = {
+      userName: personaName,
+      characterName: room.character.name,
+    };
+
+    const characterContext = {
+      name: room.character.name,
+      description: replacePlaceholders(room.character.description || '', replacements),
+      greeting: replacePlaceholders(room.character.greeting || '', replacements),
+      personality: replacePlaceholders(room.character.tagline || '', replacements),
+    };
+
+    // Parse lorebook if exists
+    let lorebookEntries: any[] = [];
+    if (room.character.lorebook) {
+      try {
+        const lorebook = typeof room.character.lorebook === 'string'
+          ? JSON.parse(room.character.lorebook)
+          : room.character.lorebook;
+        lorebookEntries = lorebook.entries || [];
+      } catch (e) {
+        server.log.warn('Failed to parse lorebook');
+      }
+    }
+
+    // Extract situational images for AI context
+    let situationalImagesInfo: any[] = [];
+    try {
+      const characterData = room.character.data as any;
+      if (characterData?.situationalImages) {
+        // Send only triggers and description to AI (not imageUrl)
+        situationalImagesInfo = characterData.situationalImages.map((img: any) => ({
+          triggers: img.triggers,
+          description: img.description,
+        }));
+      }
+    } catch (e) {
+      server.log.warn('Failed to extract situational images');
+    }
+
+    // Replace placeholders in user message (so AI understands context)
+    const processedContent = replacePlaceholders(content, replacements);
+
+    // 7. Forward to AI server
     const aiServerUrl = process.env.AI_SERVER_URL || 'http://localhost:8000';
 
     try {
@@ -102,9 +172,12 @@ export async function chatRoutes(server: FastifyInstance) {
         body: JSON.stringify({
           room_id: roomId,
           user_id: request.user!.id,
-          message: content,
+          message: processedContent,
           model_slug: model.slug,
           max_tokens: model.maxOutputTokens,
+          character: characterContext,
+          lorebook_entries: lorebookEntries,
+          situational_triggers: situationalImagesInfo,
         }),
       });
 
@@ -134,6 +207,8 @@ export async function chatRoutes(server: FastifyInstance) {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
+          'Access-Control-Allow-Credentials': 'true',
         });
 
         reply.raw.write(`data: ${JSON.stringify({
@@ -147,11 +222,13 @@ export async function chatRoutes(server: FastifyInstance) {
         return;
       }
 
-      // 6. Relay SSE events
+      // 8. Relay SSE events
       reply.raw.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
+        'Access-Control-Allow-Credentials': 'true',
       });
 
       const reader = aiResponse.body!.getReader();
@@ -174,16 +251,35 @@ export async function chatRoutes(server: FastifyInstance) {
               accumulated = data.content;
 
               if (data.is_final_event) {
-                // 7. Update AI message in DB
+                // 7. Match situational images
+                let triggeredImages: any[] = [];
+                try {
+                  const characterData = room.character.data as any;
+                  if (characterData?.situationalImages) {
+                    triggeredImages = matchTriggeredImages(
+                      accumulated,
+                      characterData.situationalImages
+                    );
+                  }
+                } catch (e) {
+                  server.log.warn('Failed to match situational images');
+                }
+
+                // 8. Update AI message in DB with triggered images
                 await prisma.message.update({
                   where: { id: aiMessage.id },
-                  data: { content: accumulated },
+                  data: {
+                    content: accumulated,
+                    metadata: {
+                      triggeredImages,
+                    },
+                  },
                 });
 
-                // 8. Deduct gems
+                // 9. Deduct gems
                 await gemService.deductGems(request.user!.id, gemCost, aiMessage.id);
 
-                // 9. Update chat room
+                // 10. Update chat room
                 await prisma.chatRoom.update({
                   where: { id: roomId },
                   data: { lastMessageAt: new Date() },

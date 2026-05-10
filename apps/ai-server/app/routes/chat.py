@@ -42,6 +42,9 @@ async def send_chat_message(
             character:characters(
                 id,
                 name,
+                description,
+                tagline,
+                greeting,
                 data,
                 lorebook
             ),
@@ -81,12 +84,58 @@ async def send_chat_message(
         )
 
         # Build system prompt
+        # Merge main character fields with data JSON
+        character_data = character.get("data", {})
+
+        # Use description as systemPrompt (main personality)
+        if character.get("description"):
+            character_data["systemPrompt"] = character.get("description")
+
+        # Use tagline as personality summary
+        if character.get("tagline"):
+            character_data["personality"] = character.get("tagline")
+
+        # Use greeting as scenario
+        if character.get("greeting"):
+            character_data["scenario"] = character.get("greeting")
+
+        # Format example dialogues if they exist in data
+        if "exampleDialogues" in character_data and isinstance(character_data["exampleDialogues"], list):
+            formatted_examples = []
+            for ex in character_data["exampleDialogues"]:
+                if isinstance(ex, dict) and "situation" in ex and "response" in ex:
+                    formatted_examples.append(f"Situation: {ex['situation']}\nResponse: {ex['response']}")
+            if formatted_examples:
+                character_data["exampleDialogues"] = formatted_examples
+
+        # Extract situational image triggers
+        situational_triggers = []
+        if "situationalImages" in character_data and isinstance(character_data["situationalImages"], list):
+            for img in character_data["situationalImages"]:
+                if isinstance(img, dict) and "triggers" in img:
+                    situational_triggers.append({
+                        "triggers": img.get("triggers", []),
+                        "description": img.get("description", "")
+                    })
+
+        # Filter lorebook entries by keyword triggers
+        lorebook = character.get("lorebook") or {}
+        all_lorebook_entries = lorebook.get("entries", []) if isinstance(lorebook, dict) else []
+
+        # Only include lorebook entries that are triggered by keywords in the conversation
+        triggered_lorebook_entries = PromptBuilder.filter_triggered_lorebook_entries(
+            lorebook_entries=all_lorebook_entries,
+            message_history=message_history,
+            new_message=request.message
+        )
+
         system_prompt = PromptBuilder.build_system_prompt(
-            character_data=character.get("data", {}),
-            lorebook=character.get("lorebook"),
+            character_data=character_data,
+            lorebook={"entries": triggered_lorebook_entries} if triggered_lorebook_entries else None,
             user_persona=persona_data.get("persona") if persona_data else None,
             user_note=room.get("user_note"),
             conversation_summary=room.get("conversation_summary"),
+            situational_triggers=situational_triggers if situational_triggers else None,
         )
 
         # Build full message array

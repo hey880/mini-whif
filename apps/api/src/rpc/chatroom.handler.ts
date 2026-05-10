@@ -41,6 +41,14 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
               name: true,
             },
           },
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              content: true,
+              role: true,
+            },
+          },
           _count: {
             select: {
               messages: true,
@@ -52,21 +60,30 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
     ]);
 
     return {
-      chatRooms: chatRooms.map((room) => ({
-        id: room.id,
-        userId: room.userId,
-        characterId: room.characterId,
-        personaId: room.personaId || undefined,
-        userNote: room.userNote || undefined,
-        conversationSummary: room.conversationSummary || undefined,
-        lastMessageAt: room.lastMessageAt?.toISOString() || undefined,
-        isPinned: room.isPinned,
-        createdAt: room.createdAt.toISOString(),
-        updatedAt: room.updatedAt.toISOString(),
-        messageCount: room._count.messages,
-        characterName: room.character.name,
-        characterImageUrl: room.character.imageUrl || undefined,
-      })),
+      chatRooms: chatRooms.map((room) => {
+        const lastMessage = room.messages[0];
+        return {
+          id: room.id,
+          userId: room.userId,
+          characterId: room.characterId,
+          personaId: room.personaId || undefined,
+          userNote: room.userNote || undefined,
+          conversationSummary: room.conversationSummary || undefined,
+          lastMessageAt: room.lastMessageAt?.toISOString() || undefined,
+          isPinned: room.isPinned,
+          createdAt: room.createdAt.toISOString(),
+          updatedAt: room.updatedAt.toISOString(),
+          messageCount: room._count.messages,
+          characterName: room.character.name,
+          characterImageUrl: room.character.imageUrl || undefined,
+          lastMessage: lastMessage
+            ? {
+                content: lastMessage.content,
+                role: lastMessage.role,
+              }
+            : undefined,
+        };
+      }),
       total,
       hasMore: offset + chatRooms.length < total,
     };
@@ -117,6 +134,17 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
       throw new ConnectError('Forbidden', Code.PermissionDenied);
     }
 
+    // Extract situational images from character data
+    let situationalImages: any[] = [];
+    try {
+      const characterData = chatRoom.character.data as any;
+      if (characterData?.situationalImages) {
+        situationalImages = characterData.situationalImages;
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+
     return {
       chatRoom: {
         id: chatRoom.id,
@@ -134,6 +162,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
           name: chatRoom.character.name,
           imageUrl: chatRoom.character.imageUrl || undefined,
           tagline: chatRoom.character.tagline || undefined,
+          situationalImages,
         },
         persona: chatRoom.persona
           ? {
@@ -143,6 +172,8 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
           : undefined,
         messageCount: chatRoom._count.messages,
         lastMessage: undefined,
+        characterName: chatRoom.character.name,
+        characterImageUrl: chatRoom.character.imageUrl || undefined,
       },
     };
   },
@@ -157,7 +188,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
     // Verify character exists
     const character = await prisma.character.findUnique({
       where: { id: req.characterId },
-      select: { id: true, name: true, imageUrl: true },
+      select: { id: true, name: true, imageUrl: true, greeting: true, data: true },
     });
 
     if (!character) {
@@ -204,6 +235,36 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
         },
       },
     });
+
+    // Add initial greeting message
+    let greetingContent = '';
+
+    // Try to get greeting from data.greetings array (new wizard format)
+    if (character.data && typeof character.data === 'object') {
+      const data = character.data as any;
+      if (Array.isArray(data.greetings) && data.greetings.length > 0) {
+        // Find default greeting or use first one
+        const defaultGreeting = data.greetings.find((g: any) => g.isDefault);
+        const greeting = defaultGreeting || data.greetings[0];
+        greetingContent = greeting.content || '';
+      }
+    }
+
+    // Fallback to legacy greeting field
+    if (!greetingContent && character.greeting) {
+      greetingContent = character.greeting;
+    }
+
+    // Create greeting message if we have content
+    if (greetingContent) {
+      await prisma.message.create({
+        data: {
+          roomId: chatRoom.id,
+          role: 'assistant',
+          content: greetingContent,
+        },
+      });
+    }
 
     return {
       chatRoom: {
@@ -386,20 +447,26 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
     ]);
 
     return {
-      messages: messages.map((msg) => ({
-        id: msg.id,
-        roomId: msg.roomId,
-        role: msg.role,
-        content: msg.content,
-        modelSlug: msg.modelSlug || undefined,
-        versionNumber: msg.versionNumber,
-        parentMessageId: msg.parentMessageId || undefined,
-        positiveReactionCount: msg.positiveReactionCount,
-        negativeReactionCount: msg.negativeReactionCount,
-        createdAt: msg.createdAt.toISOString(),
-        updatedAt: msg.updatedAt.toISOString(),
-        versionCount: msg._count.versions + 1, // +1 for current version
-      })),
+      messages: messages.map((msg) => {
+        // Extract triggered images from metadata
+        const metadata = msg.metadata as any;
+        const triggeredImages = metadata?.triggeredImages || [];
+
+        return {
+          id: msg.id,
+          roomId: msg.roomId,
+          role: msg.role,
+          content: msg.content,
+          modelSlug: msg.modelSlug || undefined,
+          versionNumber: msg.versionNumber,
+          parentMessageId: msg.parentMessageId || undefined,
+          positiveReactionCount: msg.positiveReactionCount,
+          negativeReactionCount: msg.negativeReactionCount,
+          createdAt: msg.createdAt.toISOString(),
+          updatedAt: msg.updatedAt.toISOString(),
+          triggeredImages,
+        };
+      }),
       total,
       hasMore: offset + messages.length < total,
     };

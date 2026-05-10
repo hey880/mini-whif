@@ -11,6 +11,8 @@ import { useSSEChat } from '@/hooks/useSSEChat';
 import { useChatStore } from '@/stores/chatStore';
 import { useEffect, useRef } from 'react';
 import { formatNumber } from '@/lib/utils';
+import { toast, Toaster } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 export default function ChatPage() {
   const params = useParams();
@@ -51,9 +53,24 @@ export default function ChatPage() {
     queryKey: ['wallet'],
     queryFn: async () => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+      // Get access token from Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
       const response = await fetch(`${apiUrl}/mypage/wallet`, {
-        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Failed to fetch wallet');
+      }
+
       return response.json();
     },
   });
@@ -66,9 +83,23 @@ export default function ChatPage() {
   const handleSendMessage = async (message: string) => {
     try {
       await sendMessage(roomId, message);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send message:', error);
-      alert('Failed to send message. Please try again.');
+
+      // Special handling for gem shortage
+      if (error.message?.includes('Insufficient gems')) {
+        toast.error('젬이 부족합니다', {
+          description: '젬을 충전하고 다시 시도해주세요',
+          action: {
+            label: '충전하기',
+            onClick: () => router.push('/mypage?tab=gems'),
+          },
+        });
+      } else {
+        toast.error('메시지 전송 실패', {
+          description: error.message || '다시 시도해주세요',
+        });
+      }
     }
   };
 
@@ -105,9 +136,11 @@ export default function ChatPage() {
   }
 
   const totalGems = walletData?.data?.totalGems || 0;
+  const userName = room.persona?.name || '사용자';
 
   return (
     <div className="h-screen bg-background flex flex-col">
+      <Toaster position="top-center" />
       <TopNav />
 
       {/* Chat Header */}
@@ -163,7 +196,7 @@ export default function ChatPage() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="max-w-5xl mx-auto px-container-padding py-6 space-y-4">
-          {messagesData?.messages.map((message: { id: string; role: string; content: string; createdAt: string }) => (
+          {messagesData?.messages.map((message: any) => (
             <MessageBubble
               key={message.id}
               role={message.role as 'user' | 'assistant'}
@@ -171,6 +204,8 @@ export default function ChatPage() {
               timestamp={message.createdAt}
               characterName={room.character?.name}
               characterImageUrl={room.character?.imageUrl}
+              userName={userName}
+              triggeredImages={message.triggeredImages}
             />
           ))}
 
@@ -182,6 +217,7 @@ export default function ChatPage() {
               timestamp={new Date().toISOString()}
               characterName={room.character?.name}
               characterImageUrl={room.character?.imageUrl}
+              userName={userName}
             />
           )}
 
