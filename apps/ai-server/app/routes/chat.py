@@ -35,42 +35,106 @@ async def send_chat_message(
         StreamingResponse with SSE events
     """
     try:
-        # Fetch chat room with character data
-        room_response = supabase.table("chat_rooms").select(
-            """
-            *,
-            character:characters(
-                id,
-                name,
-                description,
-                tagline,
-                greeting,
-                data,
-                lorebook
-            ),
-            persona:user_personas(
-                persona
-            )
-            """
-        ).eq("id", request.room_id).single().execute()
+        # Use character and lorebook data from API server if provided
+        # This avoids duplicate DB queries and ensures consistent data
+        if request.character and request.lorebook_entries is not None:
+            # Use data from API server (preferred)
+            character_data = request.character
+            lorebook_entries = request.lorebook_entries
+            situational_triggers = request.situational_triggers or []
 
-        if not room_response.data:
-            async def error_stream():
-                error_data = ChatResponseChunk(
-                    event_id=0,
-                    content="Error: Chat room not found",
-                    is_final_event=True
+            # Fetch only room and persona data
+            room_response = supabase.table("chat_rooms").select(
+                """
+                *,
+                persona:user_personas(
+                    persona
                 )
-                yield f"data: {error_data.model_dump_json()}\n\n"
+                """
+            ).eq("id", request.room_id).single().execute()
 
-            return StreamingResponse(
-                error_stream(),
-                media_type="text/event-stream"
-            )
+            if not room_response.data:
+                async def error_stream():
+                    error_data = ChatResponseChunk(
+                        event_id=0,
+                        content="Error: Chat room not found",
+                        is_final_event=True
+                    )
+                    yield f"data: {error_data.model_dump_json()}\n\n"
 
-        room = room_response.data
-        character = room.get("character", {})
-        persona_data = room.get("persona")
+                return StreamingResponse(
+                    error_stream(),
+                    media_type="text/event-stream"
+                )
+
+            room = room_response.data
+            persona_data = room.get("persona")
+
+        else:
+            # Fallback: Fetch everything from DB (legacy behavior)
+            room_response = supabase.table("chat_rooms").select(
+                """
+                *,
+                character:characters(
+                    id,
+                    name,
+                    description,
+                    tagline,
+                    greeting,
+                    data,
+                    lorebook
+                ),
+                persona:user_personas(
+                    persona
+                )
+                """
+            ).eq("id", request.room_id).single().execute()
+
+            if not room_response.data:
+                async def error_stream():
+                    error_data = ChatResponseChunk(
+                        event_id=0,
+                        content="Error: Chat room not found",
+                        is_final_event=True
+                    )
+                    yield f"data: {error_data.model_dump_json()}\n\n"
+
+                return StreamingResponse(
+                    error_stream(),
+                    media_type="text/event-stream"
+                )
+
+            room = room_response.data
+            character = room.get("character", {})
+            persona_data = room.get("persona")
+
+            # Extract data for legacy path
+            character_data = {
+                "name": character.get("name"),
+                "description": character.get("description"),
+                "personality": character.get("tagline"),
+                "scenario": character.get("greeting"),
+            }
+
+            # Merge character.data if exists
+            if character.get("data"):
+                char_data_json = character.get("data")
+                if isinstance(char_data_json, dict):
+                    character_data.update(char_data_json)
+
+            # Extract lorebook
+            lorebook = character.get("lorebook") or {}
+            lorebook_entries = lorebook.get("entries", []) if isinstance(lorebook, dict) else []
+
+            # Extract situational triggers
+            situational_triggers = []
+            if "situationalImages" in character_data and isinstance(character_data["situationalImages"], list):
+                for img in character_data["situationalImages"]:
+                    if isinstance(img, dict) and "triggers" in img:
+                        situational_triggers.append({
+                            "triggers": img.get("triggers", []),
+                            "description": img.get("description", "")
+                        })
 
         # Fetch recent messages (last 20)
         messages_response = supabase.table("messages").select(
@@ -83,22 +147,6 @@ async def send_chat_message(
             messages_response.data or []
         )
 
-        # Build system prompt
-        # Merge main character fields with data JSON
-        character_data = character.get("data", {})
-
-        # Use description as systemPrompt (main personality)
-        if character.get("description"):
-            character_data["systemPrompt"] = character.get("description")
-
-        # Use tagline as personality summary
-        if character.get("tagline"):
-            character_data["personality"] = character.get("tagline")
-
-        # Use greeting as scenario
-        if character.get("greeting"):
-            character_data["scenario"] = character.get("greeting")
-
         # Format example dialogues if they exist in data
         if "exampleDialogues" in character_data and isinstance(character_data["exampleDialogues"], list):
             formatted_examples = []
@@ -108,23 +156,10 @@ async def send_chat_message(
             if formatted_examples:
                 character_data["exampleDialogues"] = formatted_examples
 
-        # Extract situational image triggers
-        situational_triggers = []
-        if "situationalImages" in character_data and isinstance(character_data["situationalImages"], list):
-            for img in character_data["situationalImages"]:
-                if isinstance(img, dict) and "triggers" in img:
-                    situational_triggers.append({
-                        "triggers": img.get("triggers", []),
-                        "description": img.get("description", "")
-                    })
-
         # Filter lorebook entries by keyword triggers
-        lorebook = character.get("lorebook") or {}
-        all_lorebook_entries = lorebook.get("entries", []) if isinstance(lorebook, dict) else []
-
         # Only include lorebook entries that are triggered by keywords in the conversation
         triggered_lorebook_entries = PromptBuilder.filter_triggered_lorebook_entries(
-            lorebook_entries=all_lorebook_entries,
+            lorebook_entries=lorebook_entries,
             message_history=message_history,
             new_message=request.message
         )
@@ -143,6 +178,7 @@ async def send_chat_message(
             system_prompt=system_prompt,
             message_history=message_history,
             new_user_message=request.message,
+            hint=request.hint,
         )
 
         # Stream response

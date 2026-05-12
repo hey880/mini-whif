@@ -12,8 +12,13 @@ class ChatRequest(BaseModel):
     room_id: str = Field(description="Chat room ID")
     user_id: str = Field(description="User ID")
     message: str = Field(description="User message content")
+    hint: str | None = Field(default=None, description="Hint for character's next action (auto-continue)")
     model_slug: str = Field(description="LLM model slug")
     max_tokens: int = Field(default=2048, ge=1, le=8192)
+    # Character and context data
+    character: dict | None = Field(default=None, description="Character context")
+    lorebook_entries: list[dict] | None = Field(default=None, description="Lorebook entries")
+    situational_triggers: list[dict] | None = Field(default=None, description="Situational image triggers")
 
 
 class ChatResponseChunk(BaseModel):

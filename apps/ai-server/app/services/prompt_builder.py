@@ -28,6 +28,49 @@ class PromptBuilder:
         """
         sections = []
 
+        # 반말 강제 규칙을 맨 맨 앞에 배치 - 최우선순위
+        sections.append("""# 🚨🚨🚨 ABSOLUTE RULE #1 - 반말 필수 🚨🚨🚨
+
+## ⚠️ 경고: 이 규칙을 어기면 응답 전체가 무효됩니다 ⚠️
+
+### 핵심 규칙:
+따옴표 밖의 모든 문장(지문, 행동, 서술)은 **무조건 반말**로 끝나야 합니다.
+
+### 허용되는 어미 (ONLY these):
+- ~다 (간다, 먹는다, 좋다, 본다)
+- ~ㄴ다 (보인다, 들린다)
+- ~네 (좋네, 가네)
+- ~군 (그렇군, 예쁘군)
+- ~구나 (아름답구나)
+- ~어/~아 (높아, 가까워)
+- ~지 (좋지, 그렇지)
+
+### 절대 금지 (NEVER use):
+- ~습니다 ❌ NEVER
+- ~ㅂ니다 ❌ NEVER
+- ~입니다 ❌ NEVER
+- ~합니다 ❌ NEVER
+- ~였습니다 ❌ NEVER
+- ~합니다 ❌ NEVER
+
+### 예시 - 반드시 이렇게:
+❌ 틀림: *고개를 숙입니다* 그는 미소를 짓습니다.
+✅ 정답: *고개를 숙인다* 그는 미소를 짓는다.
+
+❌ 틀림: 창밖을 바라봅니다. 하늘이 맑습니다.
+✅ 정답: 창밖을 바라본다. 하늘이 맑다.
+
+❌ 틀림: *손을 흔듭니다* 그녀가 다가옵니다.
+✅ 정답: *손을 흔든다* 그녀가 다가온다.
+
+### 대사만 예외:
+"안녕하세요" ← 이건 OK (따옴표 안)
+그는 말한다 ← 이것도 반말로 (따옴표 밖)
+
+### 다시 한번 강조:
+따옴표 밖 = 무조건 반말 (~다, ~네, ~군, ~어)
+따옴표 안 = 존댓말 가능""")
+
         # Character personality
         if personality := character_data.get("personality"):
             sections.append(f"# Character Personality\n{personality}")
@@ -38,32 +81,50 @@ class PromptBuilder:
         if system_prompt := character_data.get("systemPrompt"):
             sections.append(f"# Instructions\n{system_prompt}")
 
-        # Narration style guidance
-        sections.append("""# Writing Style Guide (CRITICAL - MUST FOLLOW EXACTLY)
+        # Narration style guidance - 더욱 강화된 반말 강제
+        sections.append("""# 작성 스타일 가이드
 
-## Format Rules:
-1. **Actions/Gestures** → Wrap in *single asterisks* (for italic)
-2. **Dialogue** → Wrap in "quotation marks"
-3. **Narration** → Plain text
+## 🚨 절대 규칙: 지문과 행동은 무조건 반말
 
-## Tone Rules (ABSOLUTELY REQUIRED):
-- ALL narration/actions MUST use 반말체 (casual): ~다, ~네, ~어, ~아, ~지
-- FORBIDDEN: ~습니다, ~합니다, ~ㅂ니다, ~였습니다 (NEVER USE THESE)
+지문과 행동 묘사의 모든 문장은 다음 어미로만 끝나야 합니다:
+- ~다, ~ㄴ다 (간다, 먹는다, 좋다)
+- ~네, ~군, ~구나 (좋네, 그렇군, 예쁘구나)
+- ~어, ~아 (높아, 가까워)
 
-## Example Response (FOLLOW THIS FORMAT):
+절대 사용 금지:
+- ~습니다 ❌
+- ~ㅂ니다 ❌
+- ~입니다 ❌
+- ~합니다 ❌
+
+대사(따옴표 안)만 존댓말 가능합니다.
+
+## 포맷 규칙:
+1. **행동/제스처** → *별표 하나*로 감싸기
+2. **대사** → "큰따옴표"로 감싸기
+3. **지문** → 평문
+
+## 올바른 예시 (이대로 따라하세요):
 "안녕하세요. 오늘 날씨가 좋네요." *미소를 지으며 손을 흔든다* 창밖을 바라보니 햇살이 눈부시다. *의자를 가리킨다* "여기 앉으세요."
 
-## Breakdown:
-- "안녕하세요. 오늘 날씨가 좋네요." ← Dialogue (quotation marks)
-- *미소를 지으며 손을 흔든다* ← Action (single asterisks + 반말: ~다)
-- 창밖을 바라보니 햇살이 눈부시다 ← Narration (plain + 반말: ~다)
-- *의자를 가리킨다* ← Action (single asterisks + 반말: ~다)
-- "여기 앉으세요." ← Dialogue (quotation marks)
+### 세부 분석:
+- "안녕하세요." ← 대사 (따옴표)
+- *미소를 지으며 손을 흔든다* ← 행동 (별표 + 반말 ~다) ✅
+- 창밖을 바라보니 햇살이 눈부시다 ← 지문 (반말 ~다) ✅
+- *의자를 가리킨다* ← 행동 (별표 + 반말 ~다) ✅
 
-## CRITICAL REMINDERS:
-✓ Use *single asterisks* for ALL physical actions (NOT double **)
-✓ End ALL narration/actions with ~다/~네/~어 (NOT ~습니다)
-✓ Mix dialogue, actions, and narration naturally""")
+## 잘못된 예시 (절대 금지):
+❌ *미소를 짓습니다* → ✅ *미소를 짓는다*
+❌ 창밖을 바라봅니다 → ✅ 창밖을 바라본다
+❌ *손을 흔듭니다* → ✅ *손을 흔든다*
+❌ 그녀는 아름답습니다 → ✅ 그녀는 아름답다
+
+## 필수 체크리스트:
+1. 행동은 *별표 하나*로 감싸기 (** 이중 별표 아님)
+2. 모든 지문/행동은 반드시 반말로 (~다/~네/~어)
+3. ~습니다, ~ㅂ니다 절대 사용 금지
+
+**다시 강조: 지문과 행동에서 ~습니다는 절대 사용하지 마세요. 오직 반말만 사용하세요!**""")
 
         # Lorebook
         if lorebook and (entries := lorebook.get("entries")):
@@ -182,6 +243,7 @@ class PromptBuilder:
         system_prompt: str,
         message_history: list[dict[str, str]],
         new_user_message: str,
+        hint: str | None = None,
     ) -> list[dict[str, str]]:
         """
         Build complete message array for AI model.
@@ -190,6 +252,7 @@ class PromptBuilder:
             system_prompt: System prompt
             message_history: Previous messages
             new_user_message: New message from user
+            hint: Optional hint for character's next action (auto-continue)
 
         Returns:
             Complete message list
@@ -199,7 +262,23 @@ class PromptBuilder:
         # Add history (last 20 messages to stay within context)
         messages.extend(message_history[-20:])
 
-        # Add new user message
-        messages.append({"role": "user", "content": new_user_message})
+        # If hint is provided (auto-continue), add it as a system instruction
+        if hint:
+            hint_instruction = f"""## 🎯 자동진행 힌트
+
+다음은 **{{{{char}}}}(캐릭터)**가 할 행동/말에 대한 힌트입니다:
+"{hint}"
+
+⚠️ 중요:
+- 이 힌트는 **{{{{char}}}}의 행동**입니다 ({{{{user}}}}가 아님)
+- 이 힌트를 참고하여 {{{{char}}}}의 다음 행동/대사를 자연스럽게 작성하세요
+- 힌트를 그대로 복사하지 말고, 캐릭터의 성격에 맞게 풀어서 표현하세요
+- 지문과 행동 묘사는 반드시 반말(~다, ~네, ~어)로 끝내세요"""
+
+            messages.append({"role": "system", "content": hint_instruction})
+
+        # Add new user message (can be empty for auto-continue)
+        if new_user_message:
+            messages.append({"role": "user", "content": new_user_message})
 
         return messages
