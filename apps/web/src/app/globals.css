@@ -32,6 +32,17 @@
     @apply bg-primary-container/15 backdrop-blur-md rounded-2xl rounded-tr-sm p-4 border border-primary/30;
   }
 
+  /* Message Content Styling */
+  .ai-bubble .dialogue {
+    /* Dialogue: default style */
+  }
+
+  .ai-bubble .action {
+    /* Action: italic, muted color */
+    font-style: italic;
+    color: rgb(156 163 175 / 0.8); /* text-on-surface-variant/80 */
+  }
+
   /* Special Effects */
   .persona-pulse {
     @apply relative overflow-hidden;
@@ -124,6 +135,22 @@
   }
 
   /* Material Symbols Icon */
+  .material-symbols-outlined,
+  .material-symbols-filled {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   .material-symbols-outlined {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   }

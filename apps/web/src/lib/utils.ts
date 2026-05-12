@@ -29,3 +29,28 @@ export function formatNumber(num: number): string {
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return num?.toString();
 }
+
+/**
+ * Replace placeholders in message text
+ *
+ * @param text - Text with placeholders
+ * @param userName - User/persona name (replaces {{user}})
+ * @param characterName - Character name (replaces {{char}})
+ */
+export function replacePlaceholders(
+  text: string,
+  userName?: string,
+  characterName?: string
+): string {
+  let result = text;
+
+  if (userName) {
+    result = result.replace(/\{\{user\}\}/gi, userName);
+  }
+
+  if (characterName) {
+    result = result.replace(/\{\{char\}\}/gi, characterName);
+  }
+
+  return result;
+}

@@ -328,7 +328,9 @@ export function Step4SituationalImages() {
                   트리거 키워드 <span className="text-error">*</span>
                 </label>
                 <p className="text-xs text-on-surface-variant mb-2">
-                  이 키워드들이 대화에 등장하면 이미지가 표시됩니다
+                  ⚠️ 짧은 단어나 명사를 입력하세요 (문장이 아닌 키워드)
+                  <br />
+                  예: "돈", "지갑", "웃음", "눈물" - AI 응답에 이 단어가 포함되면 이미지 표시
                 </p>
                 <div className="flex gap-2 mb-2">
                   <input
@@ -336,7 +338,7 @@ export function Step4SituationalImages() {
                     value={triggerInput}
                     onChange={(e) => setTriggerInput(e.target.value)}
                     onKeyDown={handleTriggerKeyDown}
-                    placeholder="예: {{char}}가 웃는다, {{user}}가 놀라는 상황"
+                    placeholder="예: 돈, 지갑, 현금 (한 단어씩 입력)"
                     className="flex-1 px-4 py-2 rounded-xl bg-surface-container text-on-surface border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors"
                   />
                   <button

@@ -3,11 +3,13 @@
 import { Edit2, Trash2, Image, Video, Link as LinkIcon } from 'lucide-react';
 import { RelatedContent } from '@/stores/characterWizardStore';
 import { useState } from 'react';
+import { isYoutubeUrl, extractYoutubeVideoId } from '@/lib/linkify';
 
 interface RelatedContentCardProps {
   content: RelatedContent;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  readOnly?: boolean;
 }
 
 const typeIcons = {
@@ -26,9 +28,14 @@ export function RelatedContentCard({
   content,
   onEdit,
   onDelete,
+  readOnly = false,
 }: RelatedContentCardProps) {
   const [imageError, setImageError] = useState(false);
   const Icon = typeIcons[content.type];
+
+  // Check if this is a YouTube video
+  const isYoutube = content.type === 'video' && isYoutubeUrl(content.url);
+  const youtubeVideoId = isYoutube ? extractYoutubeVideoId(content.url) : null;
 
   return (
     <div className="glass-panel p-4">
@@ -40,6 +47,12 @@ export function RelatedContentCard({
               alt={content.title || '관련 콘텐츠'}
               className="w-full h-full object-cover"
               onError={() => setImageError(true)}
+            />
+          ) : isYoutube && youtubeVideoId ? (
+            <img
+              src={`https://img.youtube.com/vi/${youtubeVideoId}/mqdefault.jpg`}
+              alt={content.title || 'YouTube 영상'}
+              className="w-full h-full object-cover"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-on-surface-variant">
@@ -69,29 +82,51 @@ export function RelatedContentCard({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={onEdit}
-                className="p-2 hover:bg-surface-container rounded-lg transition-colors"
-                title="수정"
-              >
-                <Edit2 className="w-4 h-4 text-on-surface-variant" />
-              </button>
-              <button
-                onClick={onDelete}
-                className="p-2 hover:bg-error-container rounded-lg transition-colors"
-                title="삭제"
-              >
-                <Trash2 className="w-4 h-4 text-error" />
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onEdit}
+                  className="p-2 hover:bg-surface-container rounded-lg transition-colors"
+                  title="수정"
+                >
+                  <Edit2 className="w-4 h-4 text-on-surface-variant" />
+                </button>
+                <button
+                  onClick={onDelete}
+                  className="p-2 hover:bg-error-container rounded-lg transition-colors"
+                  title="삭제"
+                >
+                  <Trash2 className="w-4 h-4 text-error" />
+                </button>
+              </div>
+            )}
           </div>
 
-          <p className="text-xs text-on-surface-variant truncate">
+          <a
+            href={content.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline truncate block"
+          >
             {content.url}
-          </p>
+          </a>
         </div>
       </div>
+
+      {/* YouTube Player Embed (readOnly mode only) */}
+      {readOnly && isYoutube && youtubeVideoId && (
+        <div className="mt-4">
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <iframe
+              className="absolute top-0 left-0 w-full h-full rounded-lg"
+              src={`https://www.youtube.com/embed/${youtubeVideoId}`}
+              title={content.title || 'YouTube video'}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

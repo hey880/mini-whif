@@ -12,7 +12,7 @@ import { Step4SituationalImages } from './steps/Step4SituationalImages';
 import { Step5RelatedContent } from './steps/Step5RelatedContent';
 import { Step6Registration } from './steps/Step6Registration';
 import { characterClient } from '@/lib/connectrpc/client';
-import type { Character } from '../../../../../../packages/proto/gen/ts/character_pb';
+import type { Character } from '@persona-chat/proto/gen/ts/character_pb';
 
 interface CharacterWizardProps {
   isOpen: boolean;
@@ -182,10 +182,10 @@ export function CharacterWizard({
   const isOptionalStep = OPTIONAL_STEPS.includes(currentStep);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background overflow-y-auto lg:flex lg:items-center lg:justify-center lg:bg-background/80 lg:backdrop-blur-md">
-      <div className="wizard-content lg:glass-card lg:max-w-4xl lg:w-full lg:max-h-[90vh] lg:overflow-y-auto lg:m-4">
+    <div className="fixed inset-0 z-[100] bg-background lg:flex lg:items-center lg:justify-center lg:bg-background/80 lg:backdrop-blur-md">
+      <div className="wizard-content h-full flex flex-col lg:glass-card lg:max-w-4xl lg:w-full lg:max-h-[90vh] lg:m-4">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-outline-variant/30 p-4 lg:p-6">
+        <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-b border-outline-variant/30 p-4 lg:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-headline-large">
               {isEditMode ? '캐릭터 수정' : '새 캐릭터 만들기'}
@@ -207,26 +207,26 @@ export function CharacterWizard({
         </div>
 
         {/* Step Content */}
-        <div className="px-container-padding pb-8">
+        <div className="flex-1 overflow-y-auto px-container-padding pb-8">
           {currentStep === 1 && <Step1BasicSettings />}
           {currentStep === 2 && <Step2Lorebook />}
           {currentStep === 3 && <Step3Greetings />}
           {currentStep === 4 && <Step4SituationalImages />}
           {currentStep === 5 && <Step5RelatedContent />}
           {currentStep === 6 && <Step6Registration />}
+
+          {/* Error Display */}
+          {submitError && (
+            <div className="mt-4">
+              <div className="p-4 rounded-xl bg-error-container text-on-error-container">
+                <p className="text-sm">{submitError}</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Error Display */}
-        {submitError && (
-          <div className="px-container-padding pb-4">
-            <div className="p-4 rounded-xl bg-error-container text-on-error-container">
-              <p className="text-sm">{submitError}</p>
-            </div>
-          </div>
-        )}
-
         {/* Footer with Navigation */}
-        <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t border-outline-variant/30 px-container-padding py-4">
+        <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-t border-outline-variant/30 px-container-padding py-4">
           <WizardNavigation
             onBack={currentStep > 1 ? prevStep : undefined}
             onNext={handleNext}
