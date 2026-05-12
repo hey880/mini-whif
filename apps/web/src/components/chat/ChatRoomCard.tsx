@@ -132,7 +132,7 @@ export function ChatRoomCard({
   };
 
   return (
-    <div className="relative">
+    <div className={`relative ${showMenu ? 'z-50' : 'z-0'}`}>
       <Link href={`/chat/${roomId}`}>
         <div className="glass-card p-4 flex items-center gap-4 hover:bg-surface-container-high transition-all cursor-pointer group">
           {/* Character Avatar */}
