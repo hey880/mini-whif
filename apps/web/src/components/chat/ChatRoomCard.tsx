@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -237,7 +238,7 @@ export function ChatRoomCard({
       </Link>
 
       {/* Edit Title Modal */}
-      {showEditTitle && (
+      {showEditTitle && typeof window !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="glass-card p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-title-large mb-4">채팅방 제목 수정</h3>
@@ -268,11 +269,12 @@ export function ChatRoomCard({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && typeof window !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="glass-card p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-title-large mb-2">채팅방 삭제</h3>
@@ -294,7 +296,8 @@ export function ChatRoomCard({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
