@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateChatRoomRequest, CreateChatRoomResponse, DeleteChatRoomRequest, DeleteChatRoomResponse, GetChatRoomRequest, GetChatRoomResponse, ListChatRoomsRequest, ListChatRoomsResponse, ListMessagesRequest, ListMessagesResponse, UpdateChatRoomRequest, UpdateChatRoomResponse } from "./chatroom_pb";
+import { CloneChatRoomRequest, CloneChatRoomResponse, CreateChatRoomRequest, CreateChatRoomResponse, DeleteChatRoomRequest, DeleteChatRoomResponse, FindRecentRoomRequest, FindRecentRoomResponse, GetChatRoomRequest, GetChatRoomResponse, ListChatRoomsRequest, ListChatRoomsResponse, ListMessagesRequest, ListMessagesResponse, UpdateChatRoomRequest, UpdateChatRoomResponse } from "./chatroom_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -66,6 +66,24 @@ export const ChatRoomService = {
       name: "ListMessages",
       I: ListMessagesRequest,
       O: ListMessagesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc persona_chat.chatroom.v1.ChatRoomService.CloneChatRoom
+     */
+    cloneChatRoom: {
+      name: "CloneChatRoom",
+      I: CloneChatRoomRequest,
+      O: CloneChatRoomResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc persona_chat.chatroom.v1.ChatRoomService.FindRecentRoomByCharacter
+     */
+    findRecentRoomByCharacter: {
+      name: "FindRecentRoomByCharacter",
+      I: FindRecentRoomRequest,
+      O: FindRecentRoomResponse,
       kind: MethodKind.Unary,
     },
   }

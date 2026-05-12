@@ -169,6 +169,16 @@ export class CreatePersonaRequest extends Message<CreatePersonaRequest> {
    */
   isDefault = false;
 
+  /**
+   * @generated from field: optional string gender = 4;
+   */
+  gender?: string;
+
+  /**
+   * @generated from field: optional string source_character_id = 5;
+   */
+  sourceCharacterId?: string;
+
   constructor(data?: PartialMessage<CreatePersonaRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -180,6 +190,8 @@ export class CreatePersonaRequest extends Message<CreatePersonaRequest> {
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "persona", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "is_default", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "gender", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 5, name: "source_character_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreatePersonaRequest {
@@ -255,6 +267,11 @@ export class UpdatePersonaRequest extends Message<UpdatePersonaRequest> {
    */
   persona?: string;
 
+  /**
+   * @generated from field: optional string gender = 4;
+   */
+  gender?: string;
+
   constructor(data?: PartialMessage<UpdatePersonaRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -266,6 +283,7 @@ export class UpdatePersonaRequest extends Message<UpdatePersonaRequest> {
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 3, name: "persona", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 4, name: "gender", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdatePersonaRequest {
@@ -509,6 +527,16 @@ export class Persona extends Message<Persona> {
    */
   updatedAt = "";
 
+  /**
+   * @generated from field: optional string gender = 8;
+   */
+  gender?: string;
+
+  /**
+   * @generated from field: optional string source_character_id = 9;
+   */
+  sourceCharacterId?: string;
+
   constructor(data?: PartialMessage<Persona>) {
     super();
     proto3.util.initPartial(data, this);
@@ -524,6 +552,8 @@ export class Persona extends Message<Persona> {
     { no: 5, name: "is_default", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 6, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "gender", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 9, name: "source_character_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Persona {

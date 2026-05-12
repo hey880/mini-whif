@@ -67,6 +67,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
           userId: room.userId,
           characterId: room.characterId,
           personaId: room.personaId || undefined,
+          title: room.title || undefined,
           userNote: room.userNote || undefined,
           conversationSummary: room.conversationSummary || undefined,
           lastMessageAt: room.lastMessageAt?.toISOString() || undefined,
@@ -151,6 +152,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
         userId: chatRoom.userId,
         characterId: chatRoom.characterId,
         personaId: chatRoom.personaId || undefined,
+        title: chatRoom.title || undefined,
         userNote: chatRoom.userNote || undefined,
         conversationSummary: chatRoom.conversationSummary || undefined,
         lastMessageAt: chatRoom.lastMessageAt?.toISOString() || undefined,
@@ -272,6 +274,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
         userId: chatRoom.userId,
         characterId: chatRoom.characterId,
         personaId: chatRoom.personaId || undefined,
+        title: chatRoom.title || undefined,
         userNote: chatRoom.userNote || undefined,
         conversationSummary: chatRoom.conversationSummary || undefined,
         lastMessageAt: chatRoom.lastMessageAt?.toISOString() || undefined,
@@ -322,6 +325,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
     if (req.userNote !== undefined) updateData.userNote = req.userNote;
     if (req.conversationSummary !== undefined) updateData.conversationSummary = req.conversationSummary;
     if (req.isPinned !== undefined) updateData.isPinned = req.isPinned;
+    if (req.title !== undefined) updateData.title = req.title;
 
     const chatRoom = await prisma.chatRoom.update({
       where: { id: req.id },
@@ -355,6 +359,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
         userId: chatRoom.userId,
         characterId: chatRoom.characterId,
         personaId: chatRoom.personaId || undefined,
+        title: chatRoom.title || undefined,
         userNote: chatRoom.userNote || undefined,
         conversationSummary: chatRoom.conversationSummary || undefined,
         lastMessageAt: chatRoom.lastMessageAt?.toISOString() || undefined,
@@ -441,6 +446,9 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
               versions: true,
             },
           },
+          userReactions: {
+            where: { userId: user.id },
+          },
         },
       }),
       prisma.message.count({ where: { roomId: req.roomId } }),
@@ -465,10 +473,220 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
           createdAt: msg.createdAt.toISOString(),
           updatedAt: msg.updatedAt.toISOString(),
           triggeredImages,
+          metadataJson: msg.metadata ? JSON.stringify(msg.metadata) : undefined,
+          userReaction: msg.userReactions[0] ? {
+            reactionType: msg.userReactions[0].reactionType,
+            createdAt: msg.userReactions[0].createdAt.toISOString(),
+          } : undefined,
         };
       }),
       total,
       hasMore: offset + messages.length < total,
+    };
+  },
+
+  async cloneChatRoom(req, context: HandlerContext) {
+    const user = context.values.get(userContextKey);
+    if (!user) {
+      throw new ConnectError('Unauthorized', Code.Unauthenticated);
+    }
+
+    // Fetch source room with messages
+    const sourceRoom = await prisma.chatRoom.findUnique({
+      where: { id: req.sourceRoomId },
+      include: {
+        character: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            tagline: true,
+          },
+        },
+        persona: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            role: true,
+            content: true,
+            modelSlug: true,
+            metadata: true,
+          },
+        },
+      },
+    });
+
+    if (!sourceRoom || sourceRoom.userId !== user.id) {
+      throw new ConnectError('Room not found or forbidden', Code.PermissionDenied);
+    }
+
+    // Create new room
+    const newRoom = await prisma.chatRoom.create({
+      data: {
+        userId: user.id,
+        characterId: sourceRoom.characterId,
+        personaId: req.personaId || sourceRoom.personaId,
+        title: `${sourceRoom.title || sourceRoom.character.name} (Copy)`,
+        lastMessageAt: new Date(),
+      },
+      include: {
+        character: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            tagline: true,
+          },
+        },
+        persona: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            messages: true,
+          },
+        },
+      },
+    });
+
+    // Clone messages
+    for (const msg of sourceRoom.messages) {
+      await prisma.message.create({
+        data: {
+          roomId: newRoom.id,
+          role: msg.role,
+          content: msg.content,
+          modelSlug: msg.modelSlug,
+          metadata: msg.metadata,
+        },
+      });
+    }
+
+    return {
+      chatRoom: {
+        id: newRoom.id,
+        userId: newRoom.userId,
+        characterId: newRoom.characterId,
+        personaId: newRoom.personaId || undefined,
+        title: newRoom.title || undefined,
+        userNote: newRoom.userNote || undefined,
+        conversationSummary: newRoom.conversationSummary || undefined,
+        lastMessageAt: newRoom.lastMessageAt?.toISOString() || undefined,
+        isPinned: newRoom.isPinned,
+        createdAt: newRoom.createdAt.toISOString(),
+        updatedAt: newRoom.updatedAt.toISOString(),
+        character: {
+          id: newRoom.character.id,
+          name: newRoom.character.name,
+          imageUrl: newRoom.character.imageUrl || undefined,
+          tagline: newRoom.character.tagline || undefined,
+        },
+        persona: newRoom.persona
+          ? {
+              id: newRoom.persona.id,
+              name: newRoom.persona.name,
+            }
+          : undefined,
+        messageCount: sourceRoom.messages.length,
+        characterName: newRoom.character.name,
+        characterImageUrl: newRoom.character.imageUrl || undefined,
+        lastMessage: undefined,
+      },
+    };
+  },
+
+  async findRecentRoomByCharacter(req, context: HandlerContext) {
+    const user = context.values.get(userContextKey);
+    if (!user) {
+      throw new ConnectError('Unauthorized', Code.Unauthenticated);
+    }
+
+    const room = await prisma.chatRoom.findFirst({
+      where: {
+        userId: user.id,
+        characterId: req.characterId,
+      },
+      orderBy: { lastMessageAt: 'desc' },
+      include: {
+        character: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            tagline: true,
+          },
+        },
+        persona: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            content: true,
+            role: true,
+          },
+        },
+        _count: {
+          select: {
+            messages: true,
+          },
+        },
+      },
+    });
+
+    if (!room) {
+      return { chatRoom: undefined };
+    }
+
+    const lastMessage = room.messages[0];
+
+    return {
+      chatRoom: {
+        id: room.id,
+        userId: room.userId,
+        characterId: room.characterId,
+        personaId: room.personaId || undefined,
+        title: room.title || undefined,
+        userNote: room.userNote || undefined,
+        conversationSummary: room.conversationSummary || undefined,
+        lastMessageAt: room.lastMessageAt?.toISOString() || undefined,
+        isPinned: room.isPinned,
+        createdAt: room.createdAt.toISOString(),
+        updatedAt: room.updatedAt.toISOString(),
+        character: {
+          id: room.character.id,
+          name: room.character.name,
+          imageUrl: room.character.imageUrl || undefined,
+          tagline: room.character.tagline || undefined,
+        },
+        persona: room.persona
+          ? {
+              id: room.persona.id,
+              name: room.persona.name,
+            }
+          : undefined,
+        messageCount: room._count.messages,
+        characterName: room.character.name,
+        characterImageUrl: room.character.imageUrl || undefined,
+        lastMessage: lastMessage
+          ? {
+              content: lastMessage.content,
+              createdAt: room.lastMessageAt?.toISOString() || '',
+            }
+          : undefined,
+      },
     };
   },
 };

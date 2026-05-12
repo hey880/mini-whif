@@ -1,13 +1,16 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TopNav } from '@/components/layout/TopNav';
 import { ChatRoomCard } from '@/components/chat/ChatRoomCard';
 import { chatRoomClient } from '@/lib/connectrpc/client';
 import Link from 'next/link';
 import { isToday, isYesterday, isThisWeek, parseISO } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function ChatsPage() {
+  const queryClient = useQueryClient();
+
   const { data: chatRoomsData, isLoading } = useQuery({
     queryKey: ['chatRooms'],
     queryFn: async () => {
@@ -16,6 +19,51 @@ export default function ChatsPage() {
         offset: 0,
       });
       return response;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (roomId: string) => {
+      await chatRoomClient.deleteChatRoom({ id: roomId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      toast.success('채팅방이 삭제되었습니다');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || '채팅방 삭제에 실패했습니다');
+    },
+  });
+
+  const togglePinMutation = useMutation({
+    mutationFn: async ({ roomId, isPinned }: { roomId: string; isPinned: boolean }) => {
+      await chatRoomClient.updateChatRoom({
+        id: roomId,
+        isPinned: !isPinned,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      toast.success('고정 상태가 변경되었습니다');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || '고정 상태 변경에 실패했습니다');
+    },
+  });
+
+  const updateTitleMutation = useMutation({
+    mutationFn: async ({ roomId, title }: { roomId: string; title: string }) => {
+      await chatRoomClient.updateChatRoom({
+        id: roomId,
+        title: title,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      toast.success('제목이 변경되었습니다');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || '제목 변경에 실패했습니다');
     },
   });
 
@@ -79,13 +127,21 @@ export default function ChatsPage() {
               key={room.id}
               roomId={room.id}
               character={{
-                name: room.character?.name || 'Unknown',
-                imageUrl: room.character?.imageUrl,
+                name: room.characterName || 'Unknown',
+                imageUrl: room.characterImageUrl,
               }}
+              title={room.title}
               lastMessage={room.lastMessage?.content}
               lastMessageAt={room.lastMessageAt}
               messageCount={room.messageCount}
               isPinned={room.isPinned}
+              onDelete={() => deleteMutation.mutate(room.id)}
+              onPinToggle={(roomId, isPinned) =>
+                togglePinMutation.mutate({ roomId, isPinned })
+              }
+              onEditTitle={(roomId, title) =>
+                updateTitleMutation.mutate({ roomId, title })
+              }
             />
           ))}
         </div>

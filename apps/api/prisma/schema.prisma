@@ -169,9 +169,10 @@ model Character {
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  creator   Profile    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  universe  Universe?  @relation(fields: [universeId], references: [id], onDelete: SetNull)
-  chatRooms ChatRoom[]
+  creator           Profile       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  universe          Universe?     @relation(fields: [universeId], references: [id], onDelete: SetNull)
+  chatRooms         ChatRoom[]
+  personasBasedOnMe UserPersona[]
 
   // GIN index for array search
   @@index([keywords], type: Gin)
@@ -187,20 +188,24 @@ model Character {
 // ============================================
 
 model UserPersona {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  name      String
-  persona   String   @db.Text
-  isDefault Boolean  @default(false) @map("is_default")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  name              String
+  persona           String   @db.Text
+  gender            String?
+  isDefault         Boolean  @default(false) @map("is_default")
+  sourceCharacterId String?  @map("source_character_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  user      Profile    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chatRooms ChatRoom[]
+  user            Profile    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceCharacter Character? @relation(fields: [sourceCharacterId], references: [id], onDelete: SetNull)
+  chatRooms       ChatRoom[]
 
   @@index([userId])
   @@index([userId, isDefault])
+  @@index([sourceCharacterId])
   @@map("user_personas")
 }
 
@@ -213,6 +218,7 @@ model ChatRoom {
   userId              String    @map("user_id") @db.Uuid
   characterId         String    @map("character_id") @db.Uuid
   personaId           String?   @map("persona_id") @db.Uuid
+  title               String?   @map("title")
   userNote            String?   @map("user_note") @db.Text
   conversationSummary String?   @map("conversation_summary") @db.Text
   lastMessageAt       DateTime? @map("last_message_at") @db.Timestamptz(6)
@@ -243,6 +249,7 @@ model Message {
   parentMessageId        String?  @map("parent_message_id") @db.Uuid
   positiveReactionCount  Int      @default(0) @map("positive_reaction_count")
   negativeReactionCount  Int      @default(0) @map("negative_reaction_count")
+  metadata               Json?    // For storing triggered images and other metadata
   createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 

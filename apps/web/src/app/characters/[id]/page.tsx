@@ -8,6 +8,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { useState } from 'react';
 import { formatNumber } from '@/lib/utils';
 import { RelatedContentCard } from '@/components/character/components/RelatedContentCard';
+import { linkifyText } from '@/lib/linkify';
+import { ChatRoomCreationModal } from '@/components/chat/ChatRoomCreationModal';
+import { PersonaSelectionModal } from '@/components/persona/PersonaSelectionModal';
+import { toast } from 'sonner';
 
 export default function CharacterDetailPage() {
   const params = useParams();
@@ -16,7 +20,10 @@ export default function CharacterDetailPage() {
   const { user } = useAuthStore();
   const characterId = params?.id as string;
 
-  const [selectedPersonaId, setSelectedPersonaId] = useState<string>('');
+  const [showCreationModal, setShowCreationModal] = useState(false);
+  const [showPersonaModal, setShowPersonaModal] = useState(false);
+  const [creationOption, setCreationOption] = useState<'continue' | 'new' | 'clone'>();
+  const [recentRoomId, setRecentRoomId] = useState<string>();
 
   // Fetch character
   const { data: character, isLoading: loadingCharacter } = useQuery({
@@ -28,14 +35,16 @@ export default function CharacterDetailPage() {
     enabled: !!characterId,
   });
 
-  // Fetch user's personas
-  const { data: personas } = useQuery({
-    queryKey: ['personas'],
+  // Fetch recent room for this character
+  const { data: recentRoomData } = useQuery({
+    queryKey: ['recentRoom', characterId],
     queryFn: async () => {
-      const response = await personaClient.listPersonas({});
-      return response.personas;
+      const response = await chatRoomClient.findRecentRoomByCharacter({
+        characterId,
+      });
+      return response.chatRoom;
     },
-    enabled: !!user,
+    enabled: !!user && !!characterId,
   });
 
   // Parse dataJson to extract additional info
@@ -55,10 +64,10 @@ export default function CharacterDetailPage() {
 
   // Create chat room mutation
   const createChatMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (personaId?: string) => {
       const response = await chatRoomClient.createChatRoom({
         characterId,
-        personaId: selectedPersonaId || undefined,
+        personaId: personaId || undefined,
       });
       return response.chatRoom;
     },
@@ -68,7 +77,50 @@ export default function CharacterDetailPage() {
         router.push(`/chat/${chatRoom.id}`);
       }
     },
+    onError: () => {
+      toast.error('채팅방 생성에 실패했습니다');
+    },
   });
+
+  // Clone chat room mutation
+  const cloneChatMutation = useMutation({
+    mutationFn: async ({ sourceRoomId, personaId }: { sourceRoomId: string; personaId?: string }) => {
+      const response = await chatRoomClient.cloneChatRoom({
+        sourceRoomId,
+        personaId,
+      });
+      return response.chatRoom;
+    },
+    onSuccess: (chatRoom) => {
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      if (chatRoom) {
+        router.push(`/chat/${chatRoom.id}`);
+      }
+    },
+    onError: () => {
+      toast.error('채팅방 복사에 실패했습니다');
+    },
+  });
+
+  // Handle modal option selection
+  const handleOptionSelected = (option: 'continue' | 'new' | 'clone') => {
+    setCreationOption(option);
+
+    if (option === 'continue' && recentRoomData) {
+      router.push(`/chat/${recentRoomData.id}`);
+    } else if (option === 'new' || option === 'clone') {
+      setShowPersonaModal(true);
+    }
+  };
+
+  // Handle persona selection complete
+  const handlePersonaComplete = (personaId: string) => {
+    if (creationOption === 'clone' && recentRoomData) {
+      cloneChatMutation.mutate({ sourceRoomId: recentRoomData.id, personaId });
+    } else {
+      createChatMutation.mutate(personaId);
+    }
+  };
 
   if (loadingCharacter) {
     return (
@@ -185,9 +237,9 @@ export default function CharacterDetailPage() {
             {character.description && (
               <div className="mb-6">
                 <h3 className="text-title-medium mb-2">Description</h3>
-                <p className="text-body-medium text-on-surface-variant whitespace-pre-wrap">
-                  {character.description}
-                </p>
+                <div className="text-body-medium text-on-surface-variant whitespace-pre-wrap">
+                  {linkifyText(character.description)}
+                </div>
               </div>
             )}
 
@@ -297,34 +349,15 @@ export default function CharacterDetailPage() {
               </div>
             )}
 
-            {/* Persona Selection (if logged in) */}
-            {user && personas && personas.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-title-medium mb-2">Select Your Persona</h3>
-                <select
-                  value={selectedPersonaId}
-                  onChange={(e) => setSelectedPersonaId(e.target.value)}
-                  className="w-full input-glow"
-                >
-                  <option value="">Default (No Persona)</option>
-                  {personas.map((persona: { id: string; name: string }) => (
-                    <option key={persona.id} value={persona.id}>
-                      {persona.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             {/* CTA Button */}
             {user ? (
               <button
-                onClick={() => createChatMutation.mutate()}
-                disabled={createChatMutation.isPending}
+                onClick={() => setShowCreationModal(true)}
+                disabled={createChatMutation.isPending || cloneChatMutation.isPending}
                 className="w-full glow-button disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createChatMutation.isPending
-                  ? 'Creating...'
+                {createChatMutation.isPending || cloneChatMutation.isPending
+                  ? 'Processing...'
                   : 'Start Conversation'}
               </button>
             ) : (
@@ -338,6 +371,32 @@ export default function CharacterDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Modals */}
+      {user && character && (
+        <>
+          <ChatRoomCreationModal
+            isOpen={showCreationModal}
+            onClose={() => setShowCreationModal(false)}
+            characterId={characterId}
+            characterName={character.name}
+            hasExistingRoom={!!recentRoomData}
+            onOptionSelected={handleOptionSelected}
+          />
+
+          <PersonaSelectionModal
+            isOpen={showPersonaModal}
+            onClose={() => {
+              setShowPersonaModal(false);
+              setCreationOption(undefined);
+            }}
+            characterId={characterId}
+            characterName={character.name}
+            universeId={character.universeId}
+            onComplete={handlePersonaComplete}
+          />
+        </>
+      )}
     </div>
   );
 }

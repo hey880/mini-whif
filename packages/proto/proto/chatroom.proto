@@ -10,6 +10,8 @@ service ChatRoomService {
   rpc UpdateChatRoom(UpdateChatRoomRequest) returns (UpdateChatRoomResponse);
   rpc DeleteChatRoom(DeleteChatRoomRequest) returns (DeleteChatRoomResponse);
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc CloneChatRoom(CloneChatRoomRequest) returns (CloneChatRoomResponse);
+  rpc FindRecentRoomByCharacter(FindRecentRoomRequest) returns (FindRecentRoomResponse);
 }
 
 message ListChatRoomsRequest {
@@ -49,6 +51,7 @@ message UpdateChatRoomRequest {
   optional string user_note = 3;
   optional string conversation_summary = 4;
   optional bool is_pinned = 5;
+  optional string title = 6;
 }
 
 message UpdateChatRoomResponse {
@@ -86,6 +89,7 @@ message ChatRoom {
   bool is_pinned = 8;
   string created_at = 9;
   string updated_at = 10;
+  optional string title = 11;
 }
 
 message ChatRoomWithCharacter {
@@ -103,6 +107,11 @@ message ChatRoomWithCharacter {
   int32 message_count = 12;
   optional LastMessage last_message = 13;
   optional PersonaInfo persona = 14;
+
+  // Flattened character fields for backward compatibility
+  string character_name = 15;
+  optional string character_image_url = 16;
+  optional string title = 17;
 }
 
 message CharacterInfo {
@@ -110,6 +119,14 @@ message CharacterInfo {
   string name = 2;
   optional string image_url = 3;
   optional string tagline = 4;
+  repeated SituationalImage situational_images = 5;
+}
+
+message SituationalImage {
+  string id = 1;
+  string image_url = 2;
+  repeated string triggers = 3;
+  optional string description = 4;
 }
 
 message PersonaInfo {
@@ -134,4 +151,35 @@ message Message {
   int32 negative_reaction_count = 9;
   string created_at = 10;
   string updated_at = 11;
+  repeated TriggeredImage triggered_images = 12;
+  optional string metadata_json = 13; // JSON string of metadata
+  optional UserReactionInfo user_reaction = 14;
+}
+
+message TriggeredImage {
+  string id = 1;
+  string image_url = 2;
+  optional string description = 3;
+}
+
+message UserReactionInfo {
+  string reaction_type = 1; // "positive" or "negative"
+  string created_at = 2;
+}
+
+message CloneChatRoomRequest {
+  string source_room_id = 1;
+  optional string persona_id = 2;
+}
+
+message CloneChatRoomResponse {
+  ChatRoomWithCharacter chat_room = 1;
+}
+
+message FindRecentRoomRequest {
+  string character_id = 1;
+}
+
+message FindRecentRoomResponse {
+  optional ChatRoomWithCharacter chat_room = 1;
 }

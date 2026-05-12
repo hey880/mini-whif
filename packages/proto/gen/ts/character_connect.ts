@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateCharacterRequest, CreateCharacterResponse, DeleteCharacterRequest, DeleteCharacterResponse, GetCharacterRequest, GetCharacterResponse, ListCharactersRequest, ListCharactersResponse, UpdateCharacterRequest, UpdateCharacterResponse } from "./character_pb";
+import { CreateCharacterRequest, CreateCharacterResponse, DeleteCharacterRequest, DeleteCharacterResponse, GetCharacterRequest, GetCharacterResponse, ListCharactersByUniverseRequest, ListCharactersByUniverseResponse, ListCharactersRequest, ListCharactersResponse, UpdateCharacterRequest, UpdateCharacterResponse } from "./character_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -57,6 +57,15 @@ export const CharacterService = {
       name: "DeleteCharacter",
       I: DeleteCharacterRequest,
       O: DeleteCharacterResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc persona_chat.character.v1.CharacterService.ListCharactersByUniverse
+     */
+    listCharactersByUniverse: {
+      name: "ListCharactersByUniverse",
+      I: ListCharactersByUniverseRequest,
+      O: ListCharactersByUniverseResponse,
       kind: MethodKind.Unary,
     },
   }

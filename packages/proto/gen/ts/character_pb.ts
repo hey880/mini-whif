@@ -721,3 +721,138 @@ export class Character extends Message<Character> {
   }
 }
 
+/**
+ * @generated from message persona_chat.character.v1.ListCharactersByUniverseRequest
+ */
+export class ListCharactersByUniverseRequest extends Message<ListCharactersByUniverseRequest> {
+  /**
+   * @generated from field: string universe_id = 1;
+   */
+  universeId = "";
+
+  constructor(data?: PartialMessage<ListCharactersByUniverseRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.character.v1.ListCharactersByUniverseRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "universe_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListCharactersByUniverseRequest {
+    return new ListCharactersByUniverseRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListCharactersByUniverseRequest {
+    return new ListCharactersByUniverseRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListCharactersByUniverseRequest {
+    return new ListCharactersByUniverseRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListCharactersByUniverseRequest | PlainMessage<ListCharactersByUniverseRequest> | undefined, b: ListCharactersByUniverseRequest | PlainMessage<ListCharactersByUniverseRequest> | undefined): boolean {
+    return proto3.util.equals(ListCharactersByUniverseRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.character.v1.ListCharactersByUniverseResponse
+ */
+export class ListCharactersByUniverseResponse extends Message<ListCharactersByUniverseResponse> {
+  /**
+   * @generated from field: repeated persona_chat.character.v1.CharacterCard characters = 1;
+   */
+  characters: CharacterCard[] = [];
+
+  constructor(data?: PartialMessage<ListCharactersByUniverseResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.character.v1.ListCharactersByUniverseResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "characters", kind: "message", T: CharacterCard, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListCharactersByUniverseResponse {
+    return new ListCharactersByUniverseResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListCharactersByUniverseResponse {
+    return new ListCharactersByUniverseResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListCharactersByUniverseResponse {
+    return new ListCharactersByUniverseResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListCharactersByUniverseResponse | PlainMessage<ListCharactersByUniverseResponse> | undefined, b: ListCharactersByUniverseResponse | PlainMessage<ListCharactersByUniverseResponse> | undefined): boolean {
+    return proto3.util.equals(ListCharactersByUniverseResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.character.v1.CharacterCard
+ */
+export class CharacterCard extends Message<CharacterCard> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
+  /**
+   * @generated from field: optional string image_url = 3;
+   */
+  imageUrl?: string;
+
+  /**
+   * @generated from field: optional string tagline = 4;
+   */
+  tagline?: string;
+
+  /**
+   * @generated from field: optional string description = 5;
+   */
+  description?: string;
+
+  constructor(data?: PartialMessage<CharacterCard>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.character.v1.CharacterCard";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 4, name: "tagline", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 5, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CharacterCard {
+    return new CharacterCard().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CharacterCard {
+    return new CharacterCard().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CharacterCard {
+    return new CharacterCard().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CharacterCard | PlainMessage<CharacterCard> | undefined, b: CharacterCard | PlainMessage<CharacterCard> | undefined): boolean {
+    return proto3.util.equals(CharacterCard, a, b);
+  }
+}
+

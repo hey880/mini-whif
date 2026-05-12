@@ -25,6 +25,8 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
         name: p.name,
         persona: p.persona,
         isDefault: p.isDefault,
+        gender: p.gender || undefined,
+        sourceCharacterId: p.sourceCharacterId || undefined,
         createdAt: p.createdAt.toISOString(),
         updatedAt: p.updatedAt.toISOString(),
       })),
@@ -58,6 +60,8 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
         name: persona.name,
         persona: persona.persona,
         isDefault: persona.isDefault,
+        gender: persona.gender || undefined,
+        sourceCharacterId: persona.sourceCharacterId || undefined,
         createdAt: persona.createdAt.toISOString(),
         updatedAt: persona.updatedAt.toISOString(),
       },
@@ -76,6 +80,8 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
         userId: user.id,
         name: req.name,
         persona: req.persona,
+        gender: req.gender || undefined,
+        sourceCharacterId: req.sourceCharacterId || undefined,
         isDefault: req.isDefault || false,
       },
     });
@@ -98,6 +104,8 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
         name: persona.name,
         persona: persona.persona,
         isDefault: persona.isDefault,
+        gender: persona.gender || undefined,
+        sourceCharacterId: persona.sourceCharacterId || undefined,
         createdAt: persona.createdAt.toISOString(),
         updatedAt: persona.updatedAt.toISOString(),
       },
@@ -128,6 +136,7 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
     const updateData: any = {};
     if (req.name !== undefined) updateData.name = req.name;
     if (req.persona !== undefined) updateData.persona = req.persona;
+    if (req.gender !== undefined) updateData.gender = req.gender;
 
     const persona = await prisma.userPersona.update({
       where: { id: req.id },
@@ -141,6 +150,8 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
         name: persona.name,
         persona: persona.persona,
         isDefault: persona.isDefault,
+        gender: persona.gender || undefined,
+        sourceCharacterId: persona.sourceCharacterId || undefined,
         createdAt: persona.createdAt.toISOString(),
         updatedAt: persona.updatedAt.toISOString(),
       },
@@ -213,6 +224,8 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
         name: updatedPersona.name,
         persona: updatedPersona.persona,
         isDefault: updatedPersona.isDefault,
+        gender: updatedPersona.gender || undefined,
+        sourceCharacterId: updatedPersona.sourceCharacterId || undefined,
         createdAt: updatedPersona.createdAt.toISOString(),
         updatedAt: updatedPersona.updatedAt.toISOString(),
       },

@@ -275,4 +275,31 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
 
     return { success: true };
   },
+
+  async listCharactersByUniverse(req) {
+    const characters = await prisma.character.findMany({
+      where: {
+        universeId: req.universeId,
+        visibility: 'public',
+      },
+      select: {
+        id: true,
+        name: true,
+        imageUrl: true,
+        tagline: true,
+        description: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      characters: characters.map((char) => ({
+        id: char.id,
+        name: char.name,
+        imageUrl: char.imageUrl || undefined,
+        tagline: char.tagline || undefined,
+        description: char.description || undefined,
+      })),
+    };
+  },
 };

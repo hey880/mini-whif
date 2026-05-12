@@ -299,6 +299,11 @@ export class UpdateChatRoomRequest extends Message$1<UpdateChatRoomRequest> {
    */
   isPinned?: boolean;
 
+  /**
+   * @generated from field: optional string title = 6;
+   */
+  title?: string;
+
   constructor(data?: PartialMessage<UpdateChatRoomRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -312,6 +317,7 @@ export class UpdateChatRoomRequest extends Message$1<UpdateChatRoomRequest> {
     { no: 3, name: "user_note", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 4, name: "conversation_summary", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 5, name: "is_pinned", kind: "scalar", T: 8 /* ScalarType.BOOL */, opt: true },
+    { no: 6, name: "title", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateChatRoomRequest {
@@ -594,6 +600,11 @@ export class ChatRoom extends Message$1<ChatRoom> {
    */
   updatedAt = "";
 
+  /**
+   * @generated from field: optional string title = 11;
+   */
+  title?: string;
+
   constructor(data?: PartialMessage<ChatRoom>) {
     super();
     proto3.util.initPartial(data, this);
@@ -612,6 +623,7 @@ export class ChatRoom extends Message$1<ChatRoom> {
     { no: 8, name: "is_pinned", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 9, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 10, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 11, name: "title", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChatRoom {
@@ -705,6 +717,23 @@ export class ChatRoomWithCharacter extends Message$1<ChatRoomWithCharacter> {
    */
   persona?: PersonaInfo;
 
+  /**
+   * Flattened character fields for backward compatibility
+   *
+   * @generated from field: string character_name = 15;
+   */
+  characterName = "";
+
+  /**
+   * @generated from field: optional string character_image_url = 16;
+   */
+  characterImageUrl?: string;
+
+  /**
+   * @generated from field: optional string title = 17;
+   */
+  title?: string;
+
   constructor(data?: PartialMessage<ChatRoomWithCharacter>) {
     super();
     proto3.util.initPartial(data, this);
@@ -727,6 +756,9 @@ export class ChatRoomWithCharacter extends Message$1<ChatRoomWithCharacter> {
     { no: 12, name: "message_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 13, name: "last_message", kind: "message", T: LastMessage, opt: true },
     { no: 14, name: "persona", kind: "message", T: PersonaInfo, opt: true },
+    { no: 15, name: "character_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 16, name: "character_image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 17, name: "title", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChatRoomWithCharacter {
@@ -770,6 +802,11 @@ export class CharacterInfo extends Message$1<CharacterInfo> {
    */
   tagline?: string;
 
+  /**
+   * @generated from field: repeated persona_chat.chatroom.v1.SituationalImage situational_images = 5;
+   */
+  situationalImages: SituationalImage[] = [];
+
   constructor(data?: PartialMessage<CharacterInfo>) {
     super();
     proto3.util.initPartial(data, this);
@@ -782,6 +819,7 @@ export class CharacterInfo extends Message$1<CharacterInfo> {
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 4, name: "tagline", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 5, name: "situational_images", kind: "message", T: SituationalImage, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CharacterInfo {
@@ -798,6 +836,61 @@ export class CharacterInfo extends Message$1<CharacterInfo> {
 
   static equals(a: CharacterInfo | PlainMessage<CharacterInfo> | undefined, b: CharacterInfo | PlainMessage<CharacterInfo> | undefined): boolean {
     return proto3.util.equals(CharacterInfo, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.chatroom.v1.SituationalImage
+ */
+export class SituationalImage extends Message$1<SituationalImage> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string image_url = 2;
+   */
+  imageUrl = "";
+
+  /**
+   * @generated from field: repeated string triggers = 3;
+   */
+  triggers: string[] = [];
+
+  /**
+   * @generated from field: optional string description = 4;
+   */
+  description?: string;
+
+  constructor(data?: PartialMessage<SituationalImage>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.chatroom.v1.SituationalImage";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "triggers", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SituationalImage {
+    return new SituationalImage().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SituationalImage {
+    return new SituationalImage().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SituationalImage {
+    return new SituationalImage().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SituationalImage | PlainMessage<SituationalImage> | undefined, b: SituationalImage | PlainMessage<SituationalImage> | undefined): boolean {
+    return proto3.util.equals(SituationalImage, a, b);
   }
 }
 
@@ -948,6 +1041,23 @@ export class Message extends Message$1<Message> {
    */
   updatedAt = "";
 
+  /**
+   * @generated from field: repeated persona_chat.chatroom.v1.TriggeredImage triggered_images = 12;
+   */
+  triggeredImages: TriggeredImage[] = [];
+
+  /**
+   * JSON string of metadata
+   *
+   * @generated from field: optional string metadata_json = 13;
+   */
+  metadataJson?: string;
+
+  /**
+   * @generated from field: optional persona_chat.chatroom.v1.UserReactionInfo user_reaction = 14;
+   */
+  userReaction?: UserReactionInfo;
+
   constructor(data?: PartialMessage<Message>) {
     super();
     proto3.util.initPartial(data, this);
@@ -967,6 +1077,9 @@ export class Message extends Message$1<Message> {
     { no: 9, name: "negative_reaction_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 10, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 11, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 12, name: "triggered_images", kind: "message", T: TriggeredImage, repeated: true },
+    { no: 13, name: "metadata_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 14, name: "user_reaction", kind: "message", T: UserReactionInfo, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Message {
@@ -983,6 +1096,254 @@ export class Message extends Message$1<Message> {
 
   static equals(a: Message | PlainMessage<Message> | undefined, b: Message | PlainMessage<Message> | undefined): boolean {
     return proto3.util.equals(Message, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.chatroom.v1.TriggeredImage
+ */
+export class TriggeredImage extends Message$1<TriggeredImage> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string image_url = 2;
+   */
+  imageUrl = "";
+
+  /**
+   * @generated from field: optional string description = 3;
+   */
+  description?: string;
+
+  constructor(data?: PartialMessage<TriggeredImage>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.chatroom.v1.TriggeredImage";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TriggeredImage {
+    return new TriggeredImage().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TriggeredImage {
+    return new TriggeredImage().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TriggeredImage {
+    return new TriggeredImage().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: TriggeredImage | PlainMessage<TriggeredImage> | undefined, b: TriggeredImage | PlainMessage<TriggeredImage> | undefined): boolean {
+    return proto3.util.equals(TriggeredImage, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.chatroom.v1.UserReactionInfo
+ */
+export class UserReactionInfo extends Message$1<UserReactionInfo> {
+  /**
+   * "positive" or "negative"
+   *
+   * @generated from field: string reaction_type = 1;
+   */
+  reactionType = "";
+
+  /**
+   * @generated from field: string created_at = 2;
+   */
+  createdAt = "";
+
+  constructor(data?: PartialMessage<UserReactionInfo>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.chatroom.v1.UserReactionInfo";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "reaction_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserReactionInfo {
+    return new UserReactionInfo().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UserReactionInfo {
+    return new UserReactionInfo().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UserReactionInfo {
+    return new UserReactionInfo().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UserReactionInfo | PlainMessage<UserReactionInfo> | undefined, b: UserReactionInfo | PlainMessage<UserReactionInfo> | undefined): boolean {
+    return proto3.util.equals(UserReactionInfo, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.chatroom.v1.CloneChatRoomRequest
+ */
+export class CloneChatRoomRequest extends Message$1<CloneChatRoomRequest> {
+  /**
+   * @generated from field: string source_room_id = 1;
+   */
+  sourceRoomId = "";
+
+  /**
+   * @generated from field: optional string persona_id = 2;
+   */
+  personaId?: string;
+
+  constructor(data?: PartialMessage<CloneChatRoomRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.chatroom.v1.CloneChatRoomRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "source_room_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "persona_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CloneChatRoomRequest {
+    return new CloneChatRoomRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CloneChatRoomRequest {
+    return new CloneChatRoomRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CloneChatRoomRequest {
+    return new CloneChatRoomRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CloneChatRoomRequest | PlainMessage<CloneChatRoomRequest> | undefined, b: CloneChatRoomRequest | PlainMessage<CloneChatRoomRequest> | undefined): boolean {
+    return proto3.util.equals(CloneChatRoomRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.chatroom.v1.CloneChatRoomResponse
+ */
+export class CloneChatRoomResponse extends Message$1<CloneChatRoomResponse> {
+  /**
+   * @generated from field: persona_chat.chatroom.v1.ChatRoomWithCharacter chat_room = 1;
+   */
+  chatRoom?: ChatRoomWithCharacter;
+
+  constructor(data?: PartialMessage<CloneChatRoomResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.chatroom.v1.CloneChatRoomResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "chat_room", kind: "message", T: ChatRoomWithCharacter },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CloneChatRoomResponse {
+    return new CloneChatRoomResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CloneChatRoomResponse {
+    return new CloneChatRoomResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CloneChatRoomResponse {
+    return new CloneChatRoomResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CloneChatRoomResponse | PlainMessage<CloneChatRoomResponse> | undefined, b: CloneChatRoomResponse | PlainMessage<CloneChatRoomResponse> | undefined): boolean {
+    return proto3.util.equals(CloneChatRoomResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.chatroom.v1.FindRecentRoomRequest
+ */
+export class FindRecentRoomRequest extends Message$1<FindRecentRoomRequest> {
+  /**
+   * @generated from field: string character_id = 1;
+   */
+  characterId = "";
+
+  constructor(data?: PartialMessage<FindRecentRoomRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.chatroom.v1.FindRecentRoomRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "character_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FindRecentRoomRequest {
+    return new FindRecentRoomRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FindRecentRoomRequest {
+    return new FindRecentRoomRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FindRecentRoomRequest {
+    return new FindRecentRoomRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: FindRecentRoomRequest | PlainMessage<FindRecentRoomRequest> | undefined, b: FindRecentRoomRequest | PlainMessage<FindRecentRoomRequest> | undefined): boolean {
+    return proto3.util.equals(FindRecentRoomRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message persona_chat.chatroom.v1.FindRecentRoomResponse
+ */
+export class FindRecentRoomResponse extends Message$1<FindRecentRoomResponse> {
+  /**
+   * @generated from field: optional persona_chat.chatroom.v1.ChatRoomWithCharacter chat_room = 1;
+   */
+  chatRoom?: ChatRoomWithCharacter;
+
+  constructor(data?: PartialMessage<FindRecentRoomResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "persona_chat.chatroom.v1.FindRecentRoomResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "chat_room", kind: "message", T: ChatRoomWithCharacter, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FindRecentRoomResponse {
+    return new FindRecentRoomResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FindRecentRoomResponse {
+    return new FindRecentRoomResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FindRecentRoomResponse {
+    return new FindRecentRoomResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: FindRecentRoomResponse | PlainMessage<FindRecentRoomResponse> | undefined, b: FindRecentRoomResponse | PlainMessage<FindRecentRoomResponse> | undefined): boolean {
+    return proto3.util.equals(FindRecentRoomResponse, a, b);
   }
 }
 
