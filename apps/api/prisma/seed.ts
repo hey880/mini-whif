@@ -13,7 +13,7 @@ async function main() {
   const models = [
     {
       name: '프리즘',
-      slug: 'anthropic/claude-3-5-haiku-20241022',
+      slug: 'anthropic/claude-3.5-haiku',
       provider: 'Anthropic',
       contextWindow: 200000,
       maxOutputTokens: 8192,
@@ -22,7 +22,7 @@ async function main() {
     },
     {
       name: '아이리스',
-      slug: 'anthropic/claude-sonnet-4-5-20250514',
+      slug: 'anthropic/claude-3.5-sonnet',
       provider: 'Anthropic',
       contextWindow: 200000,
       maxOutputTokens: 8192,
@@ -31,7 +31,7 @@ async function main() {
     },
     {
       name: '벨벳',
-      slug: 'google/gemini-2.0-flash-exp:free',
+      slug: 'google/gemini-flash-1.5',
       provider: 'Google',
       contextWindow: 1000000,
       maxOutputTokens: 8192,
