@@ -238,7 +238,7 @@ export function ChatRoomCard({
 
       {/* Edit Title Modal */}
       {showEditTitle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="glass-card p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-title-large mb-4">채팅방 제목 수정</h3>
             <input
@@ -273,7 +273,7 @@ export function ChatRoomCard({
 
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="glass-card p-6 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-title-large mb-2">채팅방 삭제</h3>
             <p className="text-body-medium text-on-surface-variant mb-6">
