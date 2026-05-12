@@ -22,15 +22,15 @@ export async function chatRoutes(server: FastifyInstance) {
       },
       body: {
         type: 'object',
-        required: ['content'],
         properties: {
           content: { type: 'string' },
+          hint: { type: 'string' },
         },
       },
     },
   }, async (request, reply) => {
     const { roomId } = request.params as { roomId: string };
-    const { content } = request.body as { content: string };
+    const { content, hint } = request.body as { content?: string; hint?: string };
 
     // 1. Verify room ownership
     const room = await prisma.chatRoom.findUnique({
@@ -87,14 +87,17 @@ export async function chatRoutes(server: FastifyInstance) {
       });
     }
 
-    // 3. Save user message
-    const userMessage = await prisma.message.create({
-      data: {
-        roomId,
-        role: 'user',
-        content,
-      },
-    });
+    // 3. Save user message (only if not a hint-only request)
+    let userMessage = null;
+    if (!hint || content) {
+      userMessage = await prisma.message.create({
+        data: {
+          roomId,
+          role: 'user',
+          content: content || '',
+        },
+      });
+    }
 
     // 4. Create placeholder AI message
     const aiMessage = await prisma.message.create({
@@ -160,7 +163,8 @@ export async function chatRoutes(server: FastifyInstance) {
     }
 
     // Replace placeholders in user message (so AI understands context)
-    const processedContent = replacePlaceholders(content, replacements);
+    const processedContent = content ? replacePlaceholders(content, replacements) : '';
+    const processedHint = hint ? replacePlaceholders(hint, replacements) : undefined;
 
     // 7. Forward to AI server
     const aiServerUrl = process.env.AI_SERVER_URL || 'http://localhost:8000';
@@ -173,6 +177,7 @@ export async function chatRoutes(server: FastifyInstance) {
           room_id: roomId,
           user_id: request.user!.id,
           message: processedContent,
+          hint: processedHint,
           model_slug: model.slug,
           max_tokens: model.maxOutputTokens,
           character: characterContext,
@@ -255,14 +260,19 @@ export async function chatRoutes(server: FastifyInstance) {
                 let triggeredImages: any[] = [];
                 try {
                   const characterData = room.character.data as any;
+                  server.log.info('Character data:', characterData);
                   if (characterData?.situationalImages) {
+                    server.log.info('Situational images available:', characterData.situationalImages);
                     triggeredImages = matchTriggeredImages(
                       accumulated,
                       characterData.situationalImages
                     );
+                    server.log.info('Triggered images result:', triggeredImages);
+                  } else {
+                    server.log.warn('No situational images in character data');
                   }
                 } catch (e) {
-                  server.log.warn('Failed to match situational images');
+                  server.log.error('Failed to match situational images:', e);
                 }
 
                 // 8. Update AI message in DB with triggered images

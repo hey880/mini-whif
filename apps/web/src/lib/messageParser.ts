@@ -29,7 +29,7 @@ export function parseMessage(content: string): MessageSegment[] {
   while ((match = regex.exec(content)) !== null) {
     // Add narration before the match
     if (match.index > lastIndex) {
-      const narration = content.substring(lastIndex, match.index).trim();
+      const narration = content.substring(lastIndex, match.index);
       if (narration) {
         segments.push({ type: 'narration', text: narration });
       }
@@ -56,7 +56,7 @@ export function parseMessage(content: string): MessageSegment[] {
 
   // Add remaining text as narration
   if (lastIndex < content.length) {
-    const narration = content.substring(lastIndex).trim();
+    const narration = content.substring(lastIndex);
     if (narration) {
       segments.push({ type: 'narration', text: narration });
     }

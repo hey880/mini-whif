@@ -29,10 +29,17 @@ export function matchTriggeredImages(
   const triggered: TriggeredImage[] = [];
   const lowerContent = messageContent.toLowerCase();
 
+  console.log('[ImageMatcher] Message content:', messageContent);
+  console.log('[ImageMatcher] Situational images:', JSON.stringify(situationalImages, null, 2));
+
   for (const img of situationalImages) {
+    console.log(`[ImageMatcher] Checking image ${img.id}:`, img.triggers);
+
     // Check if any trigger keyword is in the message
     for (const trigger of img.triggers) {
-      if (lowerContent.includes(trigger.toLowerCase())) {
+      const triggerLower = trigger.toLowerCase();
+      if (lowerContent.includes(triggerLower)) {
+        console.log(`[ImageMatcher] ✅ Triggered! Keyword "${trigger}" found in message`);
         // Add this image (only once per image)
         triggered.push({
           id: img.id,
@@ -44,5 +51,6 @@ export function matchTriggeredImages(
     }
   }
 
+  console.log('[ImageMatcher] Total triggered images:', triggered.length);
   return triggered;
 }

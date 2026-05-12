@@ -13,7 +13,7 @@ export function useSSEChat() {
   const { setStreaming, appendStreamChunk, resetStream } = useChatStore();
   const queryClient = useQueryClient();
 
-  const sendMessage = async (roomId: string, message: string) => {
+  const sendMessage = async (roomId: string, message: string, hint?: string) => {
     setStreaming(true);
     resetStream();
 
@@ -29,18 +29,33 @@ export function useSSEChat() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
     try {
+      const body: { content?: string; hint?: string } = {};
+      if (message) body.content = message;
+      if (hint) body.hint = hint;
+
       const response = await fetch(`${apiUrl}/chat-rooms/${roomId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ content: message }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to send message');
+        setStreaming(false);
+
+        // Check Content-Type to handle different error responses
+        const contentType = response.headers.get('content-type');
+
+        if (contentType?.includes('application/json')) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to send message');
+        } else {
+          // Handle SSE error stream
+          const text = await response.text();
+          throw new Error(text || `Server error: ${response.status}`);
+        }
       }
 
       // Read SSE stream
