@@ -38,6 +38,7 @@ export function ChatRoomCard({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditTitle, setShowEditTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState(title || character.name);
+  const [menuPosition, setMenuPosition] = useState<'bottom' | 'top'>('bottom');
   const menuRef = useRef<HTMLDivElement>(null);
 
   const timeAgo = lastMessageAt
@@ -57,6 +58,22 @@ export function ChatRoomCard({
     if (showMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMenu]);
+
+  // Calculate menu position to prevent overflow
+  useEffect(() => {
+    if (showMenu && menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      const menuHeight = 160; // Approximate height of menu (3 items * ~50px)
+      const spaceBelow = window.innerHeight - rect.bottom;
+
+      // If not enough space below, open upward
+      if (spaceBelow < menuHeight) {
+        setMenuPosition('top');
+      } else {
+        setMenuPosition('bottom');
+      }
     }
   }, [showMenu]);
 
@@ -183,7 +200,11 @@ export function ChatRoomCard({
 
             {/* Dropdown Menu */}
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 w-48 glass-card py-1 shadow-lg z-10">
+              <div
+                className={`absolute right-0 w-48 glass-card py-1 shadow-lg z-50 ${
+                  menuPosition === 'bottom' ? 'top-full mt-1' : 'bottom-full mb-1'
+                }`}
+              >
                 <button
                   onClick={handlePinToggle}
                   className="w-full px-4 py-2 flex items-center gap-3 hover:bg-surface-container transition-colors text-left"
