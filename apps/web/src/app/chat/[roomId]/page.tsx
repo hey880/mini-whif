@@ -424,7 +424,7 @@ export default function ChatPage() {
     setRerollModalOpen(true);
   };
 
-  const executeReroll = async () => {
+  const executeReroll = async (hint?: string) => {
     if (!pendingReroll) return;
 
     const { messageId, modelCost } = pendingReroll;
@@ -444,12 +444,15 @@ export default function ChatPage() {
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-      // 3. SSE request
+      // 3. SSE request with optional hint
+      const body = hint ? JSON.stringify({ hint }) : undefined;
       const response = await fetch(`${apiUrl}/messages/${messageId}/regenerate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
+          ...(hint && { 'Content-Type': 'application/json' }),
         },
+        ...(body && { body }),
       });
 
       if (!response.ok) {

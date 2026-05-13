@@ -294,9 +294,16 @@ export async function messageRoutes(server: FastifyInstance) {
           id: { type: 'string' },
         },
       },
+      body: {
+        type: 'object',
+        properties: {
+          hint: { type: 'string' },
+        },
+      },
     },
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
+    const { hint } = request.body as { hint?: string };
 
     // 1. Get message and verify ownership
     const message = await prisma.message.findUnique({
@@ -401,10 +408,20 @@ export async function messageRoutes(server: FastifyInstance) {
       roomId: message.roomId,
     });
 
-    // Replace placeholders in user message
+    // Replace placeholders in user message and hint
     const processedContent = userMessageContent
       .replace(/\{\{userName\}\}/g, aiContext.personaName)
-      .replace(/\{\{characterName\}\}/g, message.room.character.name);
+      .replace(/\{\{characterName\}\}/g, message.room.character.name)
+      .replace(/\{\{user\}\}/g, aiContext.personaName)
+      .replace(/\{\{char\}\}/g, message.room.character.name);
+
+    const processedHint = hint
+      ? hint
+          .replace(/\{\{userName\}\}/g, aiContext.personaName)
+          .replace(/\{\{characterName\}\}/g, message.room.character.name)
+          .replace(/\{\{user\}\}/g, aiContext.personaName)
+          .replace(/\{\{char\}\}/g, message.room.character.name)
+      : undefined;
 
     // 7. Stream AI response
     try {
@@ -413,6 +430,7 @@ export async function messageRoutes(server: FastifyInstance) {
         roomId: message.roomId,
         messageId: message.id,
         userMessage: processedContent,
+        hint: processedHint,
         modelSlug: model.slug,
         maxTokens: model.maxOutputTokens,
         characterContext: aiContext.characterContext,

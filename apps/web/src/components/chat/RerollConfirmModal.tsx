@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 
 interface RerollConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (hint?: string) => void;
   gemCost: number;
 }
 
@@ -15,11 +16,19 @@ export function RerollConfirmModal({
   onConfirm,
   gemCost,
 }: RerollConfirmModalProps) {
+  const [hint, setHint] = useState('');
+
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    onConfirm();
+    onConfirm(hint || undefined);
     onClose();
+    setHint(''); // Reset hint after confirm
+  };
+
+  const handleClose = () => {
+    onClose();
+    setHint(''); // Reset hint on close
   };
 
   return (
@@ -39,7 +48,7 @@ export function RerollConfirmModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-surface-container rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
@@ -65,6 +74,24 @@ export function RerollConfirmModal({
             </div>
           </div>
 
+          {/* Hint Input */}
+          <div>
+            <label htmlFor="hint" className="block text-label-medium font-medium mb-2">
+              힌트 (선택사항)
+            </label>
+            <textarea
+              id="hint"
+              value={hint}
+              onChange={(e) => setHint(e.target.value)}
+              placeholder="예시: {{char}}가 {{user}}를 밀친다"
+              className="w-full px-4 py-3 rounded-lg bg-surface-container-high border border-outline-variant/30 focus:border-primary focus:outline-none resize-none text-body-medium"
+              rows={3}
+            />
+            <p className="text-label-small text-on-surface-variant mt-1">
+              AI가 이 힌트를 참고하여 응답을 생성합니다
+            </p>
+          </div>
+
           <div className="bg-primary/5 rounded-lg p-4">
             <p className="text-body-small text-on-surface-variant text-center">
               💡 이전 메시지는 버전 기록에 저장되며,<br />
@@ -76,7 +103,7 @@ export function RerollConfirmModal({
         {/* Footer */}
         <div className="p-6 bg-surface-container-low flex gap-3">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 px-6 py-3 rounded-full border border-outline hover:bg-surface-container transition-colors text-label-large font-medium"
           >
             취소
