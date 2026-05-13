@@ -26,6 +26,7 @@ interface MessageBubbleProps {
   }>;
   versionNumber?: number;
   modelCost?: number;
+  isLastAiMessage?: boolean;
   onReroll?: (messageId: string, modelCost: number) => void;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
@@ -47,6 +48,7 @@ export function MessageBubble({
   triggeredImages,
   versionNumber = 1,
   modelCost = 10,
+  isLastAiMessage = false,
   onReroll,
   onEdit,
   onDelete,
@@ -197,7 +199,7 @@ export function MessageBubble({
               <button
                 onClick={() => onReroll(messageId, modelCost)}
                 className="p-1.5 hover:bg-surface-container rounded-lg transition-colors"
-                title="리롤"
+                title="재생성"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -267,8 +269,8 @@ export function MessageBubble({
           </div>
         )}
 
-        {/* Version Selector (AI messages with multiple versions) */}
-        {isAI && (
+        {/* Version Selector (only for last AI message with multiple versions) */}
+        {isAI && isLastAiMessage && (
           <MessageVersionSelector
             messageId={messageId}
             currentVersionNumber={versionNumber}

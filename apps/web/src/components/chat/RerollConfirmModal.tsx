@@ -32,7 +32,7 @@ export function RerollConfirmModal({
               <RefreshCw className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-title-large font-medium">메시지 리롤</h2>
+              <h2 className="text-title-large font-medium">메시지 재생성</h2>
               <p className="text-body-small text-on-surface-variant">
                 AI 응답을 다시 생성합니다
               </p>
@@ -50,7 +50,7 @@ export function RerollConfirmModal({
         <div className="p-6 space-y-4">
           <div className="bg-surface-container-high rounded-xl p-6 text-center">
             <p className="text-label-medium text-on-surface-variant mb-2">
-              리롤 비용
+              재생성 비용
             </p>
             <div className="flex items-center justify-center gap-2">
               <span className="material-symbols-outlined text-primary text-3xl">
@@ -86,7 +86,7 @@ export function RerollConfirmModal({
             className="flex-1 px-6 py-3 rounded-full bg-primary text-on-primary hover:bg-primary/90 transition-colors text-label-large font-medium flex items-center justify-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
-            리롤하기
+            재생성하기
           </button>
         </div>
       </div>

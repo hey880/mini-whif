@@ -488,7 +488,7 @@ export default function ChatPage() {
                 queryClient.invalidateQueries({ queryKey: ['messages', roomId] });
                 queryClient.invalidateQueries({ queryKey: ['wallet'] });
 
-                toast.success('메시지가 리롤되었습니다');
+                toast.success('메시지가 재생성되었습니다');
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);
@@ -509,7 +509,7 @@ export default function ChatPage() {
           },
         });
       } else {
-        toast.error('리롤 실패', {
+        toast.error('재생성 실패', {
           description: error.message || '다시 시도해주세요',
         });
       }
@@ -564,6 +564,13 @@ export default function ChatPage() {
   const totalGems = walletData?.data?.totalGems || 0;
   const userName = room.persona?.name || '사용자';
   const modelCost = currentModelData?.chosenLlmModel?.gemCostPerMessage || 10; // Default to 10 if not found
+
+  // Find the last AI message ID
+  const lastAiMessageId = messagesData?.messages
+    ? [...messagesData.messages]
+        .reverse()
+        .find((msg: any) => msg.role === 'assistant')?.id
+    : null;
 
   return (
     <div className="h-screen bg-background flex flex-col">
@@ -674,6 +681,7 @@ export default function ChatPage() {
                 triggeredImages={message.triggeredImages}
                 versionNumber={message.versionNumber || 1}
                 modelCost={modelCost}
+                isLastAiMessage={message.id === lastAiMessageId}
                 onCharacterAvatarClick={() => setIsCharacterModalOpen(true)}
                 onEdit={handleOpenEditModal}
                 onDelete={handleDeleteMessage}
