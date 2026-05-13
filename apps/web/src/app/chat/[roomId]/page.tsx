@@ -111,6 +111,31 @@ export default function ChatPage() {
     },
   });
 
+  // Fetch user's current model to get gem cost
+  const { data: currentModelData } = useQuery({
+    queryKey: ['currentModel'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/mypage/profile`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+
+      const data = await response.json();
+      return data.data;
+    },
+  });
+
   // Check if user is near bottom of scroll
   const checkScrollPosition = () => {
     const container = messagesContainerRef.current;
@@ -390,8 +415,99 @@ export default function ChatPage() {
     }
   };
 
-  const handleRegenerate = async () => {
-    toast.info('재생성 기능은 준비 중입니다');
+  const handleRegenerate = async (messageId: string, modelCost: number) => {
+    // 1. Confirmation dialog
+    const confirmed = window.confirm(
+      `이 메시지를 재생성하시겠습니까? ${modelCost} Gem이 차감됩니다.`
+    );
+    if (!confirmed) return;
+
+    const { setStreaming, appendStreamChunk, resetStream } = useChatStore.getState();
+
+    try {
+      // 2. Initialize streaming state
+      setStreaming(true);
+      resetStream();
+      setShouldAutoScroll(true);
+
+      // 3. Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+      // 4. SSE request
+      const response = await fetch(`${apiUrl}/messages/${messageId}/regenerate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+
+        if (contentType?.includes('application/json')) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to regenerate');
+        } else {
+          const text = await response.text();
+          throw new Error(text || `Server error: ${response.status}`);
+        }
+      }
+
+      // 5. SSE stream processing
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              appendStreamChunk(data.content);
+
+              if (data.is_final_event) {
+                setStreaming(false);
+
+                // 6. Refresh data
+                queryClient.invalidateQueries({ queryKey: ['messages', roomId] });
+                queryClient.invalidateQueries({ queryKey: ['wallet'] });
+
+                toast.success('메시지가 재생성되었습니다');
+              }
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError);
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      setStreaming(false);
+
+      // 7. Error handling
+      if (error.message?.includes('Insufficient gems')) {
+        toast.error('젬이 부족합니다', {
+          description: '젬을 충전하고 다시 시도해주세요',
+          action: {
+            label: '충전하기',
+            onClick: () => router.push('/mypage?tab=gems'),
+          },
+        });
+      } else {
+        toast.error('재생성 실패', {
+          description: error.message || '다시 시도해주세요',
+        });
+      }
+    }
   };
 
   const handleScrollToMessage = (messageId: string) => {
@@ -441,6 +557,7 @@ export default function ChatPage() {
 
   const totalGems = walletData?.data?.totalGems || 0;
   const userName = room.persona?.name || '사용자';
+  const modelCost = currentModelData?.chosenLlmModel?.gemCostPerMessage || 10; // Default to 10 if not found
 
   return (
     <div className="h-screen bg-background flex flex-col">
@@ -549,6 +666,7 @@ export default function ChatPage() {
                 isBookmarked={bookmarkedMessageIds.has(message.id)}
                 userReaction={message.userReaction}
                 triggeredImages={message.triggeredImages}
+                modelCost={modelCost}
                 onCharacterAvatarClick={() => setIsCharacterModalOpen(true)}
                 onEdit={handleOpenEditModal}
                 onDelete={handleDeleteMessage}

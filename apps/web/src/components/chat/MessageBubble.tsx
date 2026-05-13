@@ -22,7 +22,8 @@ interface MessageBubbleProps {
     imageUrl: string;
     description?: string;
   }>;
-  onRegenerate?: () => void;
+  modelCost?: number;
+  onRegenerate?: (messageId: string, modelCost: number) => void;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onBookmark?: (messageId: string) => void;
@@ -41,6 +42,7 @@ export function MessageBubble({
   isBookmarked = false,
   userReaction,
   triggeredImages,
+  modelCost = 10,
   onRegenerate,
   onEdit,
   onDelete,
@@ -179,7 +181,7 @@ export function MessageBubble({
 
             {onRegenerate && (
               <button
-                onClick={onRegenerate}
+                onClick={() => onRegenerate(messageId, modelCost)}
                 className="p-1.5 hover:bg-surface-container rounded-lg transition-colors"
                 title="재생성"
               >
