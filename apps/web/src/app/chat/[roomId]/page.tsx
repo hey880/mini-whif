@@ -450,7 +450,7 @@ export default function ChatPage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
-          ...(hint && { 'Content-Type': 'application/json' }),
+          ...(hint && { 'Content-Type': 'application/json; charset=utf-8' }),
         },
         ...(body && { body }),
       });
