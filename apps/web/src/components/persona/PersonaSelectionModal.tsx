@@ -2,21 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { createPromiseClient } from '@connectrpc/connect';
-import { createConnectTransport } from '@connectrpc/connect-web';
-import { PersonaService } from '@persona-chat/proto/gen/ts/persona_connect';
-import { CharacterService } from '@persona-chat/proto/gen/ts/character_connect';
 import { Shuffle, Plus, ChevronDown } from 'lucide-react';
 import { generateRandomPersona } from '@/lib/utils/personaTemplates';
 import { CharacterCardGrid } from '../character/CharacterCardGrid';
-
-const transport = createConnectTransport({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
-  credentials: 'include',
-});
-
-const personaClient = createPromiseClient(PersonaService, transport);
-const characterClient = createPromiseClient(CharacterService, transport);
+import { personaClient } from '@/lib/connectrpc/client';
 
 interface PersonaSelectionModalProps {
   isOpen: boolean;
