@@ -173,6 +173,10 @@ async def send_chat_message(
             situational_triggers=situational_triggers if situational_triggers else None,
         )
 
+        # Debug log for hint
+        if request.hint:
+            logger.info(f"Regenerating with hint: {request.hint}")
+
         # Build full message array
         messages = PromptBuilder.build_full_messages(
             system_prompt=system_prompt,
@@ -180,6 +184,13 @@ async def send_chat_message(
             new_user_message=request.message,
             hint=request.hint,
         )
+
+        # Debug log for messages
+        if request.hint:
+            logger.info(f"Total messages in prompt: {len(messages)}")
+            for i, msg in enumerate(messages):
+                if "힌트" in msg.get("content", ""):
+                    logger.info(f"Hint message at index {i}: {msg['content'][:200]}...")
 
         # Stream response
         async def sse_generator():

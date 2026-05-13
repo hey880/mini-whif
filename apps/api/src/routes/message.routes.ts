@@ -423,6 +423,14 @@ export async function messageRoutes(server: FastifyInstance) {
           .replace(/\{\{char\}\}/g, message.room.character.name)
       : undefined;
 
+    // Debug log
+    server.log.info({
+      originalHint: hint,
+      processedHint,
+      personaName: aiContext.personaName,
+      characterName: message.room.character.name
+    }, 'Regenerate with hint');
+
     // 7. Stream AI response
     try {
       await aiStreamingService.streamAIResponse({
