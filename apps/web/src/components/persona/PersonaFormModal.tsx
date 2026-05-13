@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { generateRandomPersona } from '@/lib/utils/personaTemplates';
 
 interface PersonaFormData {
   name: string;
   persona: string;
+  gender?: string;
   isDefault?: boolean;
 }
 
@@ -26,6 +28,7 @@ export function PersonaFormModal({
   const [formData, setFormData] = useState<PersonaFormData>({
     name: '',
     persona: '',
+    gender: '',
     isDefault: false,
   });
 
@@ -35,10 +38,16 @@ export function PersonaFormModal({
     if (initialData) {
       setFormData(initialData);
     } else {
-      setFormData({ name: '', persona: '', isDefault: false });
+      setFormData({ name: '', persona: '', gender: '', isDefault: false });
     }
     setErrors({});
   }, [initialData, isOpen]);
+
+  const handleRandomGenerate = () => {
+    const gender = formData.gender as 'male' | 'female' | 'other' || 'other';
+    const randomPersona = generateRandomPersona(gender);
+    setFormData({ ...formData, persona: randomPersona });
+  };
 
   const validate = (): boolean => {
     const newErrors: Partial<PersonaFormData> = {};
@@ -122,11 +131,55 @@ export function PersonaFormModal({
             </div>
           </div>
 
-          {/* Persona Description */}
+          {/* Gender Selection */}
           <div>
             <label className="block text-label-large font-medium mb-2">
-              Persona Description <span className="text-error">*</span>
+              Gender
             </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { value: 'male', label: '남성' },
+                { value: 'female', label: '여성' },
+                { value: 'other', label: '기타' },
+                { value: 'unspecified', label: '미지정' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() =>
+                    setFormData({ ...formData, gender: option.value })
+                  }
+                  className={`px-4 py-3 rounded-xl transition-all text-label-large font-medium ${
+                    formData.gender === option.value
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
+                  }`}
+                  disabled={isLoading}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Persona Description */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-label-large font-medium">
+                Persona Description <span className="text-error">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleRandomGenerate}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors text-label-medium"
+                disabled={isLoading}
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  casino
+                </span>
+                랜덤 생성
+              </button>
+            </div>
             <textarea
               value={formData.persona}
               onChange={(e) =>

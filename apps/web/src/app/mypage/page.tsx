@@ -1,8 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useAuthStore } from '@/stores/authStore';
-import { formatNumber, formatDate } from '@/lib/utils';
+import { formatNumber } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
 export default function MyPage() {
@@ -25,25 +26,7 @@ export default function MyPage() {
     },
   });
 
-  // Fetch gem logs
-  const { data: logsData, isLoading: loadingLogs } = useQuery({
-    queryKey: ['gemLogs'],
-    queryFn: async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${apiUrl}/mypage/gem-logs?limit=20`, {
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      });
-      return response.json();
-    },
-  });
-
   const wallet = walletData?.data;
-  const logs = logsData?.data || [];
 
   return (
     <>
@@ -139,70 +122,41 @@ export default function MyPage() {
           </div>
         </div>
 
-        {/* Transaction History */}
+        {/* My Content Section */}
         <div className="glass-card p-6">
-          <h2 className="text-headline-small font-headline mb-4">
-            Transaction History
-          </h2>
-
-          {loadingLogs ? (
-            <div className="space-y-2">
-              {[...Array(5)].map((_: undefined, i: number) => (
-                <div key={i} className="skeleton h-16 rounded-lg" />
-              ))}
-            </div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-8">
-              <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">
-                receipt_long
+          <h2 className="text-headline-small font-headline mb-4">내 컨텐츠</h2>
+          <div className="space-y-2">
+            <Link
+              href="/mypage/characters"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container transition-colors text-label-large"
+            >
+              <span className="material-symbols-outlined text-primary">palette</span>
+              <span className="flex-1">내 캐릭터</span>
+              <span className="material-symbols-outlined text-on-surface-variant">
+                chevron_right
               </span>
-              <p className="text-body-medium text-on-surface-variant">
-                No transactions yet
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {logs.map((log: { id: string; amount: number; logType: string; createdAt: string }) => (
-                <div
-                  key={log.id}
-                  className="glass-panel p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`material-symbols-outlined ${
-                        log.amount > 0 ? 'text-primary' : 'text-error'
-                      }`}
-                    >
-                      {log.amount > 0 ? 'add_circle' : 'remove_circle'}
-                    </span>
-                    <div>
-                      <div className="text-body-medium font-medium">
-                        {log.logType === 'purchase'
-                          ? 'Gem Purchase'
-                          : log.logType === 'chat_message'
-                          ? 'Chat Message'
-                          : log.logType === 'daily_bonus'
-                          ? 'Daily Bonus'
-                          : 'Transaction'}
-                      </div>
-                      <div className="text-label-small text-on-surface-variant">
-                        {formatDate(log.createdAt)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`text-title-medium font-medium ${
-                      log.amount > 0 ? 'text-primary' : 'text-error'
-                    }`}
-                  >
-                    {log.amount > 0 ? '+' : ''}
-                    {formatNumber(log.amount)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            </Link>
+            <Link
+              href="/mypage/personas"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container transition-colors text-label-large"
+            >
+              <span className="material-symbols-outlined text-primary">face</span>
+              <span className="flex-1">내 페르소나</span>
+              <span className="material-symbols-outlined text-on-surface-variant">
+                chevron_right
+              </span>
+            </Link>
+            <Link
+              href="/mypage/transactions"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container transition-colors text-label-large"
+            >
+              <span className="material-symbols-outlined text-primary">receipt_long</span>
+              <span className="flex-1">거래 내역</span>
+              <span className="material-symbols-outlined text-on-surface-variant">
+                chevron_right
+              </span>
+            </Link>
+          </div>
         </div>
     </>
   );

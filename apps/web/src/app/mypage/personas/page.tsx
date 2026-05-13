@@ -35,6 +35,7 @@ export default function PersonasPage() {
       return await personaClient.createPersona({
         name: data.name,
         persona: data.persona,
+        gender: data.gender,
         isDefault: data.isDefault || false,
       });
     },
@@ -54,6 +55,7 @@ export default function PersonasPage() {
         id,
         name: data.name,
         persona: data.persona,
+        gender: data.gender,
       });
     },
     onSuccess: () => {
@@ -197,6 +199,7 @@ export default function PersonasPage() {
             ? {
                 name: editingPersona.name,
                 persona: editingPersona.persona,
+                gender: editingPersona.gender,
               }
             : undefined
         }
