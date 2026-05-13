@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { formatDate, replacePlaceholders } from '@/lib/utils';
 import { parseMessage } from '@/lib/messageParser';
 import { Edit2, Trash2, Bookmark, BookmarkCheck, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react';
+import { MessageVersionSelector } from './MessageVersionSelector';
 
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
@@ -22,8 +24,9 @@ interface MessageBubbleProps {
     imageUrl: string;
     description?: string;
   }>;
+  versionNumber?: number;
   modelCost?: number;
-  onRegenerate?: (messageId: string, modelCost: number) => void;
+  onReroll?: (messageId: string, modelCost: number) => void;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onBookmark?: (messageId: string) => void;
@@ -42,8 +45,9 @@ export function MessageBubble({
   isBookmarked = false,
   userReaction,
   triggeredImages,
+  versionNumber = 1,
   modelCost = 10,
-  onRegenerate,
+  onReroll,
   onEdit,
   onDelete,
   onBookmark,
@@ -52,8 +56,18 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const isAI = role === 'assistant';
 
+  // Local state for version switching
+  const [displayContent, setDisplayContent] = useState(content);
+  const [currentDisplayVersion, setCurrentDisplayVersion] = useState(versionNumber);
+
+  // Handle version change from selector
+  const handleVersionChange = (newContent: string, newVersion: number) => {
+    setDisplayContent(newContent);
+    setCurrentDisplayVersion(newVersion);
+  };
+
   // Replace placeholders in content
-  const processedContent = replacePlaceholders(content, userName, characterName);
+  const processedContent = replacePlaceholders(displayContent, userName, characterName);
 
   return (
     <div className={`flex gap-3 ${isAI ? '' : 'flex-row-reverse'}`}>
@@ -179,11 +193,11 @@ export function MessageBubble({
               {formatDate(timestamp)}
             </span>
 
-            {onRegenerate && (
+            {onReroll && (
               <button
-                onClick={() => onRegenerate(messageId, modelCost)}
+                onClick={() => onReroll(messageId, modelCost)}
                 className="p-1.5 hover:bg-surface-container rounded-lg transition-colors"
-                title="재생성"
+                title="리롤"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -251,6 +265,16 @@ export function MessageBubble({
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
+        )}
+
+        {/* Version Selector (AI messages with multiple versions) */}
+        {isAI && (
+          <MessageVersionSelector
+            messageId={messageId}
+            currentVersionNumber={versionNumber}
+            currentContent={content}
+            onVersionChange={handleVersionChange}
+          />
         )}
 
         {/* User message timestamp (always visible) */}

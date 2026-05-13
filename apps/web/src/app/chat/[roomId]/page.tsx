@@ -17,6 +17,7 @@ import { CharacterDetailModal } from '@/components/character/CharacterDetailModa
 import { BookmarkPanel } from '@/components/chat/BookmarkPanel';
 import { EditMessageModal } from '@/components/chat/EditMessageModal';
 import { ContinueModal } from '@/components/chat/ContinueModal';
+import { RerollConfirmModal } from '@/components/chat/RerollConfirmModal';
 import { Bookmark } from 'lucide-react';
 
 export default function ChatPage() {
@@ -36,6 +37,8 @@ export default function ChatPage() {
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; role: 'user' | 'assistant' } | null>(null);
   const [isContinueModalOpen, setIsContinueModalOpen] = useState(false);
+  const [rerollModalOpen, setRerollModalOpen] = useState(false);
+  const [pendingReroll, setPendingReroll] = useState<{ messageId: string; modelCost: number } | null>(null);
 
   const { isStreaming, streamingContent } = useChatStore();
   const { sendMessage } = useSSEChat();
@@ -415,22 +418,25 @@ export default function ChatPage() {
     }
   };
 
-  const handleRegenerate = async (messageId: string, modelCost: number) => {
-    // 1. Confirmation dialog
-    const confirmed = window.confirm(
-      `이 메시지를 재생성하시겠습니까? ${modelCost} Gem이 차감됩니다.`
-    );
-    if (!confirmed) return;
+  const handleReroll = (messageId: string, modelCost: number) => {
+    // 모달 열기
+    setPendingReroll({ messageId, modelCost });
+    setRerollModalOpen(true);
+  };
 
+  const executeReroll = async () => {
+    if (!pendingReroll) return;
+
+    const { messageId, modelCost } = pendingReroll;
     const { setStreaming, appendStreamChunk, resetStream } = useChatStore.getState();
 
     try {
-      // 2. Initialize streaming state
+      // 1. Initialize streaming state
       setStreaming(true);
       resetStream();
       setShouldAutoScroll(true);
 
-      // 3. Get auth token
+      // 2. Get auth token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         throw new Error('Not authenticated');
@@ -438,7 +444,7 @@ export default function ChatPage() {
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-      // 4. SSE request
+      // 3. SSE request
       const response = await fetch(`${apiUrl}/messages/${messageId}/regenerate`, {
         method: 'POST',
         headers: {
@@ -451,14 +457,14 @@ export default function ChatPage() {
 
         if (contentType?.includes('application/json')) {
           const error = await response.json();
-          throw new Error(error.error || 'Failed to regenerate');
+          throw new Error(error.error || 'Failed to reroll');
         } else {
           const text = await response.text();
           throw new Error(text || `Server error: ${response.status}`);
         }
       }
 
-      // 5. SSE stream processing
+      // 4. SSE stream processing
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
 
@@ -478,11 +484,11 @@ export default function ChatPage() {
               if (data.is_final_event) {
                 setStreaming(false);
 
-                // 6. Refresh data
+                // 5. Refresh data
                 queryClient.invalidateQueries({ queryKey: ['messages', roomId] });
                 queryClient.invalidateQueries({ queryKey: ['wallet'] });
 
-                toast.success('메시지가 재생성되었습니다');
+                toast.success('메시지가 리롤되었습니다');
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);
@@ -493,7 +499,7 @@ export default function ChatPage() {
     } catch (error: any) {
       setStreaming(false);
 
-      // 7. Error handling
+      // 6. Error handling
       if (error.message?.includes('Insufficient gems')) {
         toast.error('젬이 부족합니다', {
           description: '젬을 충전하고 다시 시도해주세요',
@@ -503,7 +509,7 @@ export default function ChatPage() {
           },
         });
       } else {
-        toast.error('재생성 실패', {
+        toast.error('리롤 실패', {
           description: error.message || '다시 시도해주세요',
         });
       }
@@ -666,13 +672,14 @@ export default function ChatPage() {
                 isBookmarked={bookmarkedMessageIds.has(message.id)}
                 userReaction={message.userReaction}
                 triggeredImages={message.triggeredImages}
+                versionNumber={message.versionNumber || 1}
                 modelCost={modelCost}
                 onCharacterAvatarClick={() => setIsCharacterModalOpen(true)}
                 onEdit={handleOpenEditModal}
                 onDelete={handleDeleteMessage}
                 onBookmark={handleToggleBookmark}
                 onReaction={handleReaction}
-                onRegenerate={handleRegenerate}
+                onReroll={handleReroll}
               />
             </div>
           ))}
@@ -776,6 +783,17 @@ export default function ChatPage() {
           setIsContinueModalOpen(false);
         }}
         gemCost={10}
+      />
+
+      {/* Reroll Confirm Modal */}
+      <RerollConfirmModal
+        isOpen={rerollModalOpen}
+        onClose={() => {
+          setRerollModalOpen(false);
+          setPendingReroll(null);
+        }}
+        onConfirm={executeReroll}
+        gemCost={pendingReroll?.modelCost || 10}
       />
     </div>
   );
