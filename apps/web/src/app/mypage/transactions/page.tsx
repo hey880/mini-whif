@@ -8,7 +8,7 @@ interface GemLog {
   id: string;
   amount: number;
   gemType: 'paid' | 'free_daily' | 'free_promo';
-  logType: 'earn' | 'spend' | 'refund' | 'expire';
+  logType: string; // chat_message, purchase, refund, daily_refill, promo_grant, admin_adjustment
   memo: string | null;
   createdAt: string;
 }
@@ -73,12 +73,10 @@ export default function TransactionsPage() {
 
     return logs.map((log) => {
       const balanceAtTransaction = currentBalance;
-      // Move backwards: subtract the transaction to get previous balance
-      if (log.logType === 'earn' || log.logType === 'refund') {
-        currentBalance -= log.amount;
-      } else if (log.logType === 'spend' || log.logType === 'expire') {
-        currentBalance += Math.abs(log.amount);
-      }
+      // Move backwards: subtract the transaction amount to get previous balance
+      // If amount is positive (earn), subtract to go back in time
+      // If amount is negative (spend), subtracting makes it positive (adding)
+      currentBalance -= log.amount;
 
       return {
         ...log,
@@ -87,13 +85,17 @@ export default function TransactionsPage() {
     });
   }, [logsData, walletData]);
 
-  const getLogTypeLabel = (logType: string) => {
+  const getLogTypeLabel = (logType: string, amount: number) => {
+    if (logType === 'chat_message') {
+      return amount < 0 ? '채팅 사용' : '획득';
+    }
     switch (logType) {
-      case 'earn': return '획득';
-      case 'spend': return '사용';
+      case 'purchase': return '구매';
       case 'refund': return '환불';
-      case 'expire': return '만료';
-      default: return logType;
+      case 'daily_refill': return '일일 충전';
+      case 'promo_grant': return '프로모션';
+      case 'admin_adjustment': return '관리자 조정';
+      default: return amount < 0 ? '사용' : '획득';
     }
   };
 
@@ -106,14 +108,8 @@ export default function TransactionsPage() {
     }
   };
 
-  const getLogTypeColor = (logType: string) => {
-    switch (logType) {
-      case 'earn': return 'text-success';
-      case 'spend': return 'text-error';
-      case 'refund': return 'text-primary';
-      case 'expire': return 'text-on-surface-variant';
-      default: return 'text-on-surface';
-    }
+  const getLogTypeColor = (amount: number) => {
+    return amount > 0 ? 'text-success' : 'text-error';
   };
 
   return (
@@ -153,8 +149,8 @@ export default function TransactionsPage() {
                   {/* Left: Type and Memo */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-label-large font-medium ${getLogTypeColor(log.logType)}`}>
-                        {getLogTypeLabel(log.logType)}
+                      <span className={`text-label-large font-medium ${getLogTypeColor(log.amount)}`}>
+                        {getLogTypeLabel(log.logType, log.amount)}
                       </span>
                       <span className="text-label-small text-on-surface-variant px-2 py-0.5 rounded-full bg-surface-container">
                         {getGemTypeLabel(log.gemType)}
@@ -178,12 +174,12 @@ export default function TransactionsPage() {
 
                   {/* Right: Amount and Balance */}
                   <div className="text-right">
-                    <p className={`text-title-large font-medium ${getLogTypeColor(log.logType)}`}>
-                      {log.logType === 'earn' || log.logType === 'refund' ? '+' : ''}
+                    <p className={`text-title-large font-medium ${getLogTypeColor(log.amount)}`}>
+                      {log.amount > 0 ? '+' : ''}
                       {log.amount?.toLocaleString()}
                     </p>
                     <p className="text-label-small text-on-surface-variant mt-1">
-                      잔액: {log.balanceAfter?.toLocaleString()}
+                      잔액: {log.balanceAfter?.toLocaleString() ?? '0'}
                     </p>
                   </div>
                 </div>
