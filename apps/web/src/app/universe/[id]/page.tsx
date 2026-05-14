@@ -72,15 +72,15 @@ export default function UniverseDetailPage() {
   const universeData = universe.universe!;
 
   return (
-    <div className="pb-8">
+    <div className="pb-32 lg:pb-24">
       {/* Header */}
       <div className="mb-8">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors mb-4"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high transition-all group mb-4"
         >
-          <ArrowLeft className="w-5 h-5" />
-          뒤로 가기
+          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-label-large">뒤로가기</span>
         </button>
 
         {/* Cover Image */}

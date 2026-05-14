@@ -117,7 +117,7 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32 lg:pb-24">
       <div>
         <h1 className="text-headline-large font-headline mb-2">거래 내역</h1>
         <p className="text-body-medium text-on-surface-variant">

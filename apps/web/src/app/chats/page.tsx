@@ -153,7 +153,7 @@ export default function ChatsPage() {
     <div className="min-h-screen bg-background">
       <TopNav />
 
-      <main className="max-w-5xl mx-auto px-container-padding py-8">
+      <main className="max-w-5xl mx-auto px-container-padding py-8 pb-32 lg:pb-24">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-display-small font-display mb-2">My Chats</h1>

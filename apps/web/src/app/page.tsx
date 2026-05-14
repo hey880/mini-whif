@@ -107,7 +107,7 @@ export default function HomePage() {
       <div className="fixed top-1/3 right-1/4 w-96 h-96 ambiance-secondary" />
       <div className="fixed bottom-0 left-1/2 w-96 h-96 ambiance-tertiary" />
 
-      <main className="relative max-w-7xl mx-auto px-container-padding py-8">
+      <main className="relative max-w-7xl mx-auto px-container-padding py-8 pb-32 lg:pb-24">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-display-medium font-display text-primary mb-2">

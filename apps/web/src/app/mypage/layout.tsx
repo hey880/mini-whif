@@ -12,7 +12,7 @@ export default function MyPageLayout({
       <TopNav />
 
       {/* Content */}
-      <main className="max-w-5xl mx-auto px-container-padding py-8 pb-24 lg:pb-8">
+      <main className="max-w-5xl mx-auto px-container-padding py-8 pb-32 lg:pb-24">
         {children}
       </main>
     </div>
