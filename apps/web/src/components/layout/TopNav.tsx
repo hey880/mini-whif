@@ -5,7 +5,13 @@ import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
-export function TopNav() {
+interface TopNavProps {
+  showNsfwToggle?: boolean;
+  showNsfw?: boolean;
+  onToggleNsfw?: () => void;
+}
+
+export function TopNav({ showNsfwToggle, showNsfw, onToggleNsfw }: TopNavProps = {}) {
   const { user } = useAuthStore();
   const router = useRouter();
 
@@ -28,6 +34,21 @@ export function TopNav() {
 
           {/* Navigation */}
           <div className="flex items-center gap-4">
+            {/* NSFW Toggle (only on home page) */}
+            {showNsfwToggle && onToggleNsfw && (
+              <button
+                type="button"
+                onClick={onToggleNsfw}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  showNsfw
+                    ? 'bg-error text-on-error'
+                    : 'bg-surface-container-high text-on-surface'
+                }`}
+              >
+                {showNsfw ? 'UNSAFE' : 'SAFE'}
+              </button>
+            )}
+
             {user ? (
               <>
                 <Link
