@@ -16,12 +16,14 @@ import { CharacterService } from '@persona-chat/proto/gen/ts/character_connect.j
 import { PersonaService } from '@persona-chat/proto/gen/ts/persona_connect.js';
 import { ChatRoomService } from '@persona-chat/proto/gen/ts/chatroom_connect.js';
 import { LlmModelService } from '@persona-chat/proto/gen/ts/llmmodel_connect.js';
+import { UniverseService } from '@persona-chat/proto/gen/ts/universe_connect.js';
 
 // ConnectRPC Handlers
 import { characterHandler } from './rpc/character.handler.js';
 import { personaHandler } from './rpc/persona.handler.js';
 import { chatRoomHandler } from './rpc/chatroom.handler.js';
 import { llmModelHandler } from './rpc/llmmodel.handler.js';
+import { universeHandler } from './rpc/universe.handler.js';
 import { userContextKey } from './context.js';
 import { supabase } from './config/supabase.js';
 
@@ -71,6 +73,7 @@ async function start() {
         router.service(PersonaService, personaHandler);
         router.service(ChatRoomService, chatRoomHandler);
         router.service(LlmModelService, llmModelHandler);
+        router.service(UniverseService, universeHandler);
       },
       // Pass user context from request to RPC handlers
       contextValues(req) {
@@ -101,7 +104,7 @@ async function start() {
     console.log('🚀 Persona Chat API Server');
     console.log(`   Server listening on http://localhost:${PORT}`);
     console.log(`   Swagger docs: http://localhost:${PORT}/docs`);
-    console.log(`   ConnectRPC services: CharacterService, PersonaService, ChatRoomService, LlmModelService`);
+    console.log(`   ConnectRPC services: CharacterService, PersonaService, ChatRoomService, LlmModelService, UniverseService`);
     console.log('');
   } catch (error) {
     server.log.error(error);

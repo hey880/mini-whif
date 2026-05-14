@@ -35,6 +35,7 @@ model Profile {
   gemLogs        GemLog[]
   gemOrders      GemOrder[]
   userReactions  UserReaction[]
+  universes      Universe[]
 
   @@index([email])
   @@map("profiles")
@@ -141,12 +142,24 @@ model Universe {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String
   description String?  @db.Text
+  creatorId   String   @map("creator_id") @db.Uuid
+  visibility  String   @default("public") // public, private
+  imageUrl    String?  @map("image_url")
+  genre       String?
+  tags        String[] @default([])
+  lorebook    Json?
+  data        Json     @default("{}") @db.JsonB
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
+  creator    Profile     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   characters Character[]
 
+  @@index([creatorId])
+  @@index([visibility])
+  @@index([tags], type: Gin)
+  @@index([createdAt(sort: Desc)])
   @@map("universes")
 }
 
