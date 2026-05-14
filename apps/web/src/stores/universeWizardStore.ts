@@ -30,6 +30,7 @@ interface UniverseWizardState {
   // Draft management
   saveDraft: (userId: string) => string;
   loadDraft: (userId: string, draftId: string) => void;
+  loadUniverse: (universe: any) => void;
 }
 
 export const useUniverseWizardStore = create<UniverseWizardState>((set, get) => ({
@@ -215,5 +216,50 @@ export const useUniverseWizardStore = create<UniverseWizardState>((set, get) => 
       console.log('📥 Loading draft with lorebook entries:', draftData.lorebookEntries?.length || 0);
       set({ formData: draftData });
     }
+  },
+
+  loadUniverse: (universe: any) => {
+    // Parse data JSON if it exists
+    let dataJson: any = {};
+    try {
+      if (universe.dataJson) {
+        dataJson = JSON.parse(universe.dataJson);
+      }
+    } catch (e) {
+      console.error('Failed to parse universe dataJson:', e);
+    }
+
+    // Parse lorebook JSON
+    let lorebookEntries: LorebookEntry[] = [];
+    try {
+      if (universe.lorebookJson) {
+        const lorebookData = JSON.parse(universe.lorebookJson);
+        lorebookEntries = (lorebookData.entries || []).map((entry: any) => ({
+          id: entry.id || Math.random().toString(36).substr(2, 9),
+          name: entry.name || '',
+          content: entry.content || '',
+          keywords: entry.keywords || [],
+          isSecret: entry.isSecret || false,
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to parse universe lorebookJson:', e);
+    }
+
+    set({
+      formData: {
+        name: universe.name || '',
+        description: universe.description || '',
+        visibility: universe.visibility || 'private',
+        imageUrl: universe.imageUrl || '',
+        genre: universe.genre || '',
+        tags: universe.tags || [],
+        customTags: [],
+        worldSettings: dataJson.worldSettings || '',
+        preference: dataJson.preference || '',
+        lorebookEntries,
+      },
+      editingUniverseId: universe.id,
+    });
   },
 }));

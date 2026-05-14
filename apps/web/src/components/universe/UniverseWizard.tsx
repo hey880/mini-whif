@@ -13,16 +13,18 @@ import { Step1Introduction } from './steps/Step1Introduction';
 import { Step2Settings } from './steps/Step2Settings';
 import { Step3Lorebook } from './steps/Step3Lorebook';
 import { Step4Registration } from './steps/Step4Registration';
+import type { Universe } from '../../../../../packages/proto/gen/ts/universe_pb';
 
 interface UniverseWizardProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  editingUniverse?: Universe | null;
 }
 
 const OPTIONAL_STEPS = [3]; // Lorebook
 
-export function UniverseWizard({ isOpen, onClose, onSuccess }: UniverseWizardProps) {
+export function UniverseWizard({ isOpen, onClose, onSuccess, editingUniverse }: UniverseWizardProps) {
   const { user } = useAuthStore();
   const {
     currentStep,
@@ -36,6 +38,7 @@ export function UniverseWizard({ isOpen, onClose, onSuccess }: UniverseWizardPro
     loadDraft,
     saveDraft,
     getStepErrors,
+    loadUniverse,
   } = useUniverseWizardStore();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,9 +48,18 @@ export function UniverseWizard({ isOpen, onClose, onSuccess }: UniverseWizardPro
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   const [isDraftsModalOpen, setIsDraftsModalOpen] = useState(false);
 
-  // Check for draft on mount
+  // Load editing universe on mount
   useEffect(() => {
-    if (isOpen && user?.id) {
+    if (isOpen && editingUniverse) {
+      loadUniverse(editingUniverse);
+    } else if (isOpen && !editingUniverse) {
+      resetWizard();
+    }
+  }, [isOpen, editingUniverse, loadUniverse, resetWizard]);
+
+  // Check for draft on mount (only when not editing)
+  useEffect(() => {
+    if (isOpen && user?.id && !editingUniverse) {
       const drafts = getUniverseDrafts(user.id);
       if (drafts.length > 0) {
         const latestDraft = drafts[0];
@@ -62,7 +74,7 @@ export function UniverseWizard({ isOpen, onClose, onSuccess }: UniverseWizardPro
         }
       }
     }
-  }, [isOpen, user?.id, loadDraft]);
+  }, [isOpen, user?.id, loadDraft, editingUniverse]);
 
   // Track unsaved changes (skip initial render)
   useEffect(() => {
@@ -182,6 +194,52 @@ export function UniverseWizard({ isOpen, onClose, onSuccess }: UniverseWizardPro
     },
   });
 
+  // Update universe mutation
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id || !editingUniverse) {
+        throw new Error('필수 정보가 없습니다.');
+      }
+
+      const lorebookJson = JSON.stringify({
+        entries: formData.lorebookEntries.map((entry) => ({
+          name: entry.name,
+          content: entry.content,
+          keywords: entry.keywords,
+          isSecret: entry.isSecret,
+        })),
+      });
+
+      const dataJson = JSON.stringify({
+        worldSettings: formData.worldSettings,
+        preference: formData.preference,
+      });
+
+      return await universeClient.updateUniverse({
+        id: editingUniverse.id,
+        name: formData.name,
+        description: formData.description,
+        visibility: formData.visibility,
+        imageUrl: formData.imageUrl || undefined,
+        genre: formData.genre,
+        tags: formData.tags,
+        lorebookJson,
+        dataJson,
+      });
+    },
+    onSuccess: () => {
+      setHasUnsavedChanges(false);
+      resetWizard();
+      onSuccess?.();
+      onClose();
+    },
+    onError: (error: any) => {
+      console.error('Failed to update universe:', error);
+      const errorMessage = error?.message || '작품 수정에 실패했습니다. 다시 시도해주세요.';
+      setSubmitError(errorMessage);
+    },
+  });
+
   const handleClose = () => {
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
@@ -223,7 +281,11 @@ export function UniverseWizard({ isOpen, onClose, onSuccess }: UniverseWizardPro
     setSubmitError(null);
 
     try {
-      await createMutation.mutateAsync();
+      if (editingUniverse) {
+        await updateMutation.mutateAsync();
+      } else {
+        await createMutation.mutateAsync();
+      }
     } catch (error: any) {
       console.error('Submit error:', error);
       // Error is handled by mutation's onError

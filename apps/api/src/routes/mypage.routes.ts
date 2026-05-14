@@ -4,6 +4,71 @@ import { prisma } from '../config/prisma.js';
 import { GemService } from '../services/gem.service.js';
 
 export async function mypageRoutes(server: FastifyInstance) {
+  // Get user profile
+  server.get('/mypage/profile', {
+    preHandler: [authenticateUser],
+    schema: {
+      tags: ['MyPage'],
+      description: 'Get user profile including chosen LLM model',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                email: { type: 'string' },
+                displayName: { type: 'string' },
+                avatarUrl: { type: 'string' },
+                bio: { type: 'string' },
+                chosenLlmModel: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    name: { type: 'string' },
+                    provider: { type: 'string' },
+                    modelId: { type: 'string' },
+                    gemCostPerMessage: { type: 'number' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const profile = await prisma.profile.findUnique({
+      where: { id: request.user!.id },
+      include: {
+        chosenLlmModel: true,
+      },
+    });
+
+    if (!profile) {
+      return reply.status(404).send({ error: 'Profile not found' });
+    }
+
+    return reply.send({
+      data: {
+        id: profile.id,
+        email: profile.email,
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        bio: profile.bio,
+        chosenLlmModel: profile.chosenLlmModel ? {
+          id: profile.chosenLlmModel.id,
+          name: profile.chosenLlmModel.name,
+          provider: profile.chosenLlmModel.provider,
+          modelId: profile.chosenLlmModel.modelId,
+          gemCostPerMessage: profile.chosenLlmModel.gemCostPerMessage,
+        } : null,
+      },
+    });
+  });
+
   // Get gem wallet balance
   server.get('/mypage/wallet', {
     preHandler: [authenticateUser],

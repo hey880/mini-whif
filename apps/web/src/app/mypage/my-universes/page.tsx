@@ -21,6 +21,7 @@ export default function MyUniversesPage() {
   const [isUniverseWizardOpen, setIsUniverseWizardOpen] = useState(false);
   const [isCharacterWizardOpen, setIsCharacterWizardOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
+  const [editingUniverse, setEditingUniverse] = useState<Universe | null>(null);
 
   // Fetch universes
   const { data: universesData, isLoading: universesLoading } = useQuery({
@@ -100,12 +101,18 @@ export default function MyUniversesPage() {
     setIsCharacterWizardOpen(true);
   };
 
+  const handleEditUniverse = (universe: Universe) => {
+    setEditingUniverse(universe);
+    setIsUniverseWizardOpen(true);
+  };
+
   const handleWizardSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['my-universes'] });
     queryClient.invalidateQueries({ queryKey: ['my-characters'] });
     setIsUniverseWizardOpen(false);
     setIsCharacterWizardOpen(false);
     setEditingCharacter(null);
+    setEditingUniverse(null);
   };
 
   const isLoading = activeTab === 'universes' ? universesLoading : charactersLoading;
@@ -126,6 +133,7 @@ export default function MyUniversesPage() {
           <button
             onClick={() => {
               if (activeTab === 'universes') {
+                setEditingUniverse(null);
                 setIsUniverseWizardOpen(true);
               } else {
                 setEditingCharacter(null);
@@ -223,7 +231,13 @@ export default function MyUniversesPage() {
               첫 번째 작품을 만들어보세요. 세계관을 정의하고 캐릭터들이 살아갈 무대를
               설정하세요.
             </p>
-            <button onClick={() => setIsUniverseWizardOpen(true)} className="glow-button">
+            <button
+              onClick={() => {
+                setEditingUniverse(null);
+                setIsUniverseWizardOpen(true);
+              }}
+              className="glow-button"
+            >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined">add</span>
                 첫 작품 만들기
@@ -288,6 +302,13 @@ export default function MyUniversesPage() {
                   >
                     <span className="material-symbols-outlined text-xl">visibility</span>
                   </Link>
+                  <button
+                    onClick={() => handleEditUniverse(universe)}
+                    className="p-2 rounded-lg bg-surface-container/90 hover:bg-primary hover:text-on-primary backdrop-blur-md transition-all"
+                    title="수정"
+                  >
+                    <span className="material-symbols-outlined text-xl">edit</span>
+                  </button>
                   <button
                     onClick={() => handleDeleteUniverse(universe)}
                     className="p-2 rounded-lg bg-surface-container/90 hover:bg-error hover:text-on-error backdrop-blur-md transition-all"
@@ -391,8 +412,12 @@ export default function MyUniversesPage() {
       {/* Wizards */}
       <UniverseWizard
         isOpen={isUniverseWizardOpen}
-        onClose={() => setIsUniverseWizardOpen(false)}
+        onClose={() => {
+          setIsUniverseWizardOpen(false);
+          setEditingUniverse(null);
+        }}
         onSuccess={handleWizardSuccess}
+        editingUniverse={editingUniverse}
       />
 
       <CharacterWizard
