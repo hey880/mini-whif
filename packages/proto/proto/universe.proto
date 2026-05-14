@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package persona_chat.universe.v1;
+
+service UniverseService {
+  rpc ListUniverses(ListUniversesRequest) returns (ListUniversesResponse);
+  rpc GetUniverse(GetUniverseRequest) returns (GetUniverseResponse);
+  rpc CreateUniverse(CreateUniverseRequest) returns (CreateUniverseResponse);
+  rpc UpdateUniverse(UpdateUniverseRequest) returns (UpdateUniverseResponse);
+  rpc DeleteUniverse(DeleteUniverseRequest) returns (DeleteUniverseResponse);
+}
+
+message ListUniversesRequest {
+  optional string visibility = 1; // public, private
+  optional string creator_id = 2;
+  optional string keyword = 3; // unified search
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message ListUniversesResponse {
+  repeated Universe universes = 1;
+  int32 total = 2;
+  bool has_more = 3;
+}
+
+message GetUniverseRequest {
+  string id = 1;
+}
+
+message GetUniverseResponse {
+  Universe universe = 1;
+}
+
+message CreateUniverseRequest {
+  string name = 1;
+  optional string description = 2;
+  string visibility = 3; // public or private
+  optional string image_url = 4;
+  optional string genre = 5;
+  repeated string tags = 6;
+  optional string lorebook_json = 7;
+  optional string data_json = 8;
+}
+
+message CreateUniverseResponse {
+  Universe universe = 1;
+}
+
+message UpdateUniverseRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string visibility = 4;
+  optional string image_url = 5;
+  optional string genre = 6;
+  repeated string tags = 7;
+  optional string lorebook_json = 8;
+  optional string data_json = 9;
+}
+
+message UpdateUniverseResponse {
+  Universe universe = 1;
+}
+
+message DeleteUniverseRequest {
+  string id = 1;
+}
+
+message DeleteUniverseResponse {
+  bool success = 1;
+}
+
+message Universe {
+  string id = 1;
+  string name = 2;
+  optional string description = 3;
+  string creator_id = 4;
+  string visibility = 5;
+  optional string image_url = 6;
+  optional string genre = 7;
+  repeated string tags = 8;
+  optional string lorebook_json = 9;
+  string data_json = 10;
+  string created_at = 11;
+  string updated_at = 12;
+  int32 character_count = 13;
+  optional string creator_display_name = 14;
+}
