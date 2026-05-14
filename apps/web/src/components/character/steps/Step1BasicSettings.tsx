@@ -4,14 +4,32 @@ import { useState, useRef } from 'react';
 import { Plus, Trash2, User, Image as ImageIcon, Upload, X } from 'lucide-react';
 import { useCharacterWizardStore } from '@/stores/characterWizardStore';
 import { uploadImage, validateImageFile } from '@/lib/uploadImage';
+import { useQuery } from '@tanstack/react-query';
+import { universeClient } from '@/lib/connectrpc/client';
+import { useAuthStore } from '@/stores/authStore';
 
 export function Step1BasicSettings() {
   const { formData, updateFormData } = useCharacterWizardStore();
+  const { user } = useAuthStore();
   const [imageError, setImageError] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+
+  // Fetch user's universes
+  const { data: universesData } = useQuery({
+    queryKey: ['my-universes', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      return await universeClient.listUniverses({
+        creatorId: user.id,
+        limit: 100,
+        offset: 0,
+      });
+    },
+    enabled: !!user?.id,
+  });
 
   const handleFileSelect = async (file: File) => {
     setUploadError(null);
@@ -110,6 +128,8 @@ export function Step1BasicSettings() {
     });
   };
 
+  const universes = universesData?.universes || [];
+
   return (
     <div className="wizard-step space-y-6">
       <div>
@@ -117,6 +137,66 @@ export function Step1BasicSettings() {
         <p className="text-body-medium text-on-surface-variant">
           캐릭터의 기본 정보와 AI 프롬프트를 입력해주세요
         </p>
+      </div>
+
+      {/* Universe Selection */}
+      <div>
+        <label className="block text-sm font-medium text-on-surface mb-2">
+          캐릭터가 등장할 작품 선택
+        </label>
+        <select
+          value={formData.universeId || ''}
+          onChange={(e) => {
+            const value = e.target.value;
+            updateFormData({
+              universeId: value || undefined,
+              noUniverse: !value,
+            });
+          }}
+          disabled={formData.noUniverse}
+          className="w-full px-4 py-3 rounded-xl bg-surface-container text-on-surface border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <option value="">작품 선택 (선택사항)</option>
+          {universes.map((universe) => (
+            <option key={universe.id} value={universe.id}>
+              {universe.name}
+            </option>
+          ))}
+        </select>
+
+        {/* No Universe Checkbox */}
+        <label className="flex items-start gap-3 mt-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={formData.noUniverse}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              updateFormData({
+                noUniverse: checked,
+                universeId: checked ? undefined : formData.universeId,
+              });
+            }}
+            className="mt-1 w-4 h-4 text-primary focus:ring-primary rounded"
+          />
+          <div className="flex-1">
+            <span className="text-sm text-on-surface">작품 없이 만들기</span>
+            {formData.noUniverse && (
+              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 bg-orange-100 dark:bg-orange-900/20 p-2 rounded-lg">
+                캐릭터가 단독으로 공개되며, 작품 둘러보기에는 보이지 않아요. 나중에
+                작품에 추가할 수는 없어요.
+              </p>
+            )}
+          </div>
+        </label>
+
+        {universes.length === 0 && !formData.noUniverse && (
+          <p className="text-xs text-on-surface-variant mt-2">
+            작품이 없습니다.{' '}
+            <a href="/mypage/my-universes" className="text-primary hover:underline">
+              작품을 먼저 만들어보세요
+            </a>
+          </p>
+        )}
       </div>
 
       {/* Name */}

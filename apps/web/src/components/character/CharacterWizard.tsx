@@ -38,6 +38,7 @@ export function CharacterWizard({
     loadCharacter,
     nextStep,
     prevStep,
+    setStep,
     validateCurrentStep,
     getStepErrors,
   } = useCharacterWizardStore();
@@ -138,6 +139,7 @@ export function CharacterWizard({
           imageUrl: formData.imageUrl || undefined,
           visibility: formData.visibility,
           isNsfw: formData.isNsfw,
+          universeId: formData.noUniverse ? undefined : formData.universeId,
           keywords: formData.keywords,
           dataJson,
           lorebookJson,
@@ -152,6 +154,7 @@ export function CharacterWizard({
           imageUrl: formData.imageUrl || undefined,
           visibility: formData.visibility,
           isNsfw: formData.isNsfw,
+          universeId: formData.noUniverse ? undefined : formData.universeId,
           keywords: formData.keywords,
           dataJson,
           lorebookJson,
@@ -203,6 +206,7 @@ export function CharacterWizard({
             currentStep={currentStep}
             totalSteps={6}
             completedSteps={completedSteps}
+            onStepClick={setStep}
           />
         </div>
 

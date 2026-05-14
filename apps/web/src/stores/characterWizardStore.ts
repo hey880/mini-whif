@@ -46,6 +46,8 @@ export interface CharacterFormData {
   tagline: string;
   description: string;
   exampleDialogues: ExampleDialogue[];
+  universeId?: string;
+  noUniverse: boolean;
 
   // Step 2
   lorebookEntries: LorebookEntry[];
@@ -97,6 +99,8 @@ const initialFormData: CharacterFormData = {
   tagline: '',
   description: '',
   exampleDialogues: [],
+  universeId: undefined,
+  noUniverse: false,
   lorebookEntries: [],
   greetings: [],
   situationalImages: [],
@@ -187,6 +191,8 @@ export const useCharacterWizardStore = create<CharacterWizardState>((set, get) =
         tagline: character.tagline || '',
         description: character.description || '',
         exampleDialogues: data.exampleDialogues || [],
+        universeId: character.universeId || undefined,
+        noUniverse: !character.universeId,
         lorebookEntries: lorebook.entries || [],
         greetings,
         situationalImages: data.situationalImages || [],
