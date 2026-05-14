@@ -48,7 +48,7 @@ export class AIStreamingService {
     situationalImagesInfo: any[];
     personaName: string;
   }> {
-    // Get chat room with character details
+    // Get chat room with character details and universe
     const room = await prisma.chatRoom.findUnique({
       where: { id: params.roomId },
       include: {
@@ -61,6 +61,14 @@ export class AIStreamingService {
             tagline: true,
             lorebook: true,
             data: true,
+            universeId: true,
+            universe: {
+              select: {
+                id: true,
+                name: true,
+                lorebook: true,
+              },
+            },
           },
         },
       },
@@ -96,18 +104,53 @@ export class AIStreamingService {
       personality: replacePlaceholders(room.character.tagline || '', replacements),
     };
 
-    // Parse lorebook if exists
+    // Parse and merge lorebooks (Universe + Character)
     let lorebookEntries: any[] = [];
-    if (room.character.lorebook) {
+
+    // 1. Add Universe lorebook entries (if exists)
+    if (room.character.universe?.lorebook) {
       try {
-        const lorebook = typeof room.character.lorebook === 'string'
-          ? JSON.parse(room.character.lorebook)
-          : room.character.lorebook;
-        lorebookEntries = lorebook.entries || [];
+        const universeLorebook = typeof room.character.universe.lorebook === 'string'
+          ? JSON.parse(room.character.universe.lorebook)
+          : room.character.universe.lorebook;
+
+        // Filter out secret entries for universe lorebook
+        const universeEntries = (universeLorebook.entries || [])
+          .filter((entry: any) => !entry.isSecret)
+          .map((entry: any) => ({
+            ...entry,
+            source: 'universe',
+            universeName: room.character.universe?.name,
+          }));
+
+        lorebookEntries.push(...universeEntries);
       } catch (e) {
-        console.warn('Failed to parse lorebook');
+        console.warn('Failed to parse universe lorebook', e);
       }
     }
+
+    // 2. Add Character lorebook entries (if exists)
+    if (room.character.lorebook) {
+      try {
+        const characterLorebook = typeof room.character.lorebook === 'string'
+          ? JSON.parse(room.character.lorebook)
+          : room.character.lorebook;
+
+        const characterEntries = (characterLorebook.entries || [])
+          .map((entry: any) => ({
+            ...entry,
+            source: 'character',
+            characterName: room.character.name,
+          }));
+
+        lorebookEntries.push(...characterEntries);
+      } catch (e) {
+        console.warn('Failed to parse character lorebook', e);
+      }
+    }
+
+    // Sort by priority (higher priority first)
+    lorebookEntries.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
     // Extract situational images for AI context
     let situationalImagesInfo: any[] = [];
