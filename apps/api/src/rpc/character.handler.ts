@@ -9,8 +9,15 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
     // Build where clause from request filters
     const where: any = {};
 
+    // Unified search across multiple fields
     if (req.keyword) {
-      where.keywords = { has: req.keyword };
+      where.OR = [
+        { name: { contains: req.keyword, mode: 'insensitive' } },
+        { keywords: { has: req.keyword } },
+        { tagline: { contains: req.keyword, mode: 'insensitive' } },
+        { universe: { name: { contains: req.keyword, mode: 'insensitive' } } },
+        { creator: { displayName: { contains: req.keyword, mode: 'insensitive' } } },
+      ];
     }
 
     if (req.name) {
@@ -44,6 +51,18 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
         skip: offset,
         orderBy: { createdAt: 'desc' },
         include: {
+          universe: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          creator: {
+            select: {
+              id: true,
+              displayName: true,
+            },
+          },
           _count: {
             select: {
               chatRooms: true,
@@ -76,6 +95,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
         totalChatCount: char._count.chatRooms,
         totalMessageCount: 0, // TODO: calculate from messages if needed
         avgRating: 0, // TODO: implement ratings if needed
+        creatorDisplayName: char.creator.displayName,
       })),
       total,
       hasMore: offset + characters.length < total,
@@ -90,6 +110,11 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
           select: { chatRooms: true },
         },
         universe: true,
+        creator: {
+          select: {
+            displayName: true,
+          },
+        },
       },
     });
 
@@ -118,6 +143,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
         totalChatCount: character._count.chatRooms,
         totalMessageCount: 0,
         avgRating: 0,
+        creatorDisplayName: character.creator.displayName,
       },
     };
   },

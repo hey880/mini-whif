@@ -675,6 +675,11 @@ export class Character extends Message<Character> {
    */
   avgRating = 0;
 
+  /**
+   * @generated from field: optional string creator_display_name = 20;
+   */
+  creatorDisplayName?: string;
+
   constructor(data?: PartialMessage<Character>) {
     super();
     proto3.util.initPartial(data, this);
@@ -702,6 +707,7 @@ export class Character extends Message<Character> {
     { no: 17, name: "total_chat_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 18, name: "total_message_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 19, name: "avg_rating", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 20, name: "creator_display_name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Character {

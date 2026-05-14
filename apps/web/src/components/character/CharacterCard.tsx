@@ -13,6 +13,7 @@ interface CharacterCardProps {
   keywords: string[];
   isNsfw: boolean;
   rank?: number;
+  creatorDisplayName?: string;
 }
 
 export function CharacterCard({
@@ -24,6 +25,7 @@ export function CharacterCard({
   keywords,
   isNsfw,
   rank,
+  creatorDisplayName,
 }: CharacterCardProps) {
   const isPremium = rank === 1;
 
@@ -98,11 +100,16 @@ export function CharacterCard({
         </div>
 
         {/* Stats */}
-        <div className="flex items-center gap-4 text-body-small text-on-surface-variant">
+        <div className="flex items-center justify-between text-body-small text-on-surface-variant">
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-base">chat</span>
             <span>{formatNumber(totalChatCount)}</span>
           </div>
+          {creatorDisplayName && (
+            <span className="text-label-small truncate max-w-[120px]">
+              by {creatorDisplayName}
+            </span>
+          )}
         </div>
       </div>
     </Link>

@@ -104,6 +104,7 @@ message Character {
   int32 total_chat_count = 17;
   int32 total_message_count = 18;
   double avg_rating = 19;
+  optional string creator_display_name = 20;
 }
 
 message ListCharactersByUniverseRequest {

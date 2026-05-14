@@ -213,6 +213,25 @@ export default function CharacterDetailPage() {
               )}
             </div>
 
+            {/* Creator */}
+            {character.creatorDisplayName && (
+              <div className="mb-6 pb-6 border-b border-outline-variant">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-on-surface-variant">
+                    person
+                  </span>
+                  <div>
+                    <div className="text-label-small text-on-surface-variant">
+                      Created by
+                    </div>
+                    <div className="text-body-medium text-on-surface">
+                      {character.creatorDisplayName}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Stats */}
             <div className="flex gap-6 mb-6 pb-6 border-b border-outline-variant">
               <div className="text-center">
