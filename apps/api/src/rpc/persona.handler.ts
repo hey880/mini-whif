@@ -12,9 +12,12 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
       throw new ConnectError('Unauthorized', Code.Unauthenticated);
     }
 
-    // List personas for the authenticated user
+    // List personas for the authenticated user (exclude character-based personas)
     const personas = await prisma.userPersona.findMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        sourceCharacterId: null  // Only show user-created personas, not character-based ones
+      },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
     });
 
