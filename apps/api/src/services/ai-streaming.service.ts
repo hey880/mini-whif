@@ -114,9 +114,8 @@ export class AIStreamingService {
           ? JSON.parse(room.character.universe.lorebook)
           : room.character.universe.lorebook;
 
-        // Filter out secret entries for universe lorebook
+        // Include all universe lorebook entries (isSecret only affects UI visibility)
         const universeEntries = (universeLorebook.entries || [])
-          .filter((entry: any) => !entry.isSecret)
           .map((entry: any) => ({
             ...entry,
             source: 'universe',
@@ -151,6 +150,12 @@ export class AIStreamingService {
 
     // Sort by priority (higher priority first)
     lorebookEntries.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+    // Debug log for lorebook entries
+    console.log(`📚 Total lorebook entries for AI: ${lorebookEntries.length}`);
+    lorebookEntries.forEach((entry: any) => {
+      console.log(`  - ${entry.name || 'Unnamed'} [${entry.source}] | Keywords: ${JSON.stringify(entry.keywords || entry.keys || [])}`);
+    });
 
     // Extract situational images for AI context
     let situationalImagesInfo: any[] = [];

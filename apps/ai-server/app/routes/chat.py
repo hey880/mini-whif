@@ -158,11 +158,19 @@ async def send_chat_message(
 
         # Filter lorebook entries by keyword triggers
         # Only include lorebook entries that are triggered by keywords in the conversation
+        logger.info(f"📚 Total lorebook entries available: {len(lorebook_entries)}")
+        for entry in lorebook_entries:
+            logger.info(f"  - Entry: {entry.get('name', 'Unknown')} | Keywords: {entry.get('keywords', entry.get('triggers', []))} | Source: {entry.get('source', 'unknown')}")
+
         triggered_lorebook_entries = PromptBuilder.filter_triggered_lorebook_entries(
             lorebook_entries=lorebook_entries,
             message_history=message_history,
             new_message=request.message
         )
+
+        logger.info(f"✅ Triggered lorebook entries: {len(triggered_lorebook_entries)}")
+        for entry in triggered_lorebook_entries:
+            logger.info(f"  - Triggered: {entry.get('name', 'Unknown')} | Keywords: {entry.get('keywords', entry.get('triggers', []))}")
 
         system_prompt = PromptBuilder.build_system_prompt(
             character_data=character_data,

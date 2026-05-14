@@ -205,8 +205,8 @@ class PromptBuilder:
             if not entry.get("enabled", True):
                 continue
 
-            # Check both 'triggers' and 'keys' fields (frontend vs backend naming)
-            triggers = entry.get("triggers") or entry.get("keys") or []
+            # Check 'triggers', 'keys', and 'keywords' fields (multiple naming conventions)
+            triggers = entry.get("triggers") or entry.get("keys") or entry.get("keywords") or []
 
             # Check if any trigger keyword is in the combined text
             for trigger in triggers:
