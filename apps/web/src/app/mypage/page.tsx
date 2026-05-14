@@ -123,15 +123,15 @@ export default function MyPage() {
         </div>
 
         {/* My Content Section */}
-        <div className="glass-card p-6">
+        <div className="glass-card p-6 mb-8">
           <h2 className="text-headline-small font-headline mb-4">내 컨텐츠</h2>
           <div className="space-y-2">
             <Link
-              href="/mypage/characters"
+              href="/mypage/my-universes"
               className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-container transition-colors text-label-large"
             >
-              <span className="material-symbols-outlined text-primary">palette</span>
-              <span className="flex-1">내 캐릭터</span>
+              <span className="material-symbols-outlined text-primary">auto_stories</span>
+              <span className="flex-1">내 작품/캐릭터</span>
               <span className="material-symbols-outlined text-on-surface-variant">
                 chevron_right
               </span>

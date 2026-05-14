@@ -180,10 +180,10 @@ export default function TransactionsPage() {
                   <div className="text-right">
                     <p className={`text-title-large font-medium ${getLogTypeColor(log.logType)}`}>
                       {log.logType === 'earn' || log.logType === 'refund' ? '+' : ''}
-                      {log.amount.toLocaleString()}
+                      {log.amount?.toLocaleString()}
                     </p>
                     <p className="text-label-small text-on-surface-variant mt-1">
-                      잔액: {log.balanceAfter.toLocaleString()}
+                      잔액: {log.balanceAfter?.toLocaleString()}
                     </p>
                   </div>
                 </div>
