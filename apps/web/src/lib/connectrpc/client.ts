@@ -4,6 +4,7 @@ import { CharacterService } from '../../../../../packages/proto/gen/ts/character
 import { PersonaService } from '../../../../../packages/proto/gen/ts/persona_connect';
 import { ChatRoomService } from '../../../../../packages/proto/gen/ts/chatroom_connect';
 import { LlmModelService } from '../../../../../packages/proto/gen/ts/llmmodel_connect';
+import { UniverseService } from '../../../../../packages/proto/gen/ts/universe_connect';
 import { supabase } from '../supabase';
 
 // Create transport with auth interceptor
@@ -31,3 +32,4 @@ export const characterClient = createClient(CharacterService, transport);
 export const personaClient = createClient(PersonaService, transport);
 export const chatRoomClient = createClient(ChatRoomService, transport);
 export const llmModelClient = createClient(LlmModelService, transport);
+export const universeClient = createClient(UniverseService, transport);
