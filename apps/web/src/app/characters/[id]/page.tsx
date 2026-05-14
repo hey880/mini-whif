@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { characterClient, chatRoomClient, personaClient } from '@/lib/connectrpc/client';
+import { characterClient, chatRoomClient, personaClient, universeClient } from '@/lib/connectrpc/client';
 import { TopNav } from '@/components/layout/TopNav';
 import { useAuthStore } from '@/stores/authStore';
 import { useState } from 'react';
@@ -12,6 +12,8 @@ import { linkifyText } from '@/lib/linkify';
 import { ChatRoomCreationModal } from '@/components/chat/ChatRoomCreationModal';
 import { PersonaSelectionModal } from '@/components/persona/PersonaSelectionModal';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import type { Character } from '../../../../../../packages/proto/gen/ts/character_pb';
 
 export default function CharacterDetailPage() {
   const params = useParams();
@@ -45,6 +47,33 @@ export default function CharacterDetailPage() {
       return response.chatRoom;
     },
     enabled: !!user && !!characterId,
+  });
+
+  // Fetch universe if character belongs to one
+  const { data: universeData } = useQuery({
+    queryKey: ['universe', character?.universeId],
+    queryFn: async () => {
+      if (!character?.universeId) return null;
+      const response = await universeClient.getUniverse({ id: character.universeId });
+      return response.universe;
+    },
+    enabled: !!character?.universeId,
+  });
+
+  // Fetch characters from the same universe
+  const { data: sameUniverseCharacters } = useQuery({
+    queryKey: ['universe-characters', character?.universeId, characterId],
+    queryFn: async () => {
+      if (!character?.universeId) return [];
+      const response = await characterClient.listCharacters({
+        universeId: character.universeId,
+        limit: 20,
+        offset: 0,
+      });
+      // Filter out current character
+      return response.characters.filter((char: Character) => char.id !== characterId);
+    },
+    enabled: !!character?.universeId,
   });
 
   // Parse dataJson to extract additional info
@@ -176,31 +205,30 @@ export default function CharacterDetailPage() {
         )}
       </div>
 
-      <main className="relative max-w-7xl mx-auto px-container-padding py-8">
-        <div className="grid md:grid-cols-[1fr,500px] gap-8">
-          {/* Left side - Image */}
-          <div className="flex items-center justify-center">
-            <div className="glass-card p-4 max-w-md w-full">
-              <div className="aspect-[3/4] relative rounded-xl overflow-hidden">
-                {character.imageUrl ? (
-                  <img
-                    src={character.imageUrl}
-                    alt={character.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
-                    <span className="material-symbols-outlined text-6xl text-on-surface-variant">
-                      person
-                    </span>
-                  </div>
-                )}
-              </div>
+      <main className="relative max-w-4xl mx-auto px-container-padding py-8 pb-32 lg:pb-24">
+        {/* Character Image at Top */}
+        <div className="flex justify-center mb-8">
+          <div className="glass-card p-4 max-w-sm w-full">
+            <div className="aspect-[3/4] relative rounded-xl overflow-hidden">
+              {character.imageUrl ? (
+                <img
+                  src={character.imageUrl}
+                  alt={character.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-surface-container-high flex items-center justify-center">
+                  <span className="material-symbols-outlined text-6xl text-on-surface-variant">
+                    person
+                  </span>
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Right side - Info */}
-          <div className="glass-card p-8">
+        {/* Character Info */}
+        <div className="glass-card p-8 mb-8">
             {/* Header */}
             <div className="mb-6">
               <h1 className="text-display-small font-display mb-2">
@@ -240,14 +268,6 @@ export default function CharacterDetailPage() {
                 </div>
                 <div className="text-label-medium text-on-surface-variant">
                   Chats
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-title-large text-primary font-medium">
-                  {formatNumber(character.totalMessageCount)}
-                </div>
-                <div className="text-label-medium text-on-surface-variant">
-                  Messages
                 </div>
               </div>
             </div>
@@ -368,27 +388,136 @@ export default function CharacterDetailPage() {
               </div>
             )}
 
-            {/* CTA Button */}
-            {user ? (
-              <button
-                onClick={() => setShowCreationModal(true)}
-                disabled={createChatMutation.isPending || cloneChatMutation.isPending}
-                className="w-full glow-button disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {createChatMutation.isPending || cloneChatMutation.isPending
-                  ? 'Processing...'
-                  : 'Start Conversation'}
-              </button>
-            ) : (
-              <button
-                onClick={() => router.push('/login?returnUrl=' + window.location.pathname)}
-                className="w-full glow-button"
-              >
-                Login to Chat
-              </button>
-            )}
-          </div>
+          {/* CTA Button */}
+          {user ? (
+            <button
+              onClick={() => setShowCreationModal(true)}
+              disabled={createChatMutation.isPending || cloneChatMutation.isPending}
+              className="w-full glow-button disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {createChatMutation.isPending || cloneChatMutation.isPending
+                ? 'Processing...'
+                : 'Start Conversation'}
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/login?returnUrl=' + window.location.pathname)}
+              className="w-full glow-button"
+            >
+              Login to Chat
+            </button>
+          )}
         </div>
+
+        {/* Universe Section */}
+        {universeData && (
+          <div className="glass-card p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-headline-small font-headline">작품 정보</h2>
+              <Link
+                href={`/universe/${universeData.id}`}
+                className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+              >
+                <span className="text-label-large">더보기</span>
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </Link>
+            </div>
+
+            <div className="flex gap-4">
+              {universeData.imageUrl && (
+                <div className="w-32 h-32 flex-shrink-0 rounded-xl overflow-hidden bg-surface-container">
+                  <img
+                    src={universeData.imageUrl}
+                    alt={universeData.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-title-large font-bold mb-1">{universeData.name}</h3>
+                {universeData.genre && (
+                  <p className="text-label-medium text-on-surface-variant mb-2">
+                    {universeData.genre}
+                  </p>
+                )}
+                {universeData.description && (
+                  <p className="text-body-medium text-on-surface-variant line-clamp-3">
+                    {universeData.description}
+                  </p>
+                )}
+                {universeData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-3">
+                    {universeData.tags.slice(0, 5).map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-1 rounded-full bg-surface-container text-label-small text-on-surface"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Same Universe Characters */}
+        {sameUniverseCharacters && sameUniverseCharacters.length > 0 && (
+          <div className="glass-card p-6">
+            <h2 className="text-headline-small font-headline mb-4">같은 작품 캐릭터</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {sameUniverseCharacters.map((char: Character) => (
+                <Link
+                  key={char.id}
+                  href={`/characters/${char.id}`}
+                  className="flex gap-4 p-4 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors group"
+                >
+                  {/* Character Image */}
+                  <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-surface-container-highest">
+                    {char.imageUrl ? (
+                      <img
+                        src={char.imageUrl}
+                        alt={char.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="material-symbols-outlined text-3xl text-on-surface-variant">
+                          person
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Character Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-title-medium font-bold mb-1 group-hover:text-primary transition-colors">
+                      {char.name}
+                    </h3>
+                    {char.tagline && (
+                      <p className="text-body-small text-on-surface-variant line-clamp-2 mb-2">
+                        {char.tagline}
+                      </p>
+                    )}
+                    {char.keywords.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {char.keywords.slice(0, 3).map((keyword) => (
+                          <span
+                            key={keyword}
+                            className="px-2 py-0.5 rounded-full bg-surface-container-high text-label-small text-on-surface-variant"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Modals */}
