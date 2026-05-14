@@ -28,7 +28,8 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nFeat: 채팅 시스템 UI/API 개선 - 피드백, 채팅방 관리, 페르소나 선택 기능 추가\n\n## 주요 기능\n\n### 1. 메시지 피드백 시스템\n- 일회성 좋아요/싫어요 기능\n- 피드백 제출 후 잠금 및 \"제출됨\" 상태 표시\n- userReaction 정보 저장 및 표시\n\n### 2. 채팅방 관리 기능\n- 3점 메뉴 추가 \\(고정, 제목 수정, 삭제\\)\n- 채팅방 제목 커스텀 설정 \\(최대 100자\\)\n- 고정된 채팅방 핀 아이콘 표시\n- 제목 수정 모달 UI\n\n### 3. 채팅 시작 플로우 개선\n- ChatRoomCreationModal: 대화 시작 옵션 선택\n  - 기존 대화 이어하기\n  - 새로운 대화 하기\n  - 기존 대화 복사해서 이어하기\n- 최근 채팅방 자동 감지 \\(findRecentRoomByCharacter\\)\n- 채팅방 복사 기능 \\(cloneChatRoom\\)\n\n### 4. 페르소나 선택 시스템\n- PersonaSelectionModal: 통합 페르소나 관리\n  - 기존 페르소나 드롭다운 선택\n  - 같은 세계관 캐릭터 그리드 표시\n  - 캐릭터 클릭 시 자동 페르소나 폼 채우기\n  - 페르소나 편집 폼 \\(이름, 성별, 설정\\)\n  - 랜덤 페르소나 생성 기능\n  - 채팅 시작 시 자동 저장\n\n### 5. 데이터베이스 스키마 확장\n- ChatRoom: title 필드 추가\n- UserPersona: gender, sourceCharacterId 필드 추가\n- Character와 Persona 간 연결 관계 추가\n\n### 6. Protocol Buffers 업데이트\n- ChatRoom 관련: title, userReaction, cloneChatRoom, findRecentRoomByCharacter\n- Persona 관련: gender, sourceCharacterId\n- Character 관련: listCharactersByUniverse\n\n## 기술 스택\n- Frontend: React, TypeScript, TanStack Query, Tailwind CSS\n- Backend: Node.js, Fastify, ConnectRPC, Prisma\n- Protocol Buffers for type-safe RPC\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git commit:*)",
       "Bash(npm run build:*)",
-      "Bash(del appsapinul nul)"
+      "Bash(del appsapinul nul)",
+      "Bash(curl:*)"
     ]
   }
 }
