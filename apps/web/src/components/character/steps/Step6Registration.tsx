@@ -178,11 +178,6 @@ export function Step6Registration() {
               description: '모든 사용자가 검색하고 사용할 수 있습니다',
             },
             {
-              value: 'unlisted' as const,
-              label: '링크로만 공개',
-              description: '직접 링크를 아는 사람만 접근할 수 있습니다',
-            },
-            {
               value: 'private' as const,
               label: '비공개',
               description: '본인만 사용할 수 있습니다',
@@ -206,10 +201,7 @@ export function Step6Registration() {
                 checked={formData.visibility === option.value}
                 onChange={(e) =>
                   updateFormData({
-                    visibility: e.target.value as
-                      | 'public'
-                      | 'private'
-                      | 'unlisted',
+                    visibility: e.target.value as 'public' | 'private',
                   })
                 }
                 className="w-5 h-5 text-primary focus:ring-primary mt-0.5"

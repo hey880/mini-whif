@@ -62,7 +62,7 @@ export interface CharacterFormData {
   relatedContent: RelatedContent[];
 
   // Step 6
-  visibility: 'public' | 'private' | 'unlisted';
+  visibility: 'public' | 'private';
   isNsfw: boolean;
   keywords: string[];
   authorComments: string;

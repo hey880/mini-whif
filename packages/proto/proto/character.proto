@@ -15,7 +15,7 @@ service CharacterService {
 message ListCharactersRequest {
   optional string keyword = 1;
   optional string name = 2;
-  optional string visibility = 3; // public, private, unlisted
+  optional string visibility = 3; // public, private
   optional bool is_nsfw = 4;
   optional string creator_id = 5;
   optional string universe_id = 6;
@@ -44,7 +44,7 @@ message CreateCharacterRequest {
   optional string greeting = 4;
   optional string image_url = 5;
   optional string banner_image_url = 6;
-  string visibility = 7; // public, private, unlisted
+  string visibility = 7; // public, private
   bool is_nsfw = 8;
   optional string universe_id = 9;
   repeated string keywords = 10;

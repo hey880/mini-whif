@@ -171,7 +171,7 @@ model Character {
   greeting        String?  @db.Text
   imageUrl        String?  @map("image_url")
   bannerImageUrl  String?  @map("banner_image_url")
-  visibility      String   @default("public") // public, private, unlisted
+  visibility      String   @default("public") // public, private
   isNsfw          Boolean  @default(false) @map("is_nsfw")
   creatorId       String   @map("creator_id") @db.Uuid
   universeId      String?  @map("universe_id") @db.Uuid

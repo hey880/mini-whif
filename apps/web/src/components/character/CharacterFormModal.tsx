@@ -9,7 +9,7 @@ interface CharacterFormData {
   description: string;
   greeting: string;
   imageUrl: string;
-  visibility: 'public' | 'private' | 'unlisted';
+  visibility: 'public' | 'private';
   isNsfw: boolean;
   keywords: string[];
 }
@@ -284,7 +284,6 @@ export function CharacterFormModal({
                   disabled={isLoading}
                 >
                   <option value="public">Public - Anyone can find and use</option>
-                  <option value="unlisted">Unlisted - Only with link</option>
                   <option value="private">Private - Only you</option>
                 </select>
               </div>

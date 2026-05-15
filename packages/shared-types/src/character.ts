@@ -43,7 +43,7 @@ export interface Character extends WithTimestamps {
   greeting?: string;
   imageUrl?: string;
   bannerImageUrl?: string;
-  visibility: 'public' | 'private' | 'unlisted';
+  visibility: 'public' | 'private';
   isNsfw: boolean;
   creatorId: string;
   universeId?: string;

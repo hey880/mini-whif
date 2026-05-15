@@ -21,7 +21,7 @@ export class ListCharactersRequest extends Message<ListCharactersRequest> {
   name?: string;
 
   /**
-   * public, private, unlisted
+   * public, private
    *
    * @generated from field: optional string visibility = 3;
    */
@@ -245,7 +245,7 @@ export class CreateCharacterRequest extends Message<CreateCharacterRequest> {
   bannerImageUrl?: string;
 
   /**
-   * public, private, unlisted
+   * public, private
    *
    * @generated from field: string visibility = 7;
    */

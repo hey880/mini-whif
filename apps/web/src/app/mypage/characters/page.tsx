@@ -112,7 +112,6 @@ export default function CharactersPage() {
                 {[
                   { value: 'all', label: 'All' },
                   { value: 'public', label: 'Public' },
-                  { value: 'unlisted', label: 'Unlisted' },
                   { value: 'private', label: 'Private' },
                 ].map((option) => (
                   <button
