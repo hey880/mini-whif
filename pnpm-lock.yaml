@@ -102,6 +102,9 @@ importers:
       '@persona-chat/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      '@portone/browser-sdk':
+        specifier: ^0.1.6
+        version: 0.1.6
       '@supabase/ssr':
         specifier: ^0.10.3
         version: 0.10.3(@supabase/supabase-js@2.105.3)
@@ -955,6 +958,9 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
+
+  '@portone/browser-sdk@0.1.6':
+    resolution: {integrity: sha512-sTkIGP9ezYebXdA0eDvwL7lUsDpBoEydDeMBj1Kg+0PY52ZhgpRz55rykNcgw55luXAyUgRNEicZkNy/0F877A==}
 
   '@prisma/client@5.22.0':
     resolution: {integrity: sha512-M0SVXfyHnQREBKxCgyo7sffrKttwE6R8PMq330MIUF0pTwjUhLbW84pFDlf06B27XyCR++VtjugEnIHdr07SVA==}
@@ -4004,6 +4010,8 @@ snapshots:
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
+
+  '@portone/browser-sdk@0.1.6': {}
 
   '@prisma/client@5.22.0(prisma@5.22.0)':
     optionalDependencies:

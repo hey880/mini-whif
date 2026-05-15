@@ -158,12 +158,9 @@ export default function MyPage() {
 
           {/* Purchase Button */}
           <div className="mt-6">
-            <button
-              className="glow-button w-full"
-              onClick={() => alert('Payment integration coming soon!')}
-            >
+            <Link href="/gem-store" className="glow-button w-full block text-center">
               Purchase Gems
-            </button>
+            </Link>
           </div>
         </div>
 

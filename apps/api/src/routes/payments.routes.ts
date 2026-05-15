@@ -4,9 +4,13 @@ import { prisma } from '../config/prisma.js';
 
 // Gem product catalog
 export const GEM_PRODUCTS = [
-  { id: 'gem_500', label: 'Starter', gemAmount: 500, price: 1100 },
-  { id: 'gem_1200', label: 'Pro★', gemAmount: 1200, price: 2200, badge: 'Popular' },
-  { id: 'gem_3000', label: 'Whale', gemAmount: 3000, price: 5500 },
+  { id: 'gem_1520', gemAmount: 1520, baseAmount: 1520, bonusAmount: 0, price: 1900 },
+  { id: 'gem_3920', gemAmount: 3920, baseAmount: 3920, bonusAmount: 0, price: 4900 },
+  { id: 'gem_8316', gemAmount: 8316, baseAmount: 7920, bonusAmount: 396, price: 9900, badge: '가장 인기' },
+  { id: 'gem_17034', gemAmount: 17034, baseAmount: 15920, bonusAmount: 1114, price: 19900 },
+  { id: 'gem_25953', gemAmount: 25953, baseAmount: 23920, bonusAmount: 2033, price: 29900 },
+  { id: 'gem_43912', gemAmount: 43912, baseAmount: 39920, bonusAmount: 3992, price: 49900 },
+  { id: 'gem_91908', gemAmount: 91908, baseAmount: 79920, bonusAmount: 11988, price: 99900, badge: '가장 저렴' },
 ];
 
 export async function paymentsRoutes(server: FastifyInstance) {
@@ -31,8 +35,9 @@ export async function paymentsRoutes(server: FastifyInstance) {
                 type: 'object',
                 properties: {
                   id: { type: 'string' },
-                  label: { type: 'string' },
                   gemAmount: { type: 'number' },
+                  baseAmount: { type: 'number' },
+                  bonusAmount: { type: 'number' },
                   price: { type: 'number' },
                   badge: { type: 'string' },
                 },
