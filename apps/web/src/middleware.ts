@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const protectedRoutes = ['/chat', '/mypage'];
+  const protectedRoutes = ['/chat', '/chats', '/mypage'];
   const isProtectedRoute = protectedRoutes.some((route) =>
     pathname.startsWith(route)
   );
@@ -48,5 +48,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/chat/:path*', '/mypage/:path*'],
+  matcher: ['/chat/:path*', '/chats/:path*', '/mypage/:path*'],
 };

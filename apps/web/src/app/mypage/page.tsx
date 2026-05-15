@@ -1,13 +1,16 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatNumber } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 export default function MyPage() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const router = useRouter();
 
   // Fetch gem wallet
   const { data: walletData, isLoading: loadingWallet } = useQuery({
@@ -27,6 +30,48 @@ export default function MyPage() {
   });
 
   const wallet = walletData?.data;
+
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/auth/account`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || '회원 탈퇴에 실패했습니다');
+      }
+
+      return response.json();
+    },
+    onSuccess: async () => {
+      toast.success('회원 탈퇴가 완료되었습니다');
+      await supabase.auth.signOut();
+      logout();
+      router.push('/login');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || '회원 탈퇴에 실패했습니다');
+    },
+  });
+
+  const handleDeleteAccount = () => {
+    if (
+      confirm(
+        '정말로 회원 탈퇴하시겠습니까?\n\n모든 데이터가 삭제되며 복구할 수 없습니다.'
+      )
+    ) {
+      deleteAccountMutation.mutate();
+    }
+  };
 
   return (
     <>
@@ -157,6 +202,21 @@ export default function MyPage() {
               </span>
             </Link>
           </div>
+        </div>
+
+        {/* Account Settings Section */}
+        <div className="glass-card p-6">
+          <h2 className="text-headline-small font-headline mb-4">계정 설정</h2>
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deleteAccountMutation.isPending}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-error/10 transition-colors text-label-large text-error w-full disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined">person_remove</span>
+            <span className="flex-1 text-left">
+              {deleteAccountMutation.isPending ? '탈퇴 처리 중...' : '회원 탈퇴'}
+            </span>
+          </button>
         </div>
     </>
   );

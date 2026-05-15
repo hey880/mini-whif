@@ -104,4 +104,24 @@ export class AuthService {
 
     return profile;
   }
+
+  /**
+   * Delete user account
+   * Deletes profile data and Supabase auth user
+   */
+  async deleteAccount(userId: string) {
+    // Delete profile (cascade deletes related data)
+    await prisma.profile.delete({
+      where: { id: userId },
+    });
+
+    // Delete Supabase auth user
+    const { error } = await supabase.auth.admin.deleteUser(userId);
+
+    if (error) {
+      throw new Error(error.message || 'Failed to delete auth user');
+    }
+
+    return { success: true };
+  }
 }

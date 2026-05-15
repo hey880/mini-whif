@@ -77,4 +77,26 @@ export async function authRoutes(server: FastifyInstance) {
       }
     }
   );
+
+  // DELETE /auth/account
+  server.delete(
+    '/auth/account',
+    { preHandler: [authenticateUser] },
+    async (request, reply) => {
+      try {
+        await authService.deleteAccount(request.user!.id);
+
+        return reply.send({
+          data: { success: true },
+        });
+      } catch (error: any) {
+        return reply.status(400).send({
+          error: {
+            code: 'DELETE_ACCOUNT_FAILED',
+            message: error.message,
+          },
+        });
+      }
+    }
+  );
 }
