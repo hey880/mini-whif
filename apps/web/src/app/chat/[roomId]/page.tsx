@@ -714,9 +714,14 @@ export default function ChatPage() {
                   />
 
                   {/* Menu Items */}
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-surface-container-high rounded-xl shadow-xl z-50 overflow-hidden border border-outline-variant">
+                  <div
+                    className="absolute right-0 top-full mt-2 w-56 bg-surface-container-high rounded-xl shadow-xl z-50 overflow-hidden border border-outline-variant"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setIsBookmarkPanelOpen(true);
                         setIsHamburgerMenuOpen(false);
                       }}
@@ -736,7 +741,9 @@ export default function ChatPage() {
                     <div className="h-px bg-outline-variant" />
 
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setIsMemoryStorageModalOpen(true);
                         setIsHamburgerMenuOpen(false);
                       }}
@@ -757,7 +764,9 @@ export default function ChatPage() {
                     <div className="h-px bg-outline-variant" />
 
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setIsUserNoteModalOpen(true);
                         setIsHamburgerMenuOpen(false);
                       }}
