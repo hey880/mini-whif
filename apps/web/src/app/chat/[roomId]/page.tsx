@@ -440,6 +440,7 @@ export default function ChatPage() {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {

@@ -24,6 +24,11 @@ export async function chatroomExtraRoutes(server: FastifyInstance) {
           roomId: { type: 'string' },
         },
       },
+      body: {
+        type: 'object',
+        properties: {},
+        additionalProperties: false,
+      },
     },
   }, async (request, reply) => {
     const { roomId } = request.params as { roomId: string };
