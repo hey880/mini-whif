@@ -108,10 +108,14 @@ async function start() {
     console.log(`   Swagger docs: http://localhost:${PORT}/docs`);
     console.log(`   ConnectRPC services: CharacterService, PersonaService, ChatRoomService, LlmModelService, UniverseService`);
     console.log('');
-    console.log('🔑 Environment Variables Check:');
-    console.log(`   OPENROUTER_API_KEY: ${process.env.OPENROUTER_API_KEY ? `${process.env.OPENROUTER_API_KEY.substring(0, 15)}...` : '❌ NOT SET'}`);
-    console.log(`   AI_SERVER_URL: ${process.env.AI_SERVER_URL || '❌ NOT SET'}`);
-    console.log('');
+
+    // Only show API key info in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔑 Environment Variables Check (dev only):');
+      console.log(`   OPENROUTER_API_KEY: ${process.env.OPENROUTER_API_KEY ? `${process.env.OPENROUTER_API_KEY.substring(0, 10)}...` : '❌ NOT SET'}`);
+      console.log(`   AI_SERVER_URL: ${process.env.AI_SERVER_URL || '❌ NOT SET'}`);
+      console.log('');
+    }
   } catch (error) {
     server.log.error(error);
     process.exit(1);

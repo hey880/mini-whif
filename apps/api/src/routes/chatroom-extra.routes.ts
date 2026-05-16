@@ -89,12 +89,8 @@ export async function chatroomExtraRoutes(server: FastifyInstance) {
     try {
       const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-      server.log.info({
-        hasApiKey: !!OPENROUTER_API_KEY,
-        keyPrefix: OPENROUTER_API_KEY?.substring(0, 10) + '...',
-      }, 'OpenRouter API key check');
-
       if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.trim() === '') {
+        server.log.error('OpenRouter API key not configured');
         throw new Error('OpenRouter API key not configured');
       }
 
