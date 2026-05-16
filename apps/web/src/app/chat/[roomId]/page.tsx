@@ -18,7 +18,9 @@ import { BookmarkPanel } from '@/components/chat/BookmarkPanel';
 import { EditMessageModal } from '@/components/chat/EditMessageModal';
 import { ContinueModal } from '@/components/chat/ContinueModal';
 import { RerollConfirmModal } from '@/components/chat/RerollConfirmModal';
-import { Bookmark } from 'lucide-react';
+import { MemoryStorageModal } from '@/components/chat/MemoryStorageModal';
+import { UserNoteModal } from '@/components/chat/UserNoteModal';
+import { Menu, Bookmark, NotebookPen, Brain } from 'lucide-react';
 
 export default function ChatPage() {
   const params = useParams();
@@ -39,6 +41,10 @@ export default function ChatPage() {
   const [isContinueModalOpen, setIsContinueModalOpen] = useState(false);
   const [rerollModalOpen, setRerollModalOpen] = useState(false);
   const [pendingReroll, setPendingReroll] = useState<{ messageId: string; modelCost: number } | null>(null);
+  const [isHamburgerMenuOpen, setIsHamburgerMenuOpen] = useState(false);
+  const [isMemoryStorageModalOpen, setIsMemoryStorageModalOpen] = useState(false);
+  const [isUserNoteModalOpen, setIsUserNoteModalOpen] = useState(false);
+  const [isSummarizingMessages, setIsSummarizingMessages] = useState(false);
 
   const { isStreaming, streamingContent } = useChatStore();
   const { sendMessage } = useSSEChat();
@@ -418,6 +424,65 @@ export default function ChatPage() {
     }
   };
 
+  const handleGenerateSummary = async () => {
+    setIsSummarizingMessages(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`${apiUrl}/chat-rooms/${roomId}/summary`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (response.status === 402) {
+          toast.error('Gem이 부족합니다', {
+            description: `필요: ${error.required} Gem, 보유: ${error.available} Gem`,
+            action: {
+              label: '충전하기',
+              onClick: () => router.push('/gem-shop'),
+            },
+          });
+          return;
+        }
+        if (response.status === 400) {
+          toast.error('메시지가 부족합니다', {
+            description: `최소 ${error.required}개의 메시지가 필요합니다 (현재: ${error.current}개)`,
+          });
+          return;
+        }
+        throw new Error(error.error || 'Failed to generate summary');
+      }
+
+      const result = await response.json();
+      toast.success('기억저장소가 생성되었습니다', {
+        description: `${result.gemsDeducted} Gem이 차감되었습니다`,
+      });
+
+      // Refetch chat room to get updated summary
+      queryClient.invalidateQueries({ queryKey: ['chatRoom', roomId] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+
+      setIsMemoryStorageModalOpen(false);
+    } catch (error: any) {
+      console.error('Failed to generate summary:', error);
+      toast.error('요약 생성 실패', {
+        description: error.message || '다시 시도해주세요',
+      });
+    } finally {
+      setIsSummarizingMessages(false);
+    }
+  };
+
   const handleReroll = (messageId: string, modelCost: number) => {
     // 모달 열기
     setPendingReroll({ messageId, modelCost });
@@ -629,19 +694,84 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Bookmark Button */}
-            <button
-              onClick={() => setIsBookmarkPanelOpen(true)}
-              className="p-2 rounded-lg hover:bg-surface-container-high transition-colors relative"
-              title="북마크"
-            >
-              <Bookmark className="w-5 h-5" />
-              {bookmarkedMessageIds.size > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-on-primary text-xs flex items-center justify-center">
-                  {bookmarkedMessageIds.size}
-                </span>
+            {/* Hamburger Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setIsHamburgerMenuOpen(!isHamburgerMenuOpen)}
+                className="p-2 rounded-lg hover:bg-surface-container-high transition-colors"
+                title="메뉴"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isHamburgerMenuOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsHamburgerMenuOpen(false)}
+                  />
+
+                  {/* Menu Items */}
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-surface-container-high rounded-xl shadow-xl z-50 overflow-hidden border border-outline-variant">
+                    <button
+                      onClick={() => {
+                        setIsBookmarkPanelOpen(true);
+                        setIsHamburgerMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-container-highest transition-colors text-left"
+                    >
+                      <Bookmark className="w-5 h-5 text-on-surface-variant" />
+                      <div className="flex-1">
+                        <span className="text-body-medium text-on-surface">북마크 목록</span>
+                      </div>
+                      {bookmarkedMessageIds.size > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-primary text-on-primary text-label-small">
+                          {bookmarkedMessageIds.size}
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="h-px bg-outline-variant" />
+
+                    <button
+                      onClick={() => {
+                        setIsMemoryStorageModalOpen(true);
+                        setIsHamburgerMenuOpen(false);
+                      }}
+                      disabled={(messagesData?.messages?.length || 0) < 40}
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-container-highest transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Brain className="w-5 h-5 text-on-surface-variant" />
+                      <div className="flex-1">
+                        <span className="text-body-medium text-on-surface">기억저장소</span>
+                        {(messagesData?.messages?.length || 0) < 40 && (
+                          <p className="text-label-small text-on-surface-variant">
+                            40개 메시지 필요
+                          </p>
+                        )}
+                      </div>
+                    </button>
+
+                    <div className="h-px bg-outline-variant" />
+
+                    <button
+                      onClick={() => {
+                        setIsUserNoteModalOpen(true);
+                        setIsHamburgerMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-container-highest transition-colors text-left"
+                    >
+                      <NotebookPen className="w-5 h-5 text-on-surface-variant" />
+                      <div className="flex-1">
+                        <span className="text-body-medium text-on-surface">유저노트</span>
+                      </div>
+                    </button>
+                  </div>
+                </>
               )}
-            </button>
+            </div>
 
             {/* Gem Balance */}
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high">
@@ -805,6 +935,28 @@ export default function ChatPage() {
         }}
         onConfirm={executeReroll}
         gemCost={pendingReroll?.modelCost || 10}
+      />
+
+      {/* Memory Storage Modal */}
+      <MemoryStorageModal
+        isOpen={isMemoryStorageModalOpen}
+        onClose={() => setIsMemoryStorageModalOpen(false)}
+        onGenerate={handleGenerateSummary}
+        currentSummary={room?.conversationSummary || null}
+        messageCount={messagesData?.messages?.length || 0}
+        isGenerating={isSummarizingMessages}
+        gemCost={50}
+      />
+
+      {/* User Note Modal */}
+      <UserNoteModal
+        isOpen={isUserNoteModalOpen}
+        onClose={() => setIsUserNoteModalOpen(false)}
+        roomId={roomId}
+        initialNote={room?.userNote || null}
+        onSaveSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['chatRoom', roomId] });
+        }}
       />
     </div>
   );
