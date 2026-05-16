@@ -694,93 +694,14 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Hamburger Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setIsHamburgerMenuOpen(!isHamburgerMenuOpen)}
-                className="p-2 rounded-lg hover:bg-surface-container-high transition-colors"
-                title="메뉴"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {isHamburgerMenuOpen && (
-                <>
-                  {/* Backdrop */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsHamburgerMenuOpen(false)}
-                  />
-
-                  {/* Menu Items */}
-                  <div
-                    className="absolute right-0 top-full mt-2 w-56 bg-surface-container-high rounded-xl shadow-xl z-50 overflow-hidden border border-outline-variant"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsBookmarkPanelOpen(true);
-                        setIsHamburgerMenuOpen(false);
-                      }}
-                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-container-highest transition-colors text-left"
-                    >
-                      <Bookmark className="w-5 h-5 text-on-surface-variant" />
-                      <div className="flex-1">
-                        <span className="text-body-medium text-on-surface">북마크 목록</span>
-                      </div>
-                      {bookmarkedMessageIds.size > 0 && (
-                        <span className="px-2 py-0.5 rounded-full bg-primary text-on-primary text-label-small">
-                          {bookmarkedMessageIds.size}
-                        </span>
-                      )}
-                    </button>
-
-                    <div className="h-px bg-outline-variant" />
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsMemoryStorageModalOpen(true);
-                        setIsHamburgerMenuOpen(false);
-                      }}
-                      disabled={(messagesData?.messages?.length || 0) < 40}
-                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-container-highest transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Brain className="w-5 h-5 text-on-surface-variant" />
-                      <div className="flex-1">
-                        <span className="text-body-medium text-on-surface">기억저장소</span>
-                        {(messagesData?.messages?.length || 0) < 40 && (
-                          <p className="text-label-small text-on-surface-variant">
-                            40개 메시지 필요
-                          </p>
-                        )}
-                      </div>
-                    </button>
-
-                    <div className="h-px bg-outline-variant" />
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsUserNoteModalOpen(true);
-                        setIsHamburgerMenuOpen(false);
-                      }}
-                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-container-highest transition-colors text-left"
-                    >
-                      <NotebookPen className="w-5 h-5 text-on-surface-variant" />
-                      <div className="flex-1">
-                        <span className="text-body-medium text-on-surface">유저노트</span>
-                      </div>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Hamburger Menu Button */}
+            <button
+              onClick={() => setIsHamburgerMenuOpen(true)}
+              className="p-2 rounded-lg hover:bg-surface-container-high transition-colors"
+              title="메뉴"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
             {/* Gem Balance */}
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high">
@@ -967,6 +888,110 @@ export default function ChatPage() {
           queryClient.invalidateQueries({ queryKey: ['chatRoom', roomId] });
         }}
       />
+
+      {/* Side Menu */}
+      {isHamburgerMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 transition-opacity animate-in fade-in duration-200"
+            onClick={() => setIsHamburgerMenuOpen(false)}
+          />
+
+          {/* Side Panel */}
+          <div className="fixed top-0 right-0 h-full w-80 bg-surface-container z-50 shadow-2xl animate-in slide-in-from-right duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+              <h2 className="text-title-large font-bold">메뉴</h2>
+              <button
+                onClick={() => setIsHamburgerMenuOpen(false)}
+                className="p-2 rounded-lg hover:bg-surface-container-high transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Menu Items */}
+            <div className="py-2">
+              <button
+                onClick={() => {
+                  setIsBookmarkPanelOpen(true);
+                  setIsHamburgerMenuOpen(false);
+                }}
+                className="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-container-high transition-colors text-left"
+              >
+                <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center">
+                  <Bookmark className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-body-large font-medium text-on-surface">북마크 목록</div>
+                  <div className="text-body-small text-on-surface-variant">저장된 메시지 보기</div>
+                </div>
+                {bookmarkedMessageIds.size > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-primary text-on-primary text-label-medium font-medium">
+                    {bookmarkedMessageIds.size}
+                  </span>
+                )}
+              </button>
+
+              <div className="h-px bg-outline-variant mx-6 my-2" />
+
+              <button
+                onClick={() => {
+                  setIsMemoryStorageModalOpen(true);
+                  setIsHamburgerMenuOpen(false);
+                }}
+                disabled={(messagesData?.messages?.length || 0) < 40}
+                className="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-container-high transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center">
+                  <Brain className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-body-large font-medium text-on-surface">기억저장소</div>
+                  {(messagesData?.messages?.length || 0) < 40 ? (
+                    <div className="text-body-small text-error">
+                      40개 메시지 필요 (현재: {messagesData?.messages?.length || 0}개)
+                    </div>
+                  ) : (
+                    <div className="text-body-small text-on-surface-variant">대화 내용 AI 요약</div>
+                  )}
+                </div>
+              </button>
+
+              <div className="h-px bg-outline-variant mx-6 my-2" />
+
+              <button
+                onClick={() => {
+                  setIsUserNoteModalOpen(true);
+                  setIsHamburgerMenuOpen(false);
+                }}
+                className="w-full px-6 py-4 flex items-center gap-4 hover:bg-surface-container-high transition-colors text-left"
+              >
+                <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center">
+                  <NotebookPen className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-body-large font-medium text-on-surface">유저노트</div>
+                  <div className="text-body-small text-on-surface-variant">AI 지시사항 작성</div>
+                </div>
+              </button>
+            </div>
+
+            {/* Footer Info */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-outline-variant bg-surface-container-low">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="material-symbols-outlined text-on-surface-variant">info</span>
+                <span className="text-label-large text-on-surface-variant">기능 안내</span>
+              </div>
+              <div className="space-y-2 text-body-small text-on-surface-variant">
+                <p>• 기억저장소: 50 Gem</p>
+                <p>• 유저노트 확장: 5 Gem</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
