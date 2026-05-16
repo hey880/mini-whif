@@ -10,6 +10,7 @@ import { mypageRoutes } from './routes/mypage.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { paymentsRoutes } from './routes/payments.routes.js';
 import { messageRoutes } from './routes/message.routes.js';
+import { chatroomExtraRoutes } from './routes/chatroom-extra.routes.js';
 
 // ConnectRPC Services
 import { CharacterService } from '@persona-chat/proto/gen/ts/character_connect.js';
@@ -91,6 +92,7 @@ async function start() {
     await server.register(chatRoutes);
     await server.register(paymentsRoutes);
     await server.register(messageRoutes);
+    await server.register(chatroomExtraRoutes);
 
     // Health check
     server.get('/health', async () => {
