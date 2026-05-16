@@ -89,7 +89,12 @@ export async function chatroomExtraRoutes(server: FastifyInstance) {
     try {
       const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-      if (!OPENROUTER_API_KEY) {
+      server.log.info({
+        hasApiKey: !!OPENROUTER_API_KEY,
+        keyPrefix: OPENROUTER_API_KEY?.substring(0, 10) + '...',
+      }, 'OpenRouter API key check');
+
+      if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.trim() === '') {
         throw new Error('OpenRouter API key not configured');
       }
 
@@ -133,6 +138,11 @@ Create a concise but comprehensive summary in Korean that captures:
 
       if (!response.ok) {
         const errorData = await response.json();
+        server.log.error({
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        }, 'OpenRouter API error');
         throw new Error(`OpenRouter API error: ${errorData.error?.message || response.statusText}`);
       }
 
@@ -159,7 +169,11 @@ Create a concise but comprehensive summary in Korean that captures:
         remainingGems: balance.totalGems - SUMMARY_GEM_COST,
       };
     } catch (error) {
-      server.log.error({ error }, 'Failed to generate summary');
+      server.log.error({
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      }, 'Failed to generate summary');
       return reply.status(500).send({
         error: 'Failed to generate summary',
         details: error instanceof Error ? error.message : String(error),
