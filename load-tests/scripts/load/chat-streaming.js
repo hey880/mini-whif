@@ -26,8 +26,8 @@ const characters = new SharedArray('characters', function () {
 
 export const options = {
   stages: [
-    { duration: '2m', target: 20 },   // Ramp up to 20 VUs (rate limit 회피)
-    { duration: '10m', target: 20 },  // Stay at 20 VUs
+    { duration: '2m', target: 15 },   // Ramp up to 15 VUs (rate limit 회피)
+    { duration: '10m', target: 15 },  // Stay at 15 VUs
     { duration: '1m', target: 0 },    // Ramp down to 0
   ],
   thresholds: {
@@ -38,6 +38,9 @@ export const options = {
     'gem_balance_errors': ['count==0'],
   },
 };
+
+// VU별 토큰 캐시 (인증을 매 iteration마다 하지 않고 재사용)
+const tokenCache = {};
 
 export function setup() {
   const setupData = performSetup();
@@ -63,13 +66,20 @@ export default function (data) {
   const user = testUsers[__VU % testUsers.length];
   const character = characters[__VU % characters.length];
 
-  // 1. Authenticate
-  const token = authenticate(user.email, user.password);
+  // 토큰 캐싱: 각 VU는 처음 한 번만 인증하고 토큰 재사용
+  if (!tokenCache[__VU]) {
+    const token = authenticate(user.email, user.password);
 
-  if (!token) {
-    console.error(`Failed to authenticate ${user.email}`);
-    return;
+    if (!token) {
+      console.error(`Failed to authenticate ${user.email}`);
+      return;
+    }
+
+    tokenCache[__VU] = token;
+    sleep(1);  // 인증 후 1초 대기
   }
+
+  const token = tokenCache[__VU];
 
   // 2. Create or get chat room (using ConnectRPC)
   const roomPayload = JSON.stringify({
