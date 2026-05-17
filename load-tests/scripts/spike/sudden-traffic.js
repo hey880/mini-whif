@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import { config, fixtures } from '../utils/config.js';
-import { authenticate, authSseHeaders } from '../utils/auth.js';
+import { authenticate, authSseHeaders, authConnectHeaders } from '../utils/auth.js';
 import { performSetup } from '../utils/setup.js';
 
 // Load test data
@@ -13,6 +13,9 @@ const testUsers = new SharedArray('users', function () {
 const characters = new SharedArray('characters', function () {
   return JSON.parse(open(fixtures.characters));
 });
+
+// 토큰 캐싱: 각 VU별로 토큰 저장
+const tokenCache = {};
 
 export const options = {
   stages: [
@@ -61,30 +64,40 @@ export default function (data) {
   const user = testUsers[__VU % testUsers.length];
   const character = characters[__VU % characters.length];
 
-  // Authenticate
-  const token = authenticate(user.email, user.password);
-  if (!token) {
-    return;
+  // 토큰 캐싱: 각 VU는 처음 한 번만 인증하고 토큰 재사용
+  if (!tokenCache[__VU]) {
+    // 랜덤 지터: 모든 VU가 동시에 인증하지 않도록 0-3초 대기
+    const jitter = Math.random() * 3;
+    sleep(jitter);
+
+    const token = authenticate(user.email, user.password);
+
+    if (!token) {
+      console.error(`Failed to authenticate ${user.email}`);
+      return;
+    }
+
+    tokenCache[__VU] = token;
+    sleep(1);  // 인증 후 추가 1초 대기하여 rate limit 완화
   }
 
-  // Create chat room
+  const token = tokenCache[__VU];
+
+  // Create chat room via ConnectRPC
   const roomRes = http.post(
-    `${apiUrl}/chat-rooms`,
+    `${apiUrl}/persona_chat.chatroom.v1.ChatRoomService/CreateChatRoom`,
     JSON.stringify({ characterId: character.id }),
     {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: authConnectHeaders(token),
       timeout: '30s',
     }
   );
 
-  if (roomRes.status !== 200 && roomRes.status !== 201) {
+  if (roomRes.status !== 200) {
     return;
   }
 
-  const roomId = roomRes.json('id');
+  const roomId = roomRes.json('chatRoom.id');
 
   // Send message
   const sseRes = http.post(
