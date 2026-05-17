@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface GemLog {
   id: string;
@@ -21,6 +22,7 @@ interface WalletBalance {
 }
 
 export default function TransactionsPage() {
+  const router = useRouter();
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
 
@@ -115,6 +117,13 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6 pb-32 lg:pb-24">
       <div>
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 mb-4 text-on-surface hover:text-primary transition-colors"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="text-label-large">뒤로</span>
+        </button>
         <h1 className="text-headline-large font-headline mb-2">거래 내역</h1>
         <p className="text-body-medium text-on-surface-variant">
           Gem 획득 및 사용 내역을 확인할 수 있습니다

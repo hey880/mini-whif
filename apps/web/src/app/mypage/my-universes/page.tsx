@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { universeClient, characterClient } from '@/lib/connectrpc/client';
 import { useAuthStore } from '@/stores/authStore';
 import { CharacterCard } from '@/components/character/CharacterCard';
@@ -12,6 +13,7 @@ import type { Character } from '../../../../../../packages/proto/gen/ts/characte
 import Link from 'next/link';
 
 export default function MyUniversesPage() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'universes' | 'characters'>('universes');
@@ -123,6 +125,13 @@ export default function MyUniversesPage() {
     <div className="pb-8">
       {/* Header */}
       <div className="mb-8">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 mb-4 text-on-surface hover:text-primary transition-colors"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="text-label-large">뒤로</span>
+        </button>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-display-small font-display mb-2">내 작품/캐릭터</h1>

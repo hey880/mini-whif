@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { personaClient } from '@/lib/connectrpc/client';
 import { PersonaCard } from '@/components/persona/PersonaCard';
 import { PersonaFormModal } from '@/components/persona/PersonaFormModal';
@@ -14,6 +15,7 @@ interface PersonaFormData {
 }
 
 export default function PersonasPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
@@ -120,19 +122,28 @@ export default function PersonasPage() {
   return (
     <>
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-display-small font-display mb-2">내 페르소나</h1>
-          <p className="text-body-large text-on-surface-variant">
-            Create and manage your roleplay personas
-          </p>
-        </div>
-        <button onClick={handleCreateClick} className="glow-button">
-          <span className="flex items-center gap-2">
-            <span className="material-symbols-outlined">add</span>
-            New Persona
-          </span>
+      <div className="mb-8">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 mb-4 text-on-surface hover:text-primary transition-colors"
+        >
+          <span className="material-symbols-outlined">arrow_back</span>
+          <span className="text-label-large">뒤로</span>
         </button>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-display-small font-display mb-2">내 페르소나</h1>
+            <p className="text-body-large text-on-surface-variant">
+              Create and manage your roleplay personas
+            </p>
+          </div>
+          <button onClick={handleCreateClick} className="glow-button">
+            <span className="flex items-center gap-2">
+              <span className="material-symbols-outlined">add</span>
+              New Persona
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Loading State */}
