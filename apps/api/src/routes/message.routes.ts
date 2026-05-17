@@ -444,6 +444,7 @@ export async function messageRoutes(server: FastifyInstance) {
         characterContext: aiContext.characterContext,
         lorebookEntries: aiContext.lorebookEntries,
         situationalImagesInfo: aiContext.situationalImagesInfo,
+        characterData: message.room.character.data, // Pass pre-loaded character data
         reply,
         server,
       });
