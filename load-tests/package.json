@@ -5,6 +5,7 @@
   "scripts": {
     "seed": "tsx setup/seed-test-db.ts",
     "cleanup": "tsx setup/cleanup.ts",
+    "cleanup:full": "tsx setup/cleanup-full.ts",
     "smoke": "k6 run scripts/smoke/health-check.js",
     "smoke:auth": "k6 run scripts/smoke/auth-flow.js",
     "load:chat": "k6 run --out json=results/chat-streaming.json scripts/load/chat-streaming.js",
