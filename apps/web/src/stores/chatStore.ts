@@ -25,8 +25,11 @@ export const useChatStore = create<ChatState>((set) => ({
   optimisticUserMessage: null,
   setCurrentRoom: (currentRoomId) => set({ currentRoomId }),
   setStreaming: (isStreaming) => set({ isStreaming }),
+  // ✅ CRITICAL: Replace instead of append because AI server sends accumulated text
+  // Server sends: event 0: "안", event 1: "안녕", event 2: "안녕하" (cumulative)
+  // NOT deltas: "안", "녕", "하" (incremental)
   appendStreamChunk: (chunk) =>
-    set((state) => ({ streamingContent: state.streamingContent + chunk })),
+    set({ streamingContent: chunk }),
   resetStream: () => set({ streamingContent: '' }),
   setOptimisticUserMessage: (optimisticUserMessage) => set({ optimisticUserMessage }),
 }));
