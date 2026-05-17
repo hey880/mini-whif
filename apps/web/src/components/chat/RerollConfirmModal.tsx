@@ -21,7 +21,8 @@ export function RerollConfirmModal({
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    onConfirm(hint || undefined);
+    const trimmedHint = hint.trim();
+    onConfirm(trimmedHint || undefined);
     onClose();
     setHint(''); // Reset hint after confirm
   };

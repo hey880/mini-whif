@@ -100,26 +100,28 @@ export async function chatRoutes(server: FastifyInstance) {
       });
     }
 
-    // 4. Parallel fetch: persona name + save user message + create AI placeholder
+    // 4. Fetch persona and save messages
     // OPTIMIZATION: removed buildAIContext() call (was doing redundant DB queries)
-    const personaPromise = room.personaId
-      ? prisma.userPersona.findUnique({
+    const persona = room.personaId
+      ? await prisma.userPersona.findUnique({
           where: { id: room.personaId },
           select: { name: true },
         })
-      : Promise.resolve(null);
+      : null;
 
-    const userMessagePromise = (!hint || content)
-      ? prisma.message.create({
+    // Save user message first (if provided)
+    const userMessage = (!hint || content)
+      ? await prisma.message.create({
           data: {
             roomId,
             role: 'user',
             content: content || '',
           },
         })
-      : Promise.resolve(null);
+      : null;
 
-    const aiMessagePromise = prisma.message.create({
+    // Then create AI placeholder (IMPORTANT: sequential to preserve message order)
+    const aiMessage = await prisma.message.create({
       data: {
         roomId,
         role: 'assistant',
@@ -127,12 +129,6 @@ export async function chatRoutes(server: FastifyInstance) {
         modelSlug: model.slug,
       },
     });
-
-    const [persona, userMessage, aiMessage] = await Promise.all([
-      personaPromise,
-      userMessagePromise,
-      aiMessagePromise,
-    ]);
 
     // 5. Build AI context inline (OPTIMIZATION: no DB queries needed)
     const personaName = persona?.name || '사용자';
@@ -215,7 +211,17 @@ export async function chatRoutes(server: FastifyInstance) {
     const processedContent = content ? content.replace(/\{\{userName\}\}/g, personaName).replace(/\{\{characterName\}\}/g, room.character.name) : '';
     const processedHint = hint ? hint.replace(/\{\{userName\}\}/g, personaName).replace(/\{\{characterName\}\}/g, room.character.name) : undefined;
 
-    // 6. Stream AI response (OPTIMIZATION: using pre-built context)
+    // Log hint for debugging
+    if (processedHint) {
+      server.log.info({
+        originalHint: hint,
+        processedHint,
+        personaName,
+        characterName: room.character.name
+      }, 'Chat message with hint');
+    }
+
+    // 6. Stream AI response (OPTIMIZATION: using pre-built context + persona name)
     const aiStreamingService = new AIStreamingService();
     try {
       await aiStreamingService.streamAIResponse({
@@ -230,6 +236,7 @@ export async function chatRoutes(server: FastifyInstance) {
         lorebookEntries,
         situationalImagesInfo,
         characterData: room.character.data, // OPTIMIZATION: pass pre-loaded data
+        personaName, // OPTIMIZATION: pass persona name to avoid AI server DB query
         reply,
         server,
       });

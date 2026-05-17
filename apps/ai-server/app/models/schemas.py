@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
     character: dict | None = Field(default=None, description="Character context")
     lorebook_entries: list[dict] | None = Field(default=None, description="Lorebook entries")
     situational_triggers: list[dict] | None = Field(default=None, description="Situational image triggers")
+    persona_name: str | None = Field(default=None, description="User persona name")
 
 
 class ChatResponseChunk(BaseModel):
