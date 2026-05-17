@@ -225,9 +225,6 @@ async def send_chat_message(
             ):
                 accumulated += chunk
 
-                # DEBUG: Log each chunk
-                logger.info(f"📤 Sending SSE event {event_id}: {accumulated[:50]}...")
-
                 # Send incremental update
                 chunk_data = ChatResponseChunk(
                     event_id=event_id,

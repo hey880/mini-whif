@@ -91,7 +91,6 @@ export function useSSEChat() {
 
               // DEBUG: Log when SSE event arrives
               const startTime = performance.now();
-              console.log(`📥 SSE event ${data.event_id}: "${data.content}"`);
 
               // ✅ CRITICAL: Force immediate synchronous rendering
               // This bypasses React 19 batching completely
