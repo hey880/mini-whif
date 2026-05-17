@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
+import WebSocket from 'ws';
 
 // Load environment variables
 dotenv.config();
@@ -14,6 +15,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
+  },
+  realtime: {
+    transport: WebSocket as any,
   },
 });
 const prisma = new PrismaClient();

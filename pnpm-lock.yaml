@@ -178,6 +178,9 @@ importers:
       '@types/node':
         specifier: ^20.19.39
         version: 20.19.39
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
