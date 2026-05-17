@@ -309,6 +309,38 @@ pnpm lint
 pnpm build
 ```
 
+### 부하 테스팅 (k6)
+
+SSE 스트리밍, Gem 경제, ConnectRPC를 위한 종합 부하 테스트 스위트:
+
+```bash
+cd load-tests
+
+# 초기 설정 (한 번만 실행)
+pnpm install
+pnpm setup  # 100명의 테스트 사용자 + 캐릭터 생성
+
+# 스모크 테스트 (1-2분)
+pnpm smoke
+pnpm smoke:auth
+
+# 부하 테스트 (10-20분)
+pnpm load:chat   # SSE 스트리밍 (50 VUs)
+pnpm load:rpc    # ConnectRPC (100 VUs)
+pnpm load:mixed  # 혼합 워크로드 (75 VUs)
+
+# 스트레스 테스트
+pnpm stress      # 500 VUs까지 확장
+pnpm stress:gems # Gem 차감 동시성 테스트
+
+# 정리
+pnpm cleanup
+```
+
+**비용 절약**: `OPENROUTER_API_KEY` 없이 무료 Mock AI 모드 사용 가능
+
+자세한 내용은 [load-tests/README.md](./load-tests/README.md) 및 [load-tests/QUICK_START.md](./load-tests/QUICK_START.md) 참조
+
 ## 🐳 Docker 배포
 
 ```bash

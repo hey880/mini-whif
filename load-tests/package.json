@@ -1,0 +1,26 @@
+{
+  "name": "load-tests",
+  "version": "1.0.0",
+  "description": "k6 load testing suite for Persona Chat",
+  "scripts": {
+    "seed": "tsx setup/seed-test-db.ts",
+    "cleanup": "tsx setup/cleanup.ts",
+    "smoke": "k6 run scripts/smoke/health-check.js",
+    "smoke:auth": "k6 run scripts/smoke/auth-flow.js",
+    "load:chat": "k6 run --out json=results/chat-streaming.json scripts/load/chat-streaming.js",
+    "load:rpc": "k6 run --out json=results/connectrpc.json scripts/load/connectrpc.js",
+    "load:mixed": "k6 run --out json=results/mixed-workload.json scripts/load/mixed-workload.js",
+    "stress": "k6 run --out json=results/stress-peak.json scripts/stress/peak-load.js",
+    "stress:gems": "k6 run --out json=results/stress-gems.json scripts/stress/gem-deduction.js",
+    "spike": "k6 run --out json=results/stress-spike.json scripts/spike/sudden-traffic.js",
+    "soak": "k6 run --out json=results/soak.json scripts/soak/long-duration.js"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.15.0",
+    "@supabase/supabase-js": "^2.43.0",
+    "@types/node": "^20.19.39",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.15.0",
+    "ws": "^8.20.0"
+  }
+}

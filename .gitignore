@@ -57,3 +57,11 @@ prisma/migrations/**/migration.sql
 
 # Generated code (commit generated proto code for reproducibility)
 # packages/proto/gen/**
+
+# Load tests
+load-tests/fixtures/test-users.json
+load-tests/fixtures/characters.json
+load-tests/results/*.json
+load-tests/results/*.html
+load-tests/results/*.csv
+load-tests/results/archive/

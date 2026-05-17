@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.local
+fixtures/test-users.json
+fixtures/characters.json
+results/*.json
+results/*.html
+results/*.csv
+!results/.gitkeep
