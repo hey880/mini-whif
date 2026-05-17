@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
+      "PowerShell($content = Get-Content \"c:\\\\mini-whif\\\\load-tests\\\\results\\\\mixed-workload.json\" | ConvertFrom-Json -ErrorAction SilentlyContinue; $failed = $content | Where-Object { $_.metric -eq 'http_req_failed' -and $_.type -eq 'Point' -and $_.data.value -eq 1 }; $failed | Select-Object -First 20 | ForEach-Object { \"$\\($_.data.tags.method\\) $\\($_.data.tags.status\\) $\\($_.data.tags.url\\)\" })"
     ]
   }
 }
