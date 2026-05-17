@@ -92,19 +92,19 @@ pnpm smoke:auth
 예상 프로덕션 트래픽 시뮬레이션:
 
 ```bash
-# SSE 스트리밍 테스트 (20 동시 사용자)
+# SSE 스트리밍 테스트 (15 동시 사용자)
 pnpm load:chat
 
-# ConnectRPC 테스트 (30 동시 사용자)
+# ConnectRPC 테스트 (10 동시 사용자)
 pnpm load:rpc
 
-# 혼합 워크로드 테스트 (25 동시 사용자)
+# 혼합 워크로드 테스트 (15 동시 사용자)
 pnpm load:mixed
 ```
 
 **채팅 스트리밍 테스트** (`load:chat`):
-- **프로필**: 0→20 VUs (2분), 20 VUs (10분), 20→0 VUs (1분)
-- **시나리오**: 사용자 인증, 채팅방 생성, SSE를 통해 3-5개 메시지 전송
+- **프로필**: 0→15 VUs (2분), 15 VUs (10분), 15→0 VUs (1분)
+- **시나리오**: 사용자 인증 (토큰 캐싱), 채팅방 생성, SSE를 통해 3-5개 메시지 전송
 - **주요 메트릭**:
   - SSE 연결 시간: p95 < 500ms
   - 첫 청크 지연: p95 < 2초
@@ -112,19 +112,21 @@ pnpm load:mixed
   - Gem 잔액 오류 없음
 
 **ConnectRPC 테스트** (`load:rpc`):
-- **프로필**: 0→30 VUs (2분), 30 VUs (10분), 30→0 VUs (1분)
-- **시나리오**: CharacterService, ChatRoomService, PersonaService, GemService 호출
+- **프로필**: 0→10 VUs (2분), 10 VUs (10분), 10→0 VUs (1분)
+- **시나리오**: CharacterService, ChatRoomService, PersonaService, GemService 호출 (4-10초 간격)
+- **최적화**: VU별 토큰 캐싱으로 인증 요청 90% 감소
 - **주요 메트릭**:
   - RPC 지연시간: p95 < 200ms
   - 에러율: < 0.5%
 
 **혼합 워크로드 테스트** (`load:mixed`):
-- **프로필**: 0→25 VUs (3분), 25 VUs (15분), 25→0 VUs (2분)
+- **프로필**: 0→15 VUs (3분), 15 VUs (15분), 15→0 VUs (2분)
 - **시나리오**: 실제 사용자 행동 분포:
   - 60% - AI와 채팅 (SSE 스트리밍)
   - 20% - 캐릭터 탐색
   - 10% - 페르소나 관리
   - 10% - 메시지 재생성
+- **최적화**: 토큰 재사용으로 Supabase rate limit 회피
 - **주요 메트릭**: 채팅 및 RPC 테스트의 통합 임계값
 
 ### 스트레스 테스트 (15-20분)
@@ -369,11 +371,18 @@ pnpm seed
 
 Supabase rate limiting이 발생한 경우:
 
-1. **5-10분 대기** - rate limit 리셋 대기
-2. **테스트 설정이 이미 조정됨**:
-   - VUs 감소 (20-30)
-   - Think time 증가 (15-45초)
+1. **10-15분 대기** - rate limit 리셋 대기 (5분으로는 부족할 수 있음)
+2. **토큰 캐싱 적용됨** (v2.0+):
+   - 각 VU는 처음 한 번만 인증
+   - 이후 iteration에서 토큰 재사용
+   - 인증 요청 90% 감소
+3. **테스트 설정 최적화**:
+   - VUs 감소 (10-15)
+   - Think time 증가 (connectrpc: 4-10초)
    - 메시지 수 감소 (3개)
+4. **여전히 에러 발생 시**:
+   - 다른 날에 테스트 실행 (일일 rate limit)
+   - Supabase 대시보드에서 rate limit 상태 확인
 
 ### 포트 충돌
 
@@ -400,22 +409,43 @@ brew install k6
 
 ## Rate Limiting 회피 전략
 
-Supabase와 API 서버의 rate limiting을 피하기 위해 다음 설정을 적용했습니다:
+Supabase와 API 서버의 rate limiting을 피하기 위해 다음 최적화를 적용했습니다:
 
-### VUs 감소
-- **chat-streaming**: 50 → **20 VUs**
-- **connectrpc**: 100 → **30 VUs**
-- **mixed-workload**: 75 → **25 VUs**
+### 1. 토큰 캐싱 (가장 중요!)
 
-### Think Time 증가
-- **최소**: 10초 → **15초**
-- **최대**: 30초 → **45초**
+**문제**: 매 iteration마다 새로 인증하면 Supabase Auth API를 과도하게 호출
+**해결**: 각 VU는 처음 한 번만 인증하고 이후 토큰 재사용
+
+```javascript
+// 각 VU별로 토큰 캐싱
+const tokenCache = {};
+
+export default function (data) {
+  if (!tokenCache[__VU]) {
+    tokenCache[__VU] = authenticate(user.email, user.password);
+    sleep(1);  // 인증 후 1초 대기
+  }
+  const token = tokenCache[__VU];  // 재사용
+}
+```
+
+**효과**: 인증 요청 90% 이상 감소
+
+### 2. VUs 감소
+- **chat-streaming**: 50 → **15 VUs**
+- **connectrpc**: 100 → **10 VUs**
+- **mixed-workload**: 75 → **15 VUs**
+
+### 3. Think Time 증가
+- **일반 테스트**: 15-45초 (config.js)
+- **connectrpc**: 4-10초 (RPC 호출 간)
 - **세션당 메시지**: 5 → **3개**
 
-### 권장사항
-- 연속 테스트 간 **5-10분 대기**
+### 4. 권장사항
+- 연속 테스트 간 **10-15분 대기** (5분으로는 부족)
 - 스모크 테스트를 먼저 실행하여 시스템 확인
-- 필요시 VUs를 더 줄일 수 있음
+- 여전히 401 에러 발생 시 다른 날에 테스트
+- Supabase 대시보드에서 rate limit 상태 모니터링
 
 ## CI/CD 통합
 

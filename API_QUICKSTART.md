@@ -428,9 +428,4 @@ Dockerfile은 Phase 5에 추가됩니다.
 ## 지원
 
 문제 발생 시:
-1. 기능 상태는 `IMPLEMENTATION_STATUS.md` 확인
-2. 아키텍처는 `PHASE2_COMPLETION_SUMMARY.md` 검토
-3. 전체 프로젝트 정보는 메인 `README.md` 참조
-
-**현재 Phase**: Phase 2 완료 ✅
-**다음**: Phase 3 (AI 서버) 또는 Phase 4 (프론트엔드)
+전체 프로젝트 정보는 메인 `README.md` 참조
