@@ -87,22 +87,27 @@ pnpm smoke:auth
 - ✅ p95 지연시간 < 2초
 - ✅ 에러율 < 5%
 
-### 부하 테스트 (10-15분)
+### 기능 검증 테스트 (10-15분) - 로컬 환경
 
-예상 프로덕션 트래픽 시뮬레이션:
+모든 엔드포인트와 기능이 정상 작동하는지 검증합니다 (통합 테스트).
+**주의**: 5-15 VUs는 기능 검증용이며, 실제 부하 테스트는 스테이징 환경 필요.
 
 ```bash
-# SSE 스트리밍 테스트 (15 동시 사용자)
+# SSE 스트리밍 기능 검증 (15 VUs)
 pnpm load:chat
 
-# ConnectRPC 테스트 (10 동시 사용자)
+# ConnectRPC 기능 검증 (5 VUs)
 pnpm load:rpc
 
-# 혼합 워크로드 테스트 (15 동시 사용자)
+# 혼합 워크로드 기능 검증 (15 VUs)
 pnpm load:mixed
 ```
 
-**채팅 스트리밍 테스트** (`load:chat`):
+> 💡 **참고**: 스크립트 이름이 `load:*`이지만, 로컬 환경에서는 **기능 검증** 목적입니다.
+> 실제 부하 테스트는 스테이징 환경에서 50-100 VUs로 실행해야 합니다.
+
+**채팅 스트리밍 검증** (`load:chat`):
+- **목적**: SSE 스트리밍 기능 정상 작동 확인
 - **프로필**: 0→15 VUs (2분), 15 VUs (10분), 15→0 VUs (1분)
 - **시나리오**: 사용자 인증 (토큰 캐싱), 채팅방 생성, SSE를 통해 3-5개 메시지 전송
 - **주요 메트릭**:
@@ -111,15 +116,17 @@ pnpm load:mixed
   - 전체 스트리밍 시간: p95 < 35초
   - Gem 잔액 오류 없음
 
-**ConnectRPC 테스트** (`load:rpc`):
-- **프로필**: 0→10 VUs (2분), 10 VUs (10분), 10→0 VUs (1분)
-- **시나리오**: CharacterService, ChatRoomService, PersonaService, GemService 호출 (4-10초 간격)
+**ConnectRPC 검증** (`load:rpc`):
+- **목적**: 모든 RPC 엔드포인트 정상 작동 확인
+- **프로필**: 0→5 VUs (2분), 5 VUs (10분), 5→0 VUs (1분)
+- **시나리오**: CharacterService, ChatRoomService, PersonaService 호출 (7-15초 간격)
 - **최적화**: VU별 토큰 캐싱으로 인증 요청 90% 감소
 - **주요 메트릭**:
-  - RPC 지연시간: p95 < 200ms
-  - 에러율: < 0.5%
+  - RPC 지연시간: p95 < 1.5초 (로컬 환경)
+  - 에러율: < 1%
 
-**혼합 워크로드 테스트** (`load:mixed`):
+**혼합 워크로드 검증** (`load:mixed`):
+- **목적**: 실제 사용자 시나리오 통합 검증
 - **프로필**: 0→15 VUs (3분), 15 VUs (15분), 15→0 VUs (2분)
 - **시나리오**: 실제 사용자 행동 분포:
   - 60% - AI와 채팅 (SSE 스트리밍)
@@ -127,11 +134,36 @@ pnpm load:mixed
   - 10% - 페르소나 관리
   - 10% - 메시지 재생성
 - **최적화**: 토큰 재사용으로 Supabase rate limit 회피
-- **주요 메트릭**: 채팅 및 RPC 테스트의 통합 임계값
+- **주요 메트릭**: 채팅 및 RPC 검증의 통합 임계값
 
-### 스트레스 테스트 (15-20분)
+---
 
-시스템 한계 찾기:
+### 📌 기능 검증 vs 실제 부하 테스트
+
+| 구분 | 기능 검증 (현재) | 실제 부하 테스트 |
+|------|-----------------|-----------------|
+| **환경** | 로컬 개발 환경 | 스테이징/프로덕션 |
+| **VUs** | 5-15 | 50-500 |
+| **목적** | 엔드포인트 작동 확인 | 성능 한계 측정 |
+| **실행 시점** | 개발 중, PR 전 | 배포 전, 정기 모니터링 |
+| **임계값** | 관대 (p95 < 1.5초) | 엄격 (p95 < 200ms) |
+
+**로컬 환경의 역할**:
+- ✅ 모든 엔드포인트 정상 작동 확인
+- ✅ 회귀 방지 (코드 변경 후)
+- ✅ CI/CD 통합 (자동 검증)
+- ❌ 실제 부하 시뮬레이션 (VU 수 부족)
+
+**실제 부하 테스트는 스테이징 환경 구축 후**:
+- Docker Compose로 별도 인프라
+- 자체 PostgreSQL (Supabase rate limit 없음)
+- 50-100 VUs로 프로덕션 트래픽 시뮬레이션
+
+---
+
+### 스트레스 테스트 (15-20분) - 스테이징 환경 권장
+
+시스템 한계 찾기 (로컬 환경에서는 실행하지 마세요):
 
 ```bash
 # 최대 부하 (500 VUs까지 램프업)
@@ -406,6 +438,68 @@ choco install k6
 # macOS
 brew install k6
 ```
+
+## 실제 부하 테스트를 위한 스테이징 환경
+
+로컬 환경은 **기능 검증**용입니다. **실제 부하 테스트**는 스테이징 환경이 필요합니다.
+
+### 스테이징 환경 요구사항
+
+- **자체 PostgreSQL**: Supabase rate limit 없음
+- **충분한 리소스**: 50-100 VUs 처리 가능
+- **격리된 환경**: 프로덕션에 영향 없음
+
+### Docker Compose 예제
+
+```yaml
+# docker-compose.staging.yml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: personachat_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test123
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+
+  api:
+    build: ../../apps/api
+    environment:
+      DATABASE_URL: postgresql://test:test123@postgres:5432/personachat_test
+      NODE_ENV: staging
+    depends_on:
+      - postgres
+
+  ai-server:
+    build: ../../apps/ai-server
+    environment:
+      API_URL: http://api:3000
+```
+
+### 스테이징 환경 테스트 실행
+
+```bash
+# 스테이징 환경 시작
+docker-compose -f docker-compose.staging.yml up -d
+
+# 실제 부하 테스트 (50-100 VUs)
+k6 run -e API_URL=http://localhost:3000 \
+  --vus 50 \
+  --duration 15m \
+  scripts/load/chat-streaming.js
+```
+
+**스테이징 환경 임계값** (엄격):
+- RPC 지연: p95 < 200ms
+- SSE 첫 청크: p95 < 1초
+- 에러율: < 0.5%
 
 ## Rate Limiting 회피 전략
 
