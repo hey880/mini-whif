@@ -31,35 +31,47 @@ export async function chatRoutes(server: FastifyInstance) {
     const { roomId } = request.params as { roomId: string };
     const { content, hint } = request.body as { content?: string; hint?: string };
 
-    // 1. Verify room ownership
-    const room = await prisma.chatRoom.findUnique({
-      where: { id: roomId },
-      include: {
-        character: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            greeting: true,
-            tagline: true,
-            lorebook: true,
-            data: true, // Includes situationalImages
+    // 1. Parallel fetch: room + profile (OPTIMIZATION: reduced from 2 sequential queries)
+    const [room, profile] = await Promise.all([
+      prisma.chatRoom.findUnique({
+        where: { id: roomId },
+        include: {
+          character: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              greeting: true,
+              tagline: true,
+              lorebook: true,
+              data: true, // Includes situationalImages
+              universeId: true,
+              universe: {
+                select: {
+                  id: true,
+                  name: true,
+                  lorebook: true,
+                },
+              },
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.profile.findUnique({
+        where: { id: request.user!.id },
+        include: {
+          chosenLlmModel: true,
+          gemWallet: true, // OPTIMIZATION: pre-load for balance check
+        },
+      }),
+    ]);
 
+    // Verify room ownership
     if (!room || room.userId !== request.user!.id) {
       return reply.status(404).send({ error: 'Chat room not found' });
     }
 
-    // 2. Get user's current model and check gem balance
-    const profile = await prisma.profile.findUnique({
-      where: { id: request.user!.id },
-      include: { chosenLlmModel: true, gemWallet: true },
-    });
-
-    // Get model (chosen or default to cheapest)
+    // 2. Get model (chosen or default to cheapest)
     let model = profile?.chosenLlmModel;
     if (!model) {
       model = await prisma.llmModel.findFirst({
@@ -74,32 +86,40 @@ export async function chatRoutes(server: FastifyInstance) {
 
     const gemCost = model.gemCostPerMessage;
 
-    // Check gem balance
-    const gemService = new GemService();
-    const balance = await gemService.getBalance(request.user!.id);
+    // 3. Check gem balance (OPTIMIZATION: use pre-loaded gemWallet instead of separate query)
+    const totalGems =
+      (profile?.gemWallet?.paidGemAmount || 0) +
+      (profile?.gemWallet?.freeDailyGemAmount || 0) +
+      (profile?.gemWallet?.freePromoGemAmount || 0);
 
-    if (balance.totalGems < gemCost) {
+    if (totalGems < gemCost) {
       return reply.status(402).send({
         error: 'Insufficient gems',
         required: gemCost,
-        available: balance.totalGems,
+        available: totalGems,
       });
     }
 
-    // 3. Save user message (only if not a hint-only request)
-    let userMessage = null;
-    if (!hint || content) {
-      userMessage = await prisma.message.create({
-        data: {
-          roomId,
-          role: 'user',
-          content: content || '',
-        },
-      });
-    }
+    // 4. Parallel fetch: persona name + save user message + create AI placeholder
+    // OPTIMIZATION: removed buildAIContext() call (was doing redundant DB queries)
+    const personaPromise = room.personaId
+      ? prisma.userPersona.findUnique({
+          where: { id: room.personaId },
+          select: { name: true },
+        })
+      : Promise.resolve(null);
 
-    // 4. Create placeholder AI message
-    const aiMessage = await prisma.message.create({
+    const userMessagePromise = (!hint || content)
+      ? prisma.message.create({
+          data: {
+            roomId,
+            role: 'user',
+            content: content || '',
+          },
+        })
+      : Promise.resolve(null);
+
+    const aiMessagePromise = prisma.message.create({
       data: {
         roomId,
         role: 'assistant',
@@ -108,24 +128,95 @@ export async function chatRoutes(server: FastifyInstance) {
       },
     });
 
-    // 5. Build AI context
-    const aiStreamingService = new AIStreamingService();
-    const aiContext = await aiStreamingService.buildAIContext({
-      characterId: room.characterId,
-      personaId: room.personaId,
-      roomId,
-    });
+    const [persona, userMessage, aiMessage] = await Promise.all([
+      personaPromise,
+      userMessagePromise,
+      aiMessagePromise,
+    ]);
 
-    // Replace placeholders in user message
+    // 5. Build AI context inline (OPTIMIZATION: no DB queries needed)
+    const personaName = persona?.name || '사용자';
+
+    // Prepare placeholder replacements
     const replacements = {
-      userName: aiContext.personaName,
+      userName: personaName,
       characterName: room.character.name,
     };
 
-    const processedContent = content ? content.replace(/\{\{userName\}\}/g, aiContext.personaName).replace(/\{\{characterName\}\}/g, room.character.name) : '';
-    const processedHint = hint ? hint.replace(/\{\{userName\}\}/g, aiContext.personaName).replace(/\{\{characterName\}\}/g, room.character.name) : undefined;
+    // Build character context with placeholders replaced
+    const characterContext = {
+      name: room.character.name,
+      description: (room.character.description || '').replace(/\{\{userName\}\}/g, personaName).replace(/\{\{characterName\}\}/g, room.character.name),
+      greeting: (room.character.greeting || '').replace(/\{\{userName\}\}/g, personaName).replace(/\{\{characterName\}\}/g, room.character.name),
+      personality: (room.character.tagline || '').replace(/\{\{userName\}\}/g, personaName).replace(/\{\{characterName\}\}/g, room.character.name),
+    };
 
-    // 6. Stream AI response
+    // Parse and merge lorebooks (Universe + Character)
+    let lorebookEntries: any[] = [];
+
+    // Add Universe lorebook entries (if exists)
+    if (room.character.universe?.lorebook) {
+      try {
+        const universeLorebook = typeof room.character.universe.lorebook === 'string'
+          ? JSON.parse(room.character.universe.lorebook)
+          : room.character.universe.lorebook;
+
+        const universeEntries = (universeLorebook.entries || [])
+          .map((entry: any) => ({
+            ...entry,
+            source: 'universe',
+            universeName: room.character.universe?.name,
+          }));
+
+        lorebookEntries.push(...universeEntries);
+      } catch (e) {
+        server.log.warn({ error: e }, 'Failed to parse universe lorebook');
+      }
+    }
+
+    // Add Character lorebook entries (if exists)
+    if (room.character.lorebook) {
+      try {
+        const characterLorebook = typeof room.character.lorebook === 'string'
+          ? JSON.parse(room.character.lorebook)
+          : room.character.lorebook;
+
+        const characterEntries = (characterLorebook.entries || [])
+          .map((entry: any) => ({
+            ...entry,
+            source: 'character',
+            characterName: room.character.name,
+          }));
+
+        lorebookEntries.push(...characterEntries);
+      } catch (e) {
+        server.log.warn({ error: e }, 'Failed to parse character lorebook');
+      }
+    }
+
+    // Sort by priority (higher priority first)
+    lorebookEntries.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+    // Extract situational images for AI context
+    let situationalImagesInfo: any[] = [];
+    try {
+      const characterData = room.character.data as any;
+      if (characterData?.situationalImages) {
+        situationalImagesInfo = characterData.situationalImages.map((img: any) => ({
+          triggers: img.triggers,
+          description: img.description,
+        }));
+      }
+    } catch (e) {
+      server.log.warn({ error: e }, 'Failed to extract situational images');
+    }
+
+    // Replace placeholders in user message
+    const processedContent = content ? content.replace(/\{\{userName\}\}/g, personaName).replace(/\{\{characterName\}\}/g, room.character.name) : '';
+    const processedHint = hint ? hint.replace(/\{\{userName\}\}/g, personaName).replace(/\{\{characterName\}\}/g, room.character.name) : undefined;
+
+    // 6. Stream AI response (OPTIMIZATION: using pre-built context)
+    const aiStreamingService = new AIStreamingService();
     try {
       await aiStreamingService.streamAIResponse({
         userId: request.user!.id,
@@ -135,9 +226,10 @@ export async function chatRoutes(server: FastifyInstance) {
         hint: processedHint,
         modelSlug: model.slug,
         maxTokens: model.maxOutputTokens,
-        characterContext: aiContext.characterContext,
-        lorebookEntries: aiContext.lorebookEntries,
-        situationalImagesInfo: aiContext.situationalImagesInfo,
+        characterContext,
+        lorebookEntries,
+        situationalImagesInfo,
+        characterData: room.character.data, // OPTIMIZATION: pass pre-loaded data
         reply,
         server,
       });
