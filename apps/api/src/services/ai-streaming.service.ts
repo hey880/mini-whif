@@ -28,6 +28,7 @@ interface StreamAIResponseParams {
   characterContext: CharacterContext;
   lorebookEntries: any[];
   situationalImagesInfo: any[];
+  characterData: any; // OPTIMIZATION: pre-loaded character data
   reply: any;
   server: FastifyInstance;
 }
@@ -187,21 +188,8 @@ export class AIStreamingService {
     const aiServerUrl = process.env.AI_SERVER_URL || 'http://localhost:8000';
     const { server, reply } = params;
 
-    // Get character data for situational images matching
-    const room = await prisma.chatRoom.findUnique({
-      where: { id: params.roomId },
-      include: {
-        character: {
-          select: { data: true },
-        },
-      },
-    });
-
-    if (!room) {
-      throw new Error('Chat room not found');
-    }
-
-    // Get model cost for gem deduction
+    // OPTIMIZATION: removed DB query for room (use pre-loaded characterData)
+    // OPTIMIZATION: fetch model only once for gem cost
     const model = await prisma.llmModel.findUnique({
       where: { slug: params.modelSlug },
     });
@@ -211,6 +199,10 @@ export class AIStreamingService {
     }
 
     const gemCost = model.gemCostPerMessage;
+
+    // OPTIMIZATION: add timeout to AI server fetch (10s for connection)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
       const aiResponse = await fetch(`${aiServerUrl}/v1/chats`, {
@@ -227,7 +219,10 @@ export class AIStreamingService {
           lorebook_entries: params.lorebookEntries,
           situational_triggers: params.situationalImagesInfo,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!aiResponse.ok) {
         server.log.error(`AI server error: ${aiResponse.status} ${aiResponse.statusText}`);
@@ -299,10 +294,10 @@ export class AIStreamingService {
               accumulated = data.content;
 
               if (data.is_final_event) {
-                // Match situational images
+                // Match situational images (OPTIMIZATION: use pre-loaded characterData)
                 let triggeredImages: any[] = [];
                 try {
-                  const characterData = room.character.data as any;
+                  const characterData = params.characterData as any;
                   server.log.info({ characterData }, 'Character data');
                   if (characterData?.situationalImages) {
                     server.log.info({ situationalImages: characterData.situationalImages }, 'Situational images available');
@@ -347,6 +342,48 @@ export class AIStreamingService {
 
       reply.raw.end();
     } catch (error) {
+      clearTimeout(timeoutId);
+
+      // Handle timeout error
+      if (error instanceof Error && error.name === 'AbortError') {
+        server.log.error('AI server request timeout (10s)');
+
+        // Send mock response on timeout
+        if (!reply.raw.headersSent) {
+          const mockContent = `[Mock AI Response] The AI server is taking too long to respond. This is a placeholder response. (Model: ${model.name}, Cost: ${gemCost} gems)`;
+
+          await prisma.message.update({
+            where: { id: params.messageId },
+            data: { content: mockContent },
+          });
+
+          await this.gemService.deductGems(params.userId, gemCost, params.messageId);
+
+          await prisma.chatRoom.update({
+            where: { id: params.roomId },
+            data: { lastMessageAt: new Date() },
+          });
+
+          reply.raw.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
+            'Access-Control-Allow-Credentials': 'true',
+          });
+
+          reply.raw.write(`data: ${JSON.stringify({
+            event_id: 0,
+            content: mockContent,
+            is_final_event: true,
+            model: model.slug,
+          })}\n\n`);
+
+          reply.raw.end();
+          return;
+        }
+      }
+
       server.log.error({ error }, 'Error communicating with AI server');
 
       // Send error response
