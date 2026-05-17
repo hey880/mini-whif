@@ -113,14 +113,26 @@ export default function GemStorePage() {
         totalAmount: amount,
         currency: 'CURRENCY_KRW' as const,
         payMethod: 'CARD' as const,
+        windowType: {
+          pc: 'IFRAME' as const,
+          mobile: 'REDIRECTION' as const,
+        },
       });
 
       if (response?.code) {
         // Payment failed or cancelled
+        console.log('Payment response:', response);
+
         if (response.code === 'PORTONE_ERROR') {
           toast.error('결제창을 열 수 없습니다. 테스트 모드에서는 실제 결제가 진행되지 않습니다.');
+        } else if (
+          response.code === 'USER_CANCEL' ||
+          response.code === 'FAILURE_TYPE_PG' ||
+          response.message?.toLowerCase().includes('cancel')
+        ) {
+          toast.info('결제가 취소되었습니다.');
         } else {
-          toast.error(response.message || '결제가 취소되었습니다');
+          toast.error(response.message || '결제가 취소되었습니다.');
         }
         return;
       }
