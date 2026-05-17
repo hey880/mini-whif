@@ -3,7 +3,6 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
 
 function SignUpForm() {
@@ -17,8 +16,6 @@ function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
-
-  const { setSession } = useAuthStore();
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +36,7 @@ function SignUpForm() {
       if (error) throw error;
 
       if (data.session) {
-        setSession(data.session);
+        // AuthProvider가 자동으로 세션을 동기화하므로 여기서는 제거
         router.push(returnUrl);
       } else {
         setShowEmailConfirmModal(true);

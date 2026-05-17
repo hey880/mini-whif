@@ -1,13 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { characterClient, universeClient } from '@/lib/connectrpc/client';
 import { CharacterCard } from '@/components/character/CharacterCard';
 import { TopNav } from '@/components/layout/TopNav';
-import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/stores/authStore';
 import type { Character } from '../../../../packages/proto/gen/ts/character_pb';
 import type { Universe } from '../../../../packages/proto/gen/ts/universe_pb';
 import Link from 'next/link';
@@ -18,23 +16,7 @@ export default function HomePage() {
   const [showNsfw, setShowNsfw] = useState(false);
   const [activeTab, setActiveTab] = useState<'characters' | 'universes'>('characters');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const { setSession } = useAuthStore();
   const router = useRouter();
-
-  // Initialize auth session
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [setSession]);
 
   // Build search keyword with tags
   const buildSearchKeyword = () => {
