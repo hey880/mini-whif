@@ -30,8 +30,8 @@ export const options = {
   thresholds: {
     'sse_connection_time': ['p(95)<500'],
     'sse_first_chunk_latency': ['p(95)<2000'],
-    'rpc_latency': ['p(95)<200'],
-    'http_req_failed': ['rate<0.01'],
+    'rpc_latency': ['p(95)<1500'],  // 로컬 환경: 1.5초
+    'http_req_failed': ['rate<0.05'],  // 5% 미만 (Gem 부족 402 포함)
   },
 };
 
@@ -96,18 +96,21 @@ export default function (data) {
 function chatScenario(apiUrl, token) {
   const character = characters[Math.floor(Math.random() * characters.length)];
 
-  // Create chat room
+  // Create chat room via ConnectRPC
   const roomRes = http.post(
-    `${apiUrl}/chat-rooms`,
+    `${apiUrl}/persona_chat.chatroom.v1.ChatRoomService/CreateChatRoom`,
     JSON.stringify({ characterId: character.id }),
-    { headers: authJsonHeaders(token) }
+    {
+      headers: authConnectHeaders(token),
+      tags: { scenario: 'chat' },
+    }
   );
 
-  if (roomRes.status !== 200 && roomRes.status !== 201) {
+  if (roomRes.status !== 200) {
     return;
   }
 
-  const roomId = roomRes.json('id');
+  const roomId = roomRes.json('chatRoom.id');
 
   // Send 2-4 messages
   const messageCount = Math.floor(Math.random() * 3) + 2;

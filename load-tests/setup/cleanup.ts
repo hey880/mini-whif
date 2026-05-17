@@ -35,14 +35,21 @@ async function main() {
   console.log('🗑️  Deleting test messages...');
   const userIds = testUsers.map((u) => u.id);
 
+  // First, get all message IDs for these users
+  const messages = await prisma.message.findMany({
+    where: {
+      room: {
+        userId: { in: userIds },
+      },
+    },
+    select: { id: true },
+  });
+  const messageIds = messages.map((m) => m.id);
+
   // Delete message versions first (foreign key constraint)
   const deletedVersions = await prisma.messageVersion.deleteMany({
     where: {
-      message: {
-        chatRoom: {
-          userId: { in: userIds },
-        },
-      },
+      messageId: { in: messageIds },
     },
   });
   console.log(`  ✓ Deleted ${deletedVersions.count} message versions`);
@@ -50,7 +57,7 @@ async function main() {
   // Delete user reactions
   const deletedReactions = await prisma.userReaction.deleteMany({
     where: {
-      userId: { in: userIds },
+      messageId: { in: messageIds },
     },
   });
   console.log(`  ✓ Deleted ${deletedReactions.count} user reactions`);
@@ -58,9 +65,7 @@ async function main() {
   // Delete messages
   const deletedMessages = await prisma.message.deleteMany({
     where: {
-      chatRoom: {
-        userId: { in: userIds },
-      },
+      id: { in: messageIds },
     },
   });
   console.log(`  ✓ Deleted ${deletedMessages.count} messages\n`);
