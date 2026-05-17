@@ -32,7 +32,9 @@
       "Bash(curl:*)",
       "Bash(grep:*)",
       "Bash(git diff:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(python:*)",
+      "Bash(dir:*)"
     ]
   }
 }
