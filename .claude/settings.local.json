@@ -34,7 +34,11 @@
       "Bash(git diff:*)",
       "Bash(pnpm add:*)",
       "Bash(python:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(pnpm test:*)",
+      "Bash(taskkill:*)",
+      "Bash(pnpm load:chat-streaming:*)",
+      "Bash(pnpm load:chat:*)"
     ]
   }
 }
