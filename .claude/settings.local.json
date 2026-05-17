@@ -38,7 +38,10 @@
       "Bash(pnpm test:*)",
       "Bash(taskkill:*)",
       "Bash(pnpm load:chat-streaming:*)",
-      "Bash(pnpm load:chat:*)"
+      "Bash(pnpm load:chat:*)",
+      "Bash(node:*)",
+      "Bash(npm --version:*)",
+      "Bash(pnpm --filter web dev:*)"
     ]
   }
 }
