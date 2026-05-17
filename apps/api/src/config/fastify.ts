@@ -18,6 +18,10 @@ export function createServer() {
             }
           : undefined,
     },
+    // OPTIMIZATION: timeout settings for stability
+    connectionTimeout: 60000,      // 60s - max time for connection to remain open
+    keepAliveTimeout: 65000,       // 65s - must be > connectionTimeout
+    requestTimeout: 30000,         // 30s - max time for request processing (SSE routes override this)
   });
 
   // CORS configuration

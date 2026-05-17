@@ -1,5 +1,6 @@
 import logging
 from typing import AsyncGenerator
+import httpx
 from openai import AsyncOpenAI
 from langfuse.decorators import observe
 from ..config.settings import settings
@@ -10,11 +11,14 @@ logger = logging.getLogger(__name__)
 client: AsyncOpenAI | None = None
 
 if settings.has_openrouter:
+    # OPTIMIZATION: add timeout settings for stability
     client = AsyncOpenAI(
         base_url="https://openrouter.ai/api/v1",
-        api_key=settings.openrouter_api_key
+        api_key=settings.openrouter_api_key,
+        timeout=httpx.Timeout(30.0, connect=5.0),  # 30s total, 5s connect
+        max_retries=1,  # 1 retry on failure
     )
-    logger.info("OpenRouter client initialized")
+    logger.info("OpenRouter client initialized with timeout settings")
 else:
     logger.warning("OpenRouter API key not configured - will use mock responses")
 
