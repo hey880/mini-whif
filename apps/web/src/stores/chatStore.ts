@@ -26,7 +26,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setCurrentRoom: (currentRoomId) => set({ currentRoomId }),
   setStreaming: (isStreaming) => set({ isStreaming }),
   appendStreamChunk: (chunk) =>
-    set((state) => ({ streamingContent: chunk })),
+    set((state) => ({ streamingContent: state.streamingContent + chunk })),
   resetStream: () => set({ streamingContent: '' }),
   setOptimisticUserMessage: (optimisticUserMessage) => set({ optimisticUserMessage }),
 }));

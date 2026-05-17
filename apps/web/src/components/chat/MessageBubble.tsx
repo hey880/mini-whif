@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatDate, replacePlaceholders } from '@/lib/utils';
 import { parseMessage } from '@/lib/messageParser';
 import { Edit2, Trash2, Bookmark, BookmarkCheck, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react';
@@ -61,6 +61,15 @@ export function MessageBubble({
   // Local state for version switching
   const [displayContent, setDisplayContent] = useState(content);
   const [currentDisplayVersion, setCurrentDisplayVersion] = useState(versionNumber);
+
+  // ✅ CRITICAL FIX: Update displayContent when content prop changes (for streaming)
+  // This is essential for real-time streaming updates
+  useEffect(() => {
+    // For streaming messages or when content changes externally, update display
+    if (messageId === 'streaming' || messageId.startsWith('optimistic-')) {
+      setDisplayContent(content);
+    }
+  }, [content, messageId]);
 
   // Handle version change from selector
   const handleVersionChange = (newContent: string, newVersion: number) => {

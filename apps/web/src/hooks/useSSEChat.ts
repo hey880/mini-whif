@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { flushSync } from 'react-dom';
 import { useChatStore } from '@/stores/chatStore';
 import { supabase } from '@/lib/supabase';
 
@@ -70,13 +71,18 @@ export function useSSEChat() {
       // Read SSE stream
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
+      let lineBuffer = ''; // Buffer for incomplete lines
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        lineBuffer += chunk;
+
+        // Split by newlines but keep incomplete line in buffer
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop() || ''; // Keep last incomplete line
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -84,14 +90,23 @@ export function useSSEChat() {
               const data: SSEEvent = JSON.parse(line.slice(6));
 
               // DEBUG: Log when SSE event arrives
-              console.log(`📥 SSE event ${data.event_id}: ${data.content.slice(0, 50)}...`);
+              const startTime = performance.now();
+              console.log(`📥 SSE event ${data.event_id}: "${data.content}"`);
 
-              // Update streaming content immediately (React 19 batching handles optimization)
-              appendStreamChunk(data.content);
+              // ✅ CRITICAL: Force immediate synchronous rendering
+              // This bypasses React 19 batching completely
+              flushSync(() => {
+                appendStreamChunk(data.content);
+              });
+
+              const renderTime = performance.now() - startTime;
+              console.log(`✅ Rendered in ${renderTime.toFixed(2)}ms`);
 
               if (data.is_final_event) {
                 // Final update
-                appendStreamChunk(data.content);
+                flushSync(() => {
+                  appendStreamChunk(data.content);
+                });
 
                 // Invalidate queries first to trigger refetch
                 const refetchPromises = [
