@@ -10,10 +10,19 @@ interface SSEEvent {
 }
 
 export function useSSEChat() {
-  const { setStreaming, appendStreamChunk, resetStream } = useChatStore();
+  const { setStreaming, appendStreamChunk, resetStream, setOptimisticUserMessage } = useChatStore();
   const queryClient = useQueryClient();
 
   const sendMessage = async (roomId: string, message: string, hint?: string) => {
+    // Optimistic UI: Show user message immediately
+    if (message) {
+      setOptimisticUserMessage({
+        id: 'optimistic-' + Date.now(),
+        content: message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     setStreaming(true);
     resetStream();
 
@@ -74,21 +83,37 @@ export function useSSEChat() {
             try {
               const data: SSEEvent = JSON.parse(line.slice(6));
 
-              // Update streaming content
+              // DEBUG: Log when SSE event arrives
+              console.log(`📥 SSE event ${data.event_id}: ${data.content.slice(0, 50)}...`);
+
+              // Update streaming content immediately (React 19 batching handles optimization)
               appendStreamChunk(data.content);
 
               if (data.is_final_event) {
-                setStreaming(false);
+                // Final update
+                appendStreamChunk(data.content);
 
-                // Invalidate queries to refetch data
-                queryClient.invalidateQueries({
-                  queryKey: ['messages', roomId],
-                });
-                queryClient.invalidateQueries({
-                  queryKey: ['chatRooms'],
-                });
-                queryClient.invalidateQueries({
-                  queryKey: ['wallet'],
+                // Invalidate queries first to trigger refetch
+                const refetchPromises = [
+                  queryClient.invalidateQueries({
+                    queryKey: ['messages', roomId],
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: ['chatRooms'],
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: ['wallet'],
+                  }),
+                ];
+
+                // Wait for refetch to complete before hiding streaming UI
+                Promise.all(refetchPromises).then(() => {
+                  // Small delay to ensure DOM has updated
+                  setTimeout(() => {
+                    setStreaming(false);
+                    // Clear optimistic message after real messages loaded
+                    setOptimisticUserMessage(null);
+                  }, 100);
                 });
               }
             } catch (parseError) {
@@ -99,6 +124,7 @@ export function useSSEChat() {
       }
     } catch (error) {
       setStreaming(false);
+      setOptimisticUserMessage(null); // Clear on error
       console.error('Error sending message:', error);
       throw error;
     }

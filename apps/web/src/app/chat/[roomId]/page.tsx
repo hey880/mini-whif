@@ -46,7 +46,7 @@ export default function ChatPage() {
   const [isUserNoteModalOpen, setIsUserNoteModalOpen] = useState(false);
   const [isSummarizingMessages, setIsSummarizingMessages] = useState(false);
 
-  const { isStreaming, streamingContent } = useChatStore();
+  const { isStreaming, streamingContent, optimisticUserMessage } = useChatStore();
   const { sendMessage } = useSSEChat();
 
   // Fetch chat room
@@ -511,14 +511,18 @@ export default function ChatPage() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
       // 3. SSE request with optional hint
-      const body = hint ? JSON.stringify({ hint }) : undefined;
+      const requestBody: { hint?: string } = {};
+      if (hint && hint.trim()) {
+        requestBody.hint = hint.trim();
+      }
+
       const response = await fetch(`${apiUrl}/messages/${messageId}/regenerate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
-          ...(hint && { 'Content-Type': 'application/json; charset=utf-8' }),
+          'Content-Type': 'application/json',
         },
-        ...(body && { body }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -548,16 +552,27 @@ export default function ChatPage() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
+
+              // Update streaming content immediately (React 19 batching handles optimization)
               appendStreamChunk(data.content);
 
               if (data.is_final_event) {
-                setStreaming(false);
+                // Final update
+                appendStreamChunk(data.content);
 
-                // 5. Refresh data
-                queryClient.invalidateQueries({ queryKey: ['messages', roomId] });
-                queryClient.invalidateQueries({ queryKey: ['wallet'] });
+                // 5. Refresh data to get accurate server data
+                const refetchPromises = [
+                  queryClient.invalidateQueries({ queryKey: ['messages', roomId] }),
+                  queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+                ];
 
-                toast.success('메시지가 재생성되었습니다');
+                // Wait for refetch before hiding streaming UI
+                Promise.all(refetchPromises).then(() => {
+                  setTimeout(() => {
+                    setStreaming(false);
+                    toast.success('메시지가 재생성되었습니다');
+                  }, 100);
+                });
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);
@@ -720,6 +735,7 @@ export default function ChatPage() {
       {/* Messages */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto custom-scrollbar relative">
         <div className="max-w-5xl mx-auto px-container-padding py-6 space-y-4">
+          {/* Existing messages */}
           {messagesData?.messages.map((message: any) => (
             <div
               key={message.id}
@@ -756,7 +772,19 @@ export default function ChatPage() {
             </div>
           ))}
 
-          {/* Streaming message */}
+          {/* Optimistic user message (shown immediately) */}
+          {optimisticUserMessage && (
+            <MessageBubble
+              messageId={optimisticUserMessage.id}
+              role="user"
+              content={optimisticUserMessage.content}
+              timestamp={optimisticUserMessage.timestamp}
+              characterName={room.character?.name}
+              userName={userName}
+            />
+          )}
+
+          {/* Streaming AI message */}
           {isStreaming && streamingContent && (
             <MessageBubble
               messageId="streaming"

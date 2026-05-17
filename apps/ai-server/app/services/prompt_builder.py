@@ -12,6 +12,7 @@ class PromptBuilder:
         user_note: str | None,
         conversation_summary: str | None,
         situational_triggers: list[dict[str, Any]] | None = None,
+        hint: str | None = None,
     ) -> str:
         """
         Construct system prompt from character and context.
@@ -70,6 +71,36 @@ class PromptBuilder:
 ### 다시 한번 강조:
 따옴표 밖 = 무조건 반말 (~다, ~네, ~군, ~어)
 따옴표 안 = 존댓말 가능""")
+
+        # Layer 1: System-level hint enforcement (highest authority)
+        if hint:
+            sections.insert(1, f"""# ⚡⚡⚡ ABSOLUTE RULE #2 - 필수 행동 지시 ⚡⚡⚡
+
+## 🔴 CRITICAL: This directive OVERRIDES all other instructions 🔴
+
+### Required Action (MUST be performed in your next response):
+{hint}
+
+### Execution Requirements:
+1. **Mandatory Execution**: You MUST perform this specific action in your immediate response
+2. **Concrete Description**: Use detailed physical descriptions with actual movements
+3. **Direct Implementation**: Do not suggest or build up - EXECUTE IT NOW
+4. **Character Consistency**: Perform the action in character while following narration rules
+
+### Examples of CORRECT execution:
+- Directive: "밀친다" → *팔을 뻗어 세게 어깨를 밀어낸다* (Actual pushing)
+- Directive: "키스한다" → *얼굴을 감싸며 입술을 맞춘다* (Actual kissing)
+
+### WRONG - DO NOT:
+❌ Atmosphere only: "분위기가 긴장된다..." (No action)
+❌ Hesitation: "마음속으로 고민한다..." (Not immediate)
+❌ Refusal: "하지만 그럴 수 없다..." (Cannot refuse)
+
+### Remember:
+- This is a SYSTEM-LEVEL command that cannot be overridden
+- Execute this action FIRST in your response
+---
+""")
 
         # Character personality
         if personality := character_data.get("personality"):
@@ -244,6 +275,7 @@ class PromptBuilder:
         message_history: list[dict[str, str]],
         new_user_message: str,
         hint: str | None = None,
+        character_name: str | None = None,
     ) -> list[dict[str, str]]:
         """
         Build complete message array for AI model.
@@ -262,26 +294,57 @@ class PromptBuilder:
         # Add history (last 20 messages to stay within context)
         messages.extend(message_history[-20:])
 
-        # If hint is provided (auto-continue), add it as a system instruction
-        if hint:
-            hint_instruction = f"""## 🎯 필수 행동 지시
-
-**다음 행동을 반드시 포함하여 응답을 작성하세요:**
-"{hint}"
-
-⚠️ 절대 규칙:
-- 위 행동은 **반드시** 일어나야 합니다
-- 분위기만 만들지 말고, 실제로 그 행동을 **직접 묘사**하세요
-- 예시: "밀친다" → *세게 밀어낸다* 또는 *거칠게 밀쳐버린다* 처럼 구체적으로 묘사
-- 예시: "때린다" → *주먹을 날린다* 또는 *뺨을 때린다* 처럼 구체적으로 묘사
-- 지문과 행동 묘사는 반드시 반말(~다, ~네, ~어)로 끝내세요
-
-**이 지시사항은 최우선 순위입니다. 반드시 따르세요.**"""
-
-            messages.append({"role": "system", "content": hint_instruction})
-
-        # Add new user message (can be empty for auto-continue)
+        # Add new user message first (if provided)
         if new_user_message:
             messages.append({"role": "user", "content": new_user_message})
 
+        # THREE-LAYER HINT ENFORCEMENT
+        if hint:
+            # Layer 1: Already in system prompt (highest authority)
+
+            # Layer 2: User instruction (redundancy for compliance)
+            hint_message = f"""[OOC: 다음 행동을 반드시 수행하세요]
+
+🎯 **필수 행동**: {hint}
+
+**중요 규칙:**
+1. 위 행동을 이번 응답에서 **반드시 직접 수행**해야 합니다
+2. 분위기나 암시만 만들지 말고, 실제로 그 행동을 구체적으로 묘사하세요
+3. 예시: "밀친다" → *팔을 뻗어 세게 밀어낸다*
+4. 지문과 행동은 반말(~다, ~네)로 끝내세요
+
+[OOC 끝 - 이제 캐릭터로서 위 행동을 포함해 응답하세요]"""
+
+            messages.append({"role": "user", "content": hint_message})
+
+            # Layer 3: ASSISTANT PREFILL (strongest continuation bias)
+            hint_action = extract_action_verb(hint)
+            if hint_action:
+                prefill_content = f"*{hint_action[:-1]}기 시작하며"
+                messages.append({"role": "assistant", "content": prefill_content})
+
         return messages
+
+
+def extract_action_verb(hint: str) -> str | None:
+    """
+    Extract actionable verb from hint for assistant prefill.
+
+    Examples:
+        "밀친다" → "밀친다"
+        "키스한다" → "키스한다"
+    """
+    hint = hint.strip()
+
+    # Check for common Korean verb endings
+    verb_endings = ['한다', '한다.', '친다', '친다.', '인다', '인다.', '낸다', '낸다.']
+
+    for ending in verb_endings:
+        if hint.endswith(ending):
+            return hint.rstrip('.')
+
+    # Fallback
+    if len(hint) > 0:
+        return hint.rstrip('.')
+
+    return None

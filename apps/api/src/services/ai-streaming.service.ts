@@ -29,6 +29,7 @@ interface StreamAIResponseParams {
   lorebookEntries: any[];
   situationalImagesInfo: any[];
   characterData: any; // OPTIMIZATION: pre-loaded character data
+  personaName: string; // OPTIMIZATION: pre-loaded persona name
   reply: any;
   server: FastifyInstance;
 }
@@ -218,6 +219,7 @@ export class AIStreamingService {
           character: params.characterContext,
           lorebook_entries: params.lorebookEntries,
           situational_triggers: params.situationalImagesInfo,
+          persona_name: params.personaName, // OPTIMIZATION: send persona name to avoid AI server DB query
         }),
         signal: controller.signal,
       });
@@ -250,6 +252,7 @@ export class AIStreamingService {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no', // Disable nginx buffering
           'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
           'Access-Control-Allow-Credentials': 'true',
         });
@@ -270,20 +273,40 @@ export class AIStreamingService {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no', // Disable nginx buffering
+        'Transfer-Encoding': 'chunked', // Force chunked encoding
         'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
         'Access-Control-Allow-Credentials': 'true',
       });
 
+      // Flush headers immediately
+      reply.raw.flushHeaders();
+
       const reader = aiResponse.body!.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
+      let buffer = ''; // Buffer for incomplete SSE events
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        reply.raw.write(chunk); // Forward to client
+        buffer += chunk;
+
+        // Split by SSE event delimiter (\n\n)
+        const events = buffer.split('\n\n');
+        // Keep the last incomplete event in buffer
+        buffer = events.pop() || '';
+
+        // Send each complete SSE event individually with immediate flush
+        for (const event of events) {
+          if (event.trim()) {
+            reply.raw.write(event + '\n\n');
+            // Force immediate transmission by yielding to event loop
+            await new Promise(resolve => setImmediate(resolve));
+          }
+        }
 
         // Parse to check for final event
         const lines = chunk.split('\n');
@@ -368,6 +391,7 @@ export class AIStreamingService {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no', // Disable nginx buffering
             'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
             'Access-Control-Allow-Credentials': 'true',
           });

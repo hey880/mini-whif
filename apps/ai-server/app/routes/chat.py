@@ -1,5 +1,6 @@
 import json
 import logging
+import asyncio
 from typing import Annotated
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
@@ -43,15 +44,22 @@ async def send_chat_message(
             lorebook_entries = request.lorebook_entries
             situational_triggers = request.situational_triggers or []
 
-            # Fetch only room and persona data
-            room_response = supabase.table("chat_rooms").select(
-                """
-                *,
-                persona:user_personas(
-                    persona
-                )
-                """
-            ).eq("id", request.room_id).single().execute()
+            # OPTIMIZATION: Use persona_name from API server if provided (avoid DB query)
+            if request.persona_name:
+                # Use pre-loaded persona name
+                persona_data = {"persona": request.persona_name}
+                # Fetch only room metadata (no joins)
+                room_response = supabase.table("chat_rooms").select("*").eq("id", request.room_id).single().execute()
+            else:
+                # Fallback: fetch room with persona (for backward compatibility)
+                room_response = supabase.table("chat_rooms").select(
+                    """
+                    *,
+                    persona:user_personas(
+                        persona
+                    )
+                    """
+                ).eq("id", request.room_id).single().execute()
 
             if not room_response.data:
                 async def error_stream():
@@ -68,7 +76,8 @@ async def send_chat_message(
                 )
 
             room = room_response.data
-            persona_data = room.get("persona")
+            if not request.persona_name:
+                persona_data = room.get("persona")
 
         else:
             # Fallback: Fetch everything from DB (legacy behavior)
@@ -158,9 +167,9 @@ async def send_chat_message(
 
         # Filter lorebook entries by keyword triggers
         # Only include lorebook entries that are triggered by keywords in the conversation
-        logger.info(f"📚 Total lorebook entries available: {len(lorebook_entries)}")
+        logger.debug(f"📚 Total lorebook entries available: {len(lorebook_entries)}")
         for entry in lorebook_entries:
-            logger.info(f"  - Entry: {entry.get('name', 'Unknown')} | Keywords: {entry.get('keywords', entry.get('triggers', []))} | Source: {entry.get('source', 'unknown')}")
+            logger.debug(f"  - Entry: {entry.get('name', 'Unknown')} | Keywords: {entry.get('keywords', entry.get('triggers', []))} | Source: {entry.get('source', 'unknown')}")
 
         triggered_lorebook_entries = PromptBuilder.filter_triggered_lorebook_entries(
             lorebook_entries=lorebook_entries,
@@ -168,9 +177,9 @@ async def send_chat_message(
             new_message=request.message
         )
 
-        logger.info(f"✅ Triggered lorebook entries: {len(triggered_lorebook_entries)}")
+        logger.debug(f"✅ Triggered lorebook entries: {len(triggered_lorebook_entries)}")
         for entry in triggered_lorebook_entries:
-            logger.info(f"  - Triggered: {entry.get('name', 'Unknown')} | Keywords: {entry.get('keywords', entry.get('triggers', []))}")
+            logger.debug(f"  - Triggered: {entry.get('name', 'Unknown')} | Keywords: {entry.get('keywords', entry.get('triggers', []))}")
 
         system_prompt = PromptBuilder.build_system_prompt(
             character_data=character_data,
@@ -179,6 +188,7 @@ async def send_chat_message(
             user_note=room.get("user_note"),
             conversation_summary=room.get("conversation_summary"),
             situational_triggers=situational_triggers if situational_triggers else None,
+            hint=request.hint,  # Layer 1 enforcement
         )
 
         # Debug log for hint
@@ -190,7 +200,8 @@ async def send_chat_message(
             system_prompt=system_prompt,
             message_history=message_history,
             new_user_message=request.message,
-            hint=request.hint,
+            hint=request.hint,  # Layers 2 & 3 enforcement
+            character_name=character_data.get("name"),  # For assistant prefill
         )
 
         # Debug log for messages
@@ -214,6 +225,9 @@ async def send_chat_message(
             ):
                 accumulated += chunk
 
+                # DEBUG: Log each chunk
+                logger.info(f"📤 Sending SSE event {event_id}: {accumulated[:50]}...")
+
                 # Send incremental update
                 chunk_data = ChatResponseChunk(
                     event_id=event_id,
@@ -221,6 +235,11 @@ async def send_chat_message(
                     is_final_event=False
                 )
                 yield f"data: {chunk_data.model_dump_json()}\n\n"
+
+                # CRITICAL: Force immediate flush by yielding control to event loop
+                # This prevents buffering and ensures real-time streaming
+                await asyncio.sleep(0)
+
                 event_id += 1
 
             # Send final event
