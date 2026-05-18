@@ -48,15 +48,19 @@ COPY apps/api/package.json apps/api/
 COPY packages/proto/package.json packages/proto/
 COPY packages/shared-types/package.json packages/shared-types/
 
-# Install production dependencies
-RUN pnpm install --frozen-lockfile --prod
+# Install ALL dependencies (prisma needs to be installed to generate)
+RUN pnpm install --frozen-lockfile
 
-# Copy built files and generated code from builder
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
+# Copy source files needed for generation
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder /app/packages/proto/gen ./packages/proto/gen
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Generate Prisma Client in production stage
+# This ensures the client is generated with correct architecture and pnpm structure
+RUN cd apps/api && pnpm db:generate
+
+# Copy built application code
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
 # Copy New Relic config
 COPY apps/api/newrelic.cjs ./apps/api/

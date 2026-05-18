@@ -41,7 +41,12 @@
       "Bash(pnpm load:chat:*)",
       "Bash(node:*)",
       "Bash(npm --version:*)",
-      "Bash(pnpm --filter web dev:*)"
+      "Bash(pnpm --filter web dev:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(pnpm list:*)",
+      "Bash(git push:*)",
+      "Bash(docker images:*)",
+      "Bash(docker build:*)"
     ]
   }
 }
