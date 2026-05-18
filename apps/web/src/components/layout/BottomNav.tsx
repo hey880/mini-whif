@@ -10,9 +10,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/', label: 'Home', icon: 'home' },
-  { href: '/chats', label: 'Chats', icon: 'chat_bubble' },
-  { href: '/mypage', label: 'My Page', icon: 'account_circle' },
+  { href: '/', label: '홈', icon: 'home' },
+  { href: '/chats', label: '채팅', icon: 'chat_bubble' },
+  { href: '/mypage', label: '마이페이지', icon: 'account_circle' },
 ];
 
 export function BottomNav() {

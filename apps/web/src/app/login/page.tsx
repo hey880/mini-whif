@@ -71,7 +71,7 @@ function LoginForm() {
               Persona Chat
             </h2>
             <p className="text-title-large text-on-surface-variant">
-              AI Character Roleplay
+              AI 캐릭터 롤플레이
             </p>
           </div>
         </div>
@@ -89,7 +89,7 @@ function LoginForm() {
 
           <div className="glass-card p-8">
             <h2 className="text-headline-medium font-headline mb-6">
-              Welcome Back
+              환영합니다
             </h2>
 
             {error && (
@@ -100,7 +100,7 @@ function LoginForm() {
 
             <form onSubmit={handleEmailAuth} className="space-y-4">
               <div>
-                <label className="block text-label-large mb-2">Email</label>
+                <label className="block text-label-large mb-2">이메일</label>
                 <input
                   type="email"
                   value={email}
@@ -112,7 +112,7 @@ function LoginForm() {
               </div>
 
               <div>
-                <label className="block text-label-large mb-2">Password</label>
+                <label className="block text-label-large mb-2">비밀번호</label>
                 <input
                   type="password"
                   value={password}
@@ -129,7 +129,7 @@ function LoginForm() {
                 disabled={loading}
                 className="w-full glow-button disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Loading...' : 'Login'}
+                {loading ? '로딩 중...' : '로그인'}
               </button>
             </form>
 
@@ -139,7 +139,7 @@ function LoginForm() {
               </div>
               <div className="relative flex justify-center text-label-small">
                 <span className="px-2 bg-surface-container-high text-on-surface-variant">
-                  OR
+                  또는
                 </span>
               </div>
             </div>
@@ -168,14 +168,14 @@ function LoginForm() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Continue with Google
+              Google 계정으로 계속하기
             </button>
 
             {/* Link to sign up */}
             <div className="mt-6 text-center text-body-medium text-on-surface-variant">
-              Don&apos;t have an account?{' '}
+              계정이 없으신가요?{' '}
               <Link href="/signup" className="text-primary hover:underline font-medium">
-                Sign Up
+                회원가입
               </Link>
             </div>
 
@@ -185,7 +185,7 @@ function LoginForm() {
                 href="/"
                 className="text-body-small text-on-surface-variant hover:text-primary transition-colors"
               >
-                ← Back to Home
+                ← 홈으로 돌아가기
               </Link>
             </div>
           </div>

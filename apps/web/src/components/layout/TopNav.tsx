@@ -58,13 +58,13 @@ export function TopNav({ showNsfwToggle, showNsfw, onToggleNsfw }: TopNavProps =
                   <span className="material-symbols-outlined text-primary">
                     account_circle
                   </span>
-                  <span className="text-label-large">My Page</span>
+                  <span className="text-label-large">마이페이지</span>
                 </Link>
                 <button
                   onClick={handleLogout}
                   className="px-4 py-2 rounded-lg hover:bg-surface-container-high transition-colors text-label-large"
                 >
-                  Logout
+                  로그아웃
                 </button>
               </>
             ) : (
@@ -72,7 +72,7 @@ export function TopNav({ showNsfwToggle, showNsfw, onToggleNsfw }: TopNavProps =
                 href="/login"
                 className="glow-button"
               >
-                Login
+                로그인
               </Link>
             )}
           </div>

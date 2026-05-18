@@ -73,7 +73,7 @@ function SignUpForm() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="glass-card p-8 max-w-sm w-full mx-4 text-center">
             <p className="text-body-large mb-6">
-              Please check your email to confirm your account
+              이메일 확인을 위해 받은 메일을 확인해주세요
             </p>
             <button
               onClick={() => {
@@ -82,7 +82,7 @@ function SignUpForm() {
               }}
               className="glow-button px-8"
             >
-              OK
+              확인
             </button>
           </div>
         </div>
@@ -101,7 +101,7 @@ function SignUpForm() {
               Persona Chat
             </h2>
             <p className="text-title-large text-on-surface-variant">
-              AI Character Roleplay
+              AI 캐릭터 롤플레이
             </p>
           </div>
         </div>
@@ -119,7 +119,7 @@ function SignUpForm() {
 
           <div className="glass-card p-8">
             <h2 className="text-headline-medium font-headline mb-6">
-              Create Account
+              계정 만들기
             </h2>
 
             {error && (
@@ -131,7 +131,7 @@ function SignUpForm() {
             <form onSubmit={handleEmailAuth} className="space-y-4">
               <div>
                 <label className="block text-label-large mb-2">
-                  Display Name
+                  닉네임
                 </label>
                 <input
                   type="text"
@@ -139,12 +139,12 @@ function SignUpForm() {
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
                   className="w-full input-glow"
-                  placeholder="Your name"
+                  placeholder="사용할 닉네임"
                 />
               </div>
 
               <div>
-                <label className="block text-label-large mb-2">Email</label>
+                <label className="block text-label-large mb-2">이메일</label>
                 <input
                   type="email"
                   value={email}
@@ -156,7 +156,7 @@ function SignUpForm() {
               </div>
 
               <div>
-                <label className="block text-label-large mb-2">Password</label>
+                <label className="block text-label-large mb-2">비밀번호</label>
                 <input
                   type="password"
                   value={password}
@@ -173,7 +173,7 @@ function SignUpForm() {
                 disabled={loading}
                 className="w-full glow-button disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Loading...' : 'Sign Up'}
+                {loading ? '로딩 중...' : '회원가입'}
               </button>
             </form>
 
@@ -183,7 +183,7 @@ function SignUpForm() {
               </div>
               <div className="relative flex justify-center text-label-small">
                 <span className="px-2 bg-surface-container-high text-on-surface-variant">
-                  OR
+                  또는
                 </span>
               </div>
             </div>
@@ -212,14 +212,14 @@ function SignUpForm() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Continue with Google
+              Google 계정으로 계속하기
             </button>
 
             {/* Link to login */}
             <div className="mt-6 text-center text-body-medium text-on-surface-variant">
-              Already have an account?{' '}
+              이미 계정이 있으신가요?{' '}
               <Link href="/login" className="text-primary hover:underline font-medium">
-                Login
+                로그인
               </Link>
             </div>
 
@@ -229,7 +229,7 @@ function SignUpForm() {
                 href="/"
                 className="text-body-small text-on-surface-variant hover:text-primary transition-colors"
               >
-                ← Back to Home
+                ← 홈으로 돌아가기
               </Link>
             </div>
           </div>
