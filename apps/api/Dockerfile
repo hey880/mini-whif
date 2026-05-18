@@ -15,8 +15,8 @@ COPY apps/api/package.json apps/api/
 COPY packages/proto/package.json packages/proto/
 COPY packages/shared-types/package.json packages/shared-types/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --prod
+# Install dependencies (including dev dependencies for prisma and buf CLI)
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/api apps/api/
