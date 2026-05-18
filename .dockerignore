@@ -1,6 +1,10 @@
-# Dependencies
+# Dependencies (exclude all node_modules recursively)
 node_modules
+**/node_modules
+**/node_modules/**
 .pnpm-store
+**/.pnpm-store
+**/.pnpm-store/**
 
 # Build outputs
 dist

@@ -1,9 +1,9 @@
-# Build stage
+# Build stage - Only for TypeScript compilation
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install system dependencies including OpenSSL
+# Install system dependencies
 RUN apk add --no-cache openssl-dev
 
 # Install pnpm
@@ -18,48 +18,62 @@ COPY packages/shared-types/package.json packages/shared-types/
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY apps/api apps/api/
-COPY packages/proto packages/proto/
-COPY packages/shared-types packages/shared-types/
-COPY turbo.json .
+# Copy source code (only src and config files, exclude node_modules)
+COPY apps/api/src ./apps/api/src
+COPY apps/api/prisma ./apps/api/prisma
+COPY apps/api/tsconfig.json ./apps/api/
+COPY apps/api/newrelic.cjs ./apps/api/
 
-# Generate Prisma client and proto code
+COPY packages/proto/proto ./packages/proto/proto
+COPY packages/proto/buf.gen.yaml ./packages/proto/
+COPY packages/proto/buf.yaml ./packages/proto/
+COPY packages/proto/tsconfig.json ./packages/proto/
+
+COPY packages/shared-types/src ./packages/shared-types/src
+COPY packages/shared-types/tsconfig.json ./packages/shared-types/
+
+# Generate and build proto (generates .ts then compiles to .js)
+RUN cd packages/proto && pnpm build
+
+# Generate Prisma client
 RUN cd apps/api && pnpm db:generate
-RUN cd packages/proto && pnpm generate
 
-# Build TypeScript
+# Build API TypeScript
 RUN cd apps/api && pnpm build
 
-# Production stage
+# Production stage - Minimal runtime image
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install runtime dependencies including OpenSSL
+# Install runtime dependencies
 RUN apk add --no-cache openssl
 
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files
+# Copy workspace configuration
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY apps/api/package.json apps/api/
-COPY packages/proto/package.json packages/proto/
-COPY packages/shared-types/package.json packages/shared-types/
 
-# Install ALL dependencies (prisma needs to be installed to generate)
+# Copy package.json files
+COPY apps/api/package.json ./apps/api/
+COPY packages/proto/package.json ./packages/proto/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+# Copy shared-types source (needed for workspace resolution)
+COPY packages/shared-types/src ./packages/shared-types/src
+
+# Install ALL dependencies (workspace links need full install)
 RUN pnpm install --frozen-lockfile
 
-# Copy source files needed for generation
-COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+# Copy pre-built proto from builder
 COPY --from=builder /app/packages/proto/gen ./packages/proto/gen
 
-# Generate Prisma Client in production stage
-# This ensures the client is generated with correct architecture and pnpm structure
+# Copy Prisma files and generate client
+COPY apps/api/prisma ./apps/api/prisma
 RUN cd apps/api && pnpm db:generate
 
-# Copy built application code
+# Copy compiled API code from builder
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
 # Copy New Relic config
