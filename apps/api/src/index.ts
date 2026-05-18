@@ -1,3 +1,8 @@
+// CRITICAL: New Relic must be first import
+if (process.env.NEW_RELIC_LICENSE_KEY) {
+  require('../newrelic.cjs');
+}
+
 import 'dotenv/config';
 import { fastifyConnectPlugin } from '@connectrpc/connect-fastify';
 import { createContextValues } from '@connectrpc/connect';

@@ -6,3 +6,4 @@ supabase==2.7.0
 python-dotenv==1.0.0
 pydantic==2.8.0
 pydantic-settings==2.3.0
+newrelic==10.5.0
