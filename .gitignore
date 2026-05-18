@@ -58,6 +58,10 @@ prisma/migrations/**/migration.sql
 # Generated code (commit generated proto code for reproducibility)
 # packages/proto/gen/**
 
+# Proto TypeScript build artifacts
+packages/proto/gen/**/*.js
+packages/proto/gen/**/*.d.ts
+
 # Load tests
 load-tests/fixtures/test-users.json
 load-tests/fixtures/characters.json
