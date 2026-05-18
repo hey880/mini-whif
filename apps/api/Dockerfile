@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install system dependencies including OpenSSL
+RUN apk add --no-cache openssl-dev
+
 # Install pnpm
 RUN npm install -g pnpm
 
@@ -32,6 +35,9 @@ RUN pnpm turbo build --filter=@persona-chat/api
 FROM node:20-alpine
 
 WORKDIR /app
+
+# Install runtime dependencies including OpenSSL
+RUN apk add --no-cache openssl
 
 # Install pnpm
 RUN npm install -g pnpm
