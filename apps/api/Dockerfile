@@ -15,7 +15,7 @@ COPY apps/api/package.json apps/api/
 COPY packages/proto/package.json packages/proto/
 COPY packages/shared-types/package.json packages/shared-types/
 
-# Install dependencies (including dev dependencies for prisma and buf CLI)
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
@@ -31,9 +31,32 @@ RUN cd packages/proto && pnpm generate
 # Build
 RUN cd apps/api && pnpm build
 
+# Production stage
+FROM node:20-alpine
 
-#COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-#COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+WORKDIR /app
+
+# Install runtime dependencies including OpenSSL
+RUN apk add --no-cache openssl
+
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/api/package.json apps/api/
+COPY packages/proto/package.json packages/proto/
+COPY packages/shared-types/package.json packages/shared-types/
+
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built files and generated code from builder
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/packages/proto/gen ./packages/proto/gen
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copy New Relic config
 COPY apps/api/newrelic.cjs ./apps/api/
