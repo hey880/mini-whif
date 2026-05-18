@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "generate": "buf generate",
+    "build": "buf generate && tsc",
     "lint": "buf lint",
     "format": "buf format -w"
   },
@@ -26,7 +27,8 @@
     "@bufbuild/protoc-gen-es": "^1.10.0",
     "@connectrpc/protoc-gen-connect-es": "^1.4.0",
     "@bufbuild/protobuf": "^1.10.0",
-    "@connectrpc/connect": "^1.4.0"
+    "@connectrpc/connect": "^1.4.0",
+    "typescript": "^5.5.0"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.10.0",

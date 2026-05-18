@@ -6,9 +6,9 @@ plugins:
     out: gen/ts
     opt:
       - target=ts
-      - import_extension=none
+      - import_extension=.js
   - remote: buf.build/connectrpc/es:v1.4.0
     out: gen/ts
     opt:
       - target=ts
-      - import_extension=none
+      - import_extension=.js
