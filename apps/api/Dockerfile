@@ -29,7 +29,7 @@ RUN cd apps/api && pnpm db:generate
 RUN cd packages/proto && pnpm generate
 
 # Build
-RUN pnpm turbo build --filter=@persona-chat/api
+RUN cd apps/api && pnpm build
 
 # Production stage
 FROM node:20-alpine
@@ -51,11 +51,12 @@ COPY packages/shared-types/package.json packages/shared-types/
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built files from builder
+# Copy built files and generated code from builder
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
-COPY --from=builder /app/apps/api/node_modules/.prisma ./apps/api/node_modules/.prisma
 COPY --from=builder /app/packages/proto/gen ./packages/proto/gen
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copy New Relic config
 COPY apps/api/newrelic.cjs ./apps/api/
