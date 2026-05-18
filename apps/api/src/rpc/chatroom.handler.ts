@@ -565,7 +565,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
           role: msg.role,
           content: msg.content,
           modelSlug: msg.modelSlug,
-          metadata: msg.metadata,
+          metadata: msg.metadata as any,
         },
       });
     }

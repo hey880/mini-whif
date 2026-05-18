@@ -15,7 +15,7 @@ export const supabase = createClient(
       persistSession: false,
     },
     realtime: {
-      transport: ws,
+      transport: ws as any,
     },
   }
 );
