@@ -1,0 +1,46 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # 수동 트리거 허용
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production # GitHub Environment 사용 (선택)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/mini-whif
+
+            # 최신 코드 가져오기
+            git fetch origin
+            git reset --hard origin/main
+
+            # 환경 변수 업데이트
+            echo "${{ secrets.ENV_FILE }}" > .env
+
+            # 이미지 빌드 및 재시작
+            docker-compose pull || true
+            docker-compose build --pull
+            docker-compose up -d --remove-orphans
+
+            # 오래된 이미지 정리
+            docker image prune -f
+
+            # 헬스 체크
+            sleep 10
+            curl -f http://localhost:3000/health || exit 1
+            curl -f http://localhost:8000/health || exit 1
+
+            echo "✅ Deployment successful!"
