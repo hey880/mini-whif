@@ -11,6 +11,7 @@ import type { Persona } from '../../../../../../packages/proto/gen/ts/persona_pb
 interface PersonaFormData {
   name: string;
   persona: string;
+  gender?: string;
   isDefault?: boolean;
 }
 

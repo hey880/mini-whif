@@ -330,7 +330,7 @@ export function Step4SituationalImages() {
                 <p className="text-xs text-on-surface-variant mb-2">
                   ⚠️ 짧은 단어나 명사를 입력하세요 (문장이 아닌 키워드)
                   <br />
-                  예: "돈", "지갑", "웃음", "눈물" - AI 응답에 이 단어가 포함되면 이미지 표시
+                  예: &quot;돈&quot;, &quot;지갑&quot;, &quot;웃음&quot;, &quot;눈물&quot; - AI 응답에 이 단어가 포함되면 이미지 표시
                 </p>
                 <div className="flex gap-2 mb-2">
                   <input

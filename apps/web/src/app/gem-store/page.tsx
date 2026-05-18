@@ -117,7 +117,7 @@ export default function GemStorePage() {
           pc: 'IFRAME' as const,
           mobile: 'REDIRECTION' as const,
         },
-      });
+      } as any);
 
       if (response?.code) {
         // Payment failed or cancelled

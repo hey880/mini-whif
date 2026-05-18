@@ -73,7 +73,7 @@ export function ContinueModal({
             </label>
             <p className="text-body-small text-on-surface-variant mb-3">
               캐릭터의 다음 행동이나 대사에 대한 힌트를 제공할 수 있습니다.
-              예: "기뻐하며", "무언가를 떠올리고", "미소를 지으며" 등
+              예: &quot;기뻐하며&quot;, &quot;무언가를 떠올리고&quot;, &quot;미소를 지으며&quot; 등
             </p>
             <textarea
               value={hint}
