@@ -1,3 +1,4 @@
+# 프로덕션용 docker-compose (호스트 디렉토리 마운트)
 version: '3.8'
 
 services:
@@ -17,6 +18,9 @@ services:
       - AI_SERVER_URL=http://ai-server:8000
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME_API:-PersonaChat-API}
+    volumes:
+      # 호스트 디렉토리 직접 마운트
+      - ./logs/api:/app/apps/api/logs
     depends_on:
       - ai-server
     restart: unless-stopped
@@ -42,6 +46,9 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME_AI:-PersonaChat-AI}
+    volumes:
+      # 호스트 디렉토리 직접 마운트
+      - ./logs/ai:/app/apps/ai-server/logs
     restart: unless-stopped
     deploy:
       resources:
@@ -73,3 +80,6 @@ services:
           memory: 300M
         reservations:
           memory: 200M
+
+# Named volume 대신 bind mount 사용 (위 volumes 섹션 참고)
+# 호스트 ./logs 디렉토리가 컨테이너와 연결됨
