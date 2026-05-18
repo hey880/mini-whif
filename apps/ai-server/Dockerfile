@@ -16,8 +16,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY apps/ai-server/app ./app
 
+# Copy New Relic config
+COPY apps/ai-server/newrelic.ini ./
+
 # Expose port
 EXPOSE 8000
 
-# Start server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start server with New Relic wrapper if configured
+CMD if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then \
+      newrelic-admin run-program uvicorn app.main:app --host 0.0.0.0 --port 8000; \
+    else \
+      uvicorn app.main:app --host 0.0.0.0 --port 8000; \
+    fi

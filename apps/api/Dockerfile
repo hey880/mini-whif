@@ -51,6 +51,9 @@ COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder /app/apps/api/node_modules/.prisma ./apps/api/node_modules/.prisma
 COPY --from=builder /app/packages/proto/gen ./packages/proto/gen
 
+# Copy New Relic config
+COPY apps/api/newrelic.cjs ./apps/api/
+
 # Expose port
 EXPOSE 3000
 
