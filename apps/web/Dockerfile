@@ -22,8 +22,8 @@ COPY apps/web/package.json apps/web/
 COPY packages/proto/package.json packages/proto/
 COPY packages/shared-types/package.json packages/shared-types/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --prod
+# Install dependencies (including dev dependencies for buf CLI)
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY apps/web apps/web/
