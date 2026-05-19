@@ -25,7 +25,7 @@ docker exec -it mini-whif-api-1 ls -la /app/apps/api/logs
 docker run --rm -v mini-whif_api-logs:/data -v $(pwd):/backup alpine tar czf /backup/api-logs-backup.tar.gz -C /data .
 
 # 볼륨 삭제 (주의: 로그 삭제됨)
-docker compose down -v
+docker-compose down -v
 ```
 
 ### 2. Proto 모듈 에러 해결
@@ -95,7 +95,7 @@ AI_SERVER_URL=http://ai-server:8000
 환경 변수가 빌드 시 주입되므로, URL 변경 후 재빌드 필요:
 
 ```bash
-docker compose up -d --build web
+docker-compose up -d --build web
 ```
 
 ## 배포 체크리스트
@@ -119,29 +119,29 @@ docker compose up -d --build web
 git pull
 
 # 환경 변수 변경 시
-docker compose down
-docker compose up -d --build
+docker-compose down
+docker-compose up -d --build
 
 # 코드만 변경 시 (빠른 배포)
-docker compose up -d --build api
-docker compose up -d --build ai-server
-docker compose up -d --build web
+docker-compose up -d --build api
+docker-compose up -d --build ai-server
+docker-compose up -d --build web
 ```
 
 ### 모니터링
 
 ```bash
 # 컨테이너 상태
-docker compose ps
+docker-compose ps
 
 # 실시간 로그
-docker compose logs -f api
+docker-compose logs -f api
 
 # 리소스 사용량
 docker stats
 
 # 특정 컨테이너 로그 (마지막 100줄)
-docker compose logs --tail=100 api
+docker-compose logs --tail=100 api
 ```
 
 ### 문제 해결
@@ -150,24 +150,24 @@ docker compose logs --tail=100 api
 
 ```bash
 # 전체 로그 확인
-docker compose logs api
+docker-compose logs api
 
 # 컨테이너 셸 접속
-docker compose exec api sh
+docker-compose exec api sh
 
 # 빌드 캐시 삭제 후 재빌드
-docker compose build --no-cache api
-docker compose up -d api
+docker-compose build --no-cache api
+docker-compose up -d api
 ```
 
 #### 데이터베이스 연결 실패
 
 ```bash
 # 환경 변수 확인
-docker compose exec api env | grep DATABASE
+docker-compose exec api env | grep DATABASE
 
 # 네트워크 테스트 (Supabase 연결)
-docker compose exec api ping -c 3 aws-0-ap-southeast-1.pooler.supabase.com
+docker-compose exec api ping -c 3 aws-0-ap-southeast-1.pooler.supabase.com
 ```
 
 #### 메모리 부족
@@ -197,8 +197,8 @@ deploy:
    ```
 3. 컨테이너 재시작:
    ```bash
-   docker compose down
-   docker compose up -d
+   docker-compose down
+   docker-compose up -d
    ```
 
 #### 디스크 공간 부족
