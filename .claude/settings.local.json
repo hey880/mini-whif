@@ -46,7 +46,9 @@
       "Bash(pnpm list:*)",
       "Bash(git push:*)",
       "Bash(docker images:*)",
-      "Bash(docker build:*)"
+      "Bash(docker build:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)"
     ]
   }
 }
