@@ -27,11 +27,11 @@ export function createServer() {
   // CORS configuration
   server.register(cors, {
     origin: (origin, cb) => {
-      const allowedOrigins = [
+      const allowedOrigins: string[] = [
         process.env.NEXT_PUBLIC_APP_URL,
         'http://localhost:3001',
         'http://13.236.207.105:3001',
-      ].filter(Boolean);
+      ].filter((x): x is string => typeof x === 'string');
 
       // Allow requests with no origin (e.g., mobile apps, Postman)
       if (!origin) {
@@ -42,7 +42,7 @@ export function createServer() {
       if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
         cb(null, true);
       } else {
-        cb(new Error('Not allowed by CORS'));
+        cb(new Error('Not allowed by CORS'), false);
       }
     },
     credentials: true,
