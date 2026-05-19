@@ -26,8 +26,42 @@ export function createServer() {
 
   // CORS configuration
   server.register(cors, {
-    origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
+    origin: (origin, cb) => {
+      const allowedOrigins = [
+        process.env.NEXT_PUBLIC_APP_URL,
+        'http://localhost:3001',
+        'http://13.236.207.105:3001',
+      ].filter(Boolean);
+
+      // Allow requests with no origin (e.g., mobile apps, Postman)
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+
+      if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+        cb(null, true);
+      } else {
+        cb(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    // ConnectRPC specific headers
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Connect-Protocol-Version',
+      'Connect-Timeout-Ms',
+      'X-User-Agent',
+      'X-Grpc-Web',
+    ],
+    exposedHeaders: [
+      'Connect-Protocol-Version',
+      'Connect-Timeout-Ms',
+      'Trailer',
+      'Grpc-Status',
+      'Grpc-Message',
+    ],
   });
 
   // Swagger documentation
