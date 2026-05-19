@@ -30,6 +30,7 @@ function SignUpForm() {
           data: {
             display_name: displayName,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback?returnUrl=${returnUrl}`,
         },
       });
 
