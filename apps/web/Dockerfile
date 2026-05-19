@@ -32,7 +32,7 @@ COPY packages/shared-types packages/shared-types/
 COPY turbo.json .
 
 # Generate proto code
-RUN cd packages/proto && pnpm generate
+RUN cd packages/proto && pnpm build
 
 # Build Next.js app
 RUN cd apps/web && pnpm build
