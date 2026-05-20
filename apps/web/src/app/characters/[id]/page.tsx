@@ -295,7 +295,7 @@ export default function CharacterDetailPage() {
             )}
 
             {/* Keywords */}
-            {character.keywords.length > 0 && (
+            {character.keywords && character.keywords.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-title-medium mb-2">Keywords</h3>
                 <div className="flex flex-wrap gap-2">

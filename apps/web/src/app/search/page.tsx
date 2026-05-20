@@ -195,7 +195,7 @@ function SearchContent() {
                             <span>{universe.creatorDisplayName || '작가'}</span>
                             <span>{universe.characterCount}개 캐릭터</span>
                           </div>
-                          {universe.tags.length > 0 && (
+                          {universe.tags && universe.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-2">
                               {universe.tags.slice(0, 3).map((tag) => (
                                 <span
