@@ -3,9 +3,10 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const returnUrl = searchParams.get('returnUrl') ?? '/';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
   if (code) {
     const cookieStore = await cookies();
@@ -30,9 +31,9 @@ export async function GET(request: Request) {
       await supabase.auth.exchangeCodeForSession(code);
     } catch (error) {
       console.error('Error exchanging code for session:', error);
-      return NextResponse.redirect(`${origin}/login?error=auth_callback_error`);
+      return NextResponse.redirect(`${appUrl}/login?error=auth_callback_error`);
     }
   }
 
-  return NextResponse.redirect(`${origin}${returnUrl}`);
+  return NextResponse.redirect(`${appUrl}${returnUrl}`);
 }
