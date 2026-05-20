@@ -500,7 +500,7 @@ export default function CharacterDetailPage() {
                         {char.tagline}
                       </p>
                     )}
-                    {char.keywords.length > 0 && (
+                    {char.keywords && char.keywords.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {char.keywords.slice(0, 3).map((keyword) => (
                           <span

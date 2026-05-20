@@ -38,7 +38,29 @@ export default function UniverseDetailPage() {
   const characters = charactersData?.characters || [];
   const universeData = universe?.universe;
 
-  if (isLoading) {
+  // 로딩 중이거나 데이터가 없으면 스켈레톤 표시
+  if (isLoading || !universeData) {
+    // 로딩이 끝났는데도 데이터가 없으면 에러 페이지
+    if (!isLoading && !universeData) {
+      return (
+        <div className="glass-card p-12 text-center">
+          <div className="max-w-md mx-auto">
+            <span className="material-symbols-outlined text-6xl text-on-surface-variant mb-4 block">
+              error
+            </span>
+            <h2 className="text-headline-medium font-headline mb-2">작품을 찾을 수 없습니다</h2>
+            <p className="text-body-large text-on-surface-variant mb-6">
+              요청하신 작품이 존재하지 않거나 삭제되었습니다.
+            </p>
+            <Link href="/" className="btn-primary">
+              홈으로 돌아가기
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    // 로딩 중이면 스켈레톤
     return (
       <div className="pb-8">
         <div className="skeleton h-64 w-full rounded-2xl mb-6" />
@@ -53,24 +75,6 @@ export default function UniverseDetailPage() {
     );
   }
 
-  if (!universeData) {
-    return (
-      <div className="glass-card p-12 text-center">
-        <div className="max-w-md mx-auto">
-          <span className="material-symbols-outlined text-6xl text-on-surface-variant mb-4 block">
-            error
-          </span>
-          <h2 className="text-headline-medium font-headline mb-2">작품을 찾을 수 없습니다</h2>
-          <p className="text-body-large text-on-surface-variant mb-6">
-            요청하신 작품이 존재하지 않거나 삭제되었습니다.
-          </p>
-          <Link href="/" className="btn-primary">
-            홈으로 돌아가기
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="pb-32 lg:pb-24">
