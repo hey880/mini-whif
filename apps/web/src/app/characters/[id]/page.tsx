@@ -50,8 +50,9 @@ export default function CharacterDetailPage() {
   });
 
   // Fetch universe if character belongs to one
+  // 쿼리 키에 characterId도 포함하여 Universe 상세 페이지와 캐시 충돌 방지
   const { data: universeData } = useQuery({
-    queryKey: ['universe', character?.universeId],
+    queryKey: ['character-universe', characterId, character?.universeId],
     queryFn: async () => {
       if (!character?.universeId) return null;
       const response = await universeClient.getUniverse({ id: character.universeId });

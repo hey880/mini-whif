@@ -47,8 +47,11 @@ export default function UniverseDetailPage() {
   const characters = charactersData?.characters || [];
   const universeData = universe?.universe;
 
-  // 로딩 중이면 스켈레톤 표시 (isFetching도 체크하여 클라이언트 사이드 네비게이션 지원)
-  if (isLoading || (isFetching && !universeData)) {
+  // 로딩 중이거나, 데이터가 현재 페이지의 ID와 일치하지 않으면 스켈레톤 표시
+  // (React Query 캐시에 다른 universe 데이터가 남아있을 수 있음)
+  const isDataMismatch = universeData && universeData.id !== universeId;
+
+  if (isLoading || isFetching || isDataMismatch) {
     return (
       <div className="pb-8">
         <div className="skeleton h-64 w-full rounded-2xl mb-6" />
