@@ -445,7 +445,7 @@ export default function CharacterDetailPage() {
                     {universeData.description}
                   </p>
                 )}
-                {universeData.tags.length > 0 && (
+                {universeData.tags && universeData.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-3">
                     {universeData.tags.slice(0, 5).map((tag) => (
                       <span
