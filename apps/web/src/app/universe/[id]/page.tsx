@@ -18,6 +18,7 @@ export default function UniverseDetailPage() {
     queryFn: async () => {
       return await universeClient.getUniverse({ id: universeId });
     },
+    enabled: !!universeId,
   });
 
   // Fetch characters in this universe
@@ -30,10 +31,12 @@ export default function UniverseDetailPage() {
         offset: 0,
       });
     },
+    enabled: !!universeId,
   });
 
   const isLoading = universeLoading || charactersLoading;
   const characters = charactersData?.characters || [];
+  const universeData = universe?.universe;
 
   if (isLoading) {
     return (
@@ -50,7 +53,7 @@ export default function UniverseDetailPage() {
     );
   }
 
-  if (!universe) {
+  if (!universeData) {
     return (
       <div className="glass-card p-12 text-center">
         <div className="max-w-md mx-auto">
@@ -68,8 +71,6 @@ export default function UniverseDetailPage() {
       </div>
     );
   }
-
-  const universeData = universe.universe!;
 
   return (
     <div className="pb-32 lg:pb-24">
@@ -175,7 +176,7 @@ export default function UniverseDetailPage() {
         )}
 
         {/* Tags */}
-        {universeData.tags.length > 0 && (
+        {universeData.tags && universeData.tags.length > 0 && (
           <div className="glass-panel p-6 rounded-2xl mb-6">
             <h2 className="text-title-large font-bold mb-3">태그</h2>
             <div className="flex flex-wrap gap-2">
