@@ -17,6 +17,7 @@ services:
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME_API:-PersonaChat-API}
       - PORTONE_API_KEY=${PORTONE_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
     depends_on:
       - ai-server
     restart: unless-stopped

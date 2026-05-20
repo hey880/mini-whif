@@ -19,6 +19,7 @@ services:
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME_API:-PersonaChat-API}
       - PORTONE_API_KEY=${PORTONE_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
     volumes:
       # 호스트 디렉토리 직접 마운트
       - ./logs/api:/app/apps/api/logs
