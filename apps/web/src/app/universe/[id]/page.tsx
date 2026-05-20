@@ -13,7 +13,11 @@ export default function UniverseDetailPage() {
   const universeId = params.id as string;
 
   // Fetch universe details
-  const { data: universe, isLoading: universeLoading } = useQuery({
+  const {
+    data: universe,
+    isLoading: universeLoading,
+    isFetching: universeFetching,
+  } = useQuery({
     queryKey: ['universe', universeId],
     queryFn: async () => {
       return await universeClient.getUniverse({ id: universeId });
@@ -22,7 +26,11 @@ export default function UniverseDetailPage() {
   });
 
   // Fetch characters in this universe
-  const { data: charactersData, isLoading: charactersLoading } = useQuery({
+  const {
+    data: charactersData,
+    isLoading: charactersLoading,
+    isFetching: charactersFetching,
+  } = useQuery({
     queryKey: ['universe-characters', universeId],
     queryFn: async () => {
       return await characterClient.listCharacters({
@@ -35,11 +43,12 @@ export default function UniverseDetailPage() {
   });
 
   const isLoading = universeLoading || charactersLoading;
+  const isFetching = universeFetching || charactersFetching;
   const characters = charactersData?.characters || [];
   const universeData = universe?.universe;
 
-  // 로딩 중이면 스켈레톤 표시
-  if (isLoading) {
+  // 로딩 중이면 스켈레톤 표시 (isFetching도 체크하여 클라이언트 사이드 네비게이션 지원)
+  if (isLoading || (isFetching && !universeData)) {
     return (
       <div className="pb-8">
         <div className="skeleton h-64 w-full rounded-2xl mb-6" />
