@@ -503,6 +503,76 @@ const characters = await prisma.character.findMany({
 
 ---
 
+## Repository 패턴 (Phase 2+)
+
+Phase 2부터 데이터 접근 로직을 Repository 레이어로 분리했습니다.
+
+### Repository 사용 예시
+
+#### Before (Prisma 직접 호출)
+
+```typescript
+// ❌ 권한 검증 + 데이터 접근 로직이 산재
+export const chatroomService = {
+  async cloneChatRoom(req, context) {
+    const sourceRoom = await prisma.chatRoom.findUnique({
+      where: { id: req.sourceRoomId },
+      include: { messages: true },
+    });
+
+    if (!sourceRoom || sourceRoom.userId !== context.user!.id) {
+      throw new Error('Forbidden');
+    }
+
+    // ... 복잡한 복제 로직
+  },
+};
+```
+
+#### After (Repository 사용)
+
+```typescript
+// ✅ 데이터 접근 로직 캡슐화
+import { PrismaChatRoomRepository } from '../infrastructure/repositories/PrismaChatRoomRepository.js';
+
+export const chatroomService = {
+  async cloneChatRoom(req, context) {
+    const chatRoomRepo = new PrismaChatRoomRepository(prisma);
+
+    // 권한 검증 + 복제 로직이 Repository에 캡슐화됨
+    const clonedRoom = await chatRoomRepo.cloneWithMessages(
+      req.sourceRoomId,
+      context.user!.id,
+      req.newPersonaId
+    );
+
+    return { chatRoom: mapToProto(clonedRoom) };
+  },
+};
+```
+
+**개선 효과:**
+- 코드 라인 수 50% 감소
+- 권한 검증 로직 재사용
+- 테스트 시 Mock Repository 사용 가능
+- Prisma 교체 시 Repository만 수정
+
+### 사용 가능한 Repository
+
+Phase 2에서 다음 Repository들이 구현되었습니다:
+
+1. **ChatRoomRepository**: 채팅방 CRUD, 메시지 포함 복제
+2. **MessageRepository**: 메시지 CRUD, 버저닝
+3. **GemWalletRepository**: 잔액 조회, Gem 차감
+4. **CharacterRepository**: 캐릭터 CRUD, 키워드 검색
+5. **PersonaRepository**: 페르소나 CRUD, 기본 페르소나 설정
+6. **UniverseRepository**: 세계관 CRUD
+7. **LlmModelRepository**: 모델 CRUD, 기본 모델 조회
+
+자세한 내용은 `docs/ARCHITECTURE.md`를 참조하세요.
+
+---
+
 ## 지원
 
 문제 발생 시:

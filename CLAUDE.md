@@ -38,12 +38,25 @@ mini-whif/
 - Zustand 상태 관리, React Query 서버 상태
 - 다크 사이버펑크 디자인 시스템
 
-**apps/api (Fastify)**
+**apps/api (Fastify) - Clean Architecture 적용**
 - REST 엔드포인트: `/auth/*`, `/health`, `/docs`
 - ConnectRPC 서비스: CharacterService, PersonaService, ChatRoomService, LlmModelService, UniverseService
-- Prisma ORM으로 PostgreSQL 접근
+- **Repository 레이어**: 데이터 접근 추상화 (7개 Repository)
+  - domain/repositories: 인터페이스 (IChatRoomRepository, IMessageRepository 등)
+  - infrastructure/repositories: Prisma 구현
 - Supabase Auth JWT 검증 미들웨어
 - AI 서버로 SSE 스트리밍 중계
+
+**아키텍처 레이어:**
+```
+HTTP Layer (routes, handlers)
+     ↓
+Application Layer (services - Phase 3 예정)
+     ↓
+Domain Layer (repository interfaces)
+     ↑
+Infrastructure Layer (Prisma implementations)
+```
 
 **apps/ai-server (FastAPI)**
 - OpenRouter로 LLM 접근 (Claude, Gemini 등)
@@ -395,6 +408,28 @@ pnpm db:generate
 # 3. 타입 정의 업데이트 (필요시)
 # 4. README.md 문서화
 ```
+
+### Repository 추가 시 (Phase 2+)
+```bash
+# 1. 인터페이스 생성
+# apps/api/src/domain/repositories/IMyRepository.ts
+
+# 2. 구현 생성
+# apps/api/src/infrastructure/repositories/PrismaMyRepository.ts
+
+# 3. 테스트 작성
+# apps/api/src/infrastructure/repositories/__tests__/PrismaMyRepository.test.ts
+
+# 4. 사용
+# const myRepo = new PrismaMyRepository(prisma);
+```
+
+**Repository 설계 가이드라인:**
+- 인터페이스는 Prisma에 의존하지 않음 (순수 TypeScript)
+- 권한 검증은 Repository 레이어에서 처리 (userId 파라미터)
+- Phase 1 최적화 적용 (createMany, Promise.all, select)
+- 트랜잭션이 필요한 복잡한 작업도 Repository에 캡슐화
+- 자세한 내용은 `docs/ARCHITECTURE.md` 참조
 
 ## 디자인 시스템
 
