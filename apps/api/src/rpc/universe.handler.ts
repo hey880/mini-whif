@@ -56,7 +56,7 @@ export const universeHandler: ServiceImpl<typeof UniverseService> = {
 
     // Map to proto response
     return {
-      universes: universes.map((universe) => ({
+      universes: universes.map((universe: any) => ({
         id: universe.id,
         name: universe.name,
         description: universe.description || undefined,

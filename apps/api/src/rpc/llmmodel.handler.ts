@@ -14,7 +14,7 @@ export const llmModelHandler: ServiceImpl<typeof LlmModelService> = {
     });
 
     return {
-      models: models.map((model) => ({
+      models: models.map((model: any) => ({
         id: model.id,
         name: model.name,
         slug: model.slug,

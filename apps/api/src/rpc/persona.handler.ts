@@ -22,7 +22,7 @@ export const personaHandler: ServiceImpl<typeof PersonaService> = {
     });
 
     return {
-      personas: personas.map((p) => ({
+      personas: personas.map((p: any) => ({
         id: p.id,
         userId: p.userId,
         name: p.name,

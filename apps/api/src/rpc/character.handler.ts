@@ -75,7 +75,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
 
     // Map to proto response
     return {
-      characters: characters.map((char) => ({
+      characters: characters.map((char: any) => ({
         id: char.id,
         name: char.name,
         tagline: char.tagline || undefined,
@@ -319,7 +319,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
     });
 
     return {
-      characters: characters.map((char) => ({
+      characters: characters.map((char: any) => ({
         id: char.id,
         name: char.name,
         imageUrl: char.imageUrl || undefined,

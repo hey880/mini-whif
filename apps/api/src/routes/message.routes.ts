@@ -501,7 +501,7 @@ export async function messageRoutes(server: FastifyInstance) {
 
     // 3. Build versions array including current version
     const versions = [
-      ...messageVersions.map(v => ({
+      ...messageVersions.map((v: any) => ({
         versionNumber: v.versionNumber,
         content: v.content,
         modelSlug: v.modelSlug,

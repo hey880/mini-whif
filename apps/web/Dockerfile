@@ -43,6 +43,38 @@ RUN cd packages/proto && pnpm build
 # Build Next.js app
 RUN cd apps/web && pnpm build
 
+# Production stage - Minimal runtime image
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
+
+ENV NODE_ENV=production
+
+# Copy workspace configuration
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+
+# Copy package.json files
+COPY apps/web/package.json ./apps/web/
+COPY packages/proto/package.json ./packages/proto/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+# Copy shared-types source (needed for workspace resolution)
+COPY packages/shared-types/src ./packages/shared-types/src
+
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built proto from builder
+COPY --from=builder /app/packages/proto/gen ./packages/proto/gen
+
+# Copy Next.js build output from builder
+COPY --from=builder /app/apps/web/.next ./apps/web/.next
+COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder /app/apps/web/next.config.ts ./apps/web/
+
 # Expose port
 EXPOSE 3000
 

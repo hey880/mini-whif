@@ -60,7 +60,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
     ]);
 
     return {
-      chatRooms: chatRooms.map((room) => {
+      chatRooms: chatRooms.map((room: any) => {
         const lastMessage = room.messages[0];
         return {
           id: room.id,
@@ -455,7 +455,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
     ]);
 
     return {
-      messages: messages.map((msg) => {
+      messages: messages.map((msg: any) => {
         // Extract triggered images from metadata
         const metadata = msg.metadata as any;
         const triggeredImages = metadata?.triggeredImages || [];

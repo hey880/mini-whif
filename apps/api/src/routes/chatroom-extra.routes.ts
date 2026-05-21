@@ -94,7 +94,7 @@ export async function chatroomExtraRoutes(server: FastifyInstance) {
       }
 
       const conversationText = messages
-        .map(m => `${m.role === 'user' ? '사용자' : room.character.name}: ${m.content}`)
+        .map((m: { role: string; content: string }) => `${m.role === 'user' ? '사용자' : room.character.name}: ${m.content}`)
         .join('\n\n');
 
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
