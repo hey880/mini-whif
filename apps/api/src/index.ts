@@ -47,8 +47,8 @@ import { PrismaPersonaRepository } from './infrastructure/repositories/PrismaPer
 // Phase 3: Services
 import { ChatService } from './application/services/ChatService.js';
 import { MessageService } from './application/services/MessageService.js';
-import { CharacterService } from './application/services/CharacterService.js';
-import { PersonaService } from './application/services/PersonaService.js';
+import { CharacterService as CharacterAppService } from './application/services/CharacterService.js';
+import { PersonaService as PersonaAppService } from './application/services/PersonaService.js';
 import { AIStreamingService } from './services/ai-streaming.service.js';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -87,8 +87,8 @@ async function start() {
     aiStreamingService
   );
 
-  const characterService = new CharacterService(characterRepo);
-  const personaService = new PersonaService(personaRepo);
+  const characterService = new CharacterAppService(characterRepo);
+  const personaService = new CharacterAppService(personaRepo);
 
   // === End DI Container ===
 
