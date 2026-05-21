@@ -164,10 +164,17 @@ export const useCharacterWizardStore = create<CharacterWizardState>((set, get) =
   },
 
   loadCharacter: (character: any) => {
+    console.log('🔄 loadCharacter 호출:', character);
+    console.log('📦 dataJson (raw):', character.dataJson);
+    console.log('📚 lorebookJson (raw):', character.lorebookJson);
+
     const data = character.dataJson ? JSON.parse(character.dataJson) : {};
     const lorebook = character.lorebookJson
       ? JSON.parse(character.lorebookJson)
       : { entries: [] };
+
+    console.log('✨ Parsed data:', data);
+    console.log('✨ Parsed lorebook:', lorebook);
 
     // Handle old characters with single greeting
     const greetings = data.greetings || [
@@ -178,6 +185,12 @@ export const useCharacterWizardStore = create<CharacterWizardState>((set, get) =
         isDefault: true,
       },
     ];
+
+    console.log('📝 exampleDialogues:', data.exampleDialogues);
+    console.log('🎭 greetings:', greetings);
+    console.log('🖼️ situationalImages:', data.situationalImages);
+    console.log('🔗 relatedContent:', data.relatedContent);
+    console.log('💬 authorComments:', data.authorComments);
 
     set({
       isEditMode: true,
