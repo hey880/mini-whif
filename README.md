@@ -341,33 +341,195 @@ pnpm cleanup
 
 자세한 내용은 [load-tests/README.md](./load-tests/README.md) 및 [load-tests/QUICK_START.md](./load-tests/QUICK_START.md) 참조
 
-## 🐳 Docker 배포
+## 🐳 프로덕션 배포
+
+### AWS EC2 배포 (Docker Compose)
+
+**현재 배포 환경**:
+- 서버: AWS EC2
+- 컨테이너: Docker Compose
+- 포트: API(3000), Web(3001), AI-Server(8000)
+- 로그: `./logs/api`, `./logs/ai` 디렉토리에 파일 저장
+
+**초기 배포 절차**:
 
 ```bash
-# 모든 서비스 빌드 및 시작
-docker-compose up -d
+# 1. EC2 인스턴스에 Docker 설치
+sudo yum update -y
+sudo yum install docker -y
+sudo service docker start
+sudo usermod -a -G docker ec2-user
 
-# 로그 보기
-docker-compose logs -f api
+# 2. Docker Compose 설치
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
 
-# 모든 서비스 중지
-docker-compose down
+# 3. 저장소 클론 및 환경변수 설정
+git clone <repo-url>
+cd mini-whif
+cp .env.example .env
+nano .env  # 프로덕션 환경변수 입력
+
+# 4. 빌드 및 실행
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# 5. 상태 확인
+docker-compose -f docker-compose.prod.yml ps
+docker-compose -f docker-compose.prod.yml logs -f
 ```
 
-## 📊 모니터링 및 분석
+**일상 운영 명령어**:
 
-**Langfuse 통합** (선택사항):
+```bash
+# 로그 확인
+docker-compose -f docker-compose.prod.yml logs -f api           # API 로그
+docker-compose -f docker-compose.prod.yml logs -f ai-server     # AI 서버 로그
+docker-compose -f docker-compose.prod.yml logs -f web           # Web 로그
+docker-compose -f docker-compose.prod.yml logs -f --tail=100    # 모든 서비스 최근 100줄
+
+# 컨테이너 재시작
+docker-compose -f docker-compose.prod.yml restart api           # API만 재시작
+docker-compose -f docker-compose.prod.yml restart web           # Web만 재시작
+docker-compose -f docker-compose.prod.yml restart               # 모든 서비스 재시작
+
+# 리소스 사용량 확인
+docker stats
+```
+
+## 📊 로깅 및 모니터링
+
+### 로그 출력 위치
+
+**개발 환경 (로컬)**:
+- API: stdout (Pino pretty-print, 컬러 출력)
+- AI-Server: stdout (Python logging, 텍스트 포맷)
+- Web: stdout (Next.js 로그)
+
+**프로덕션 환경 (Docker)**:
+- API: `logs/api/api.log` + stdout (동시 출력)
+- AI-Server: `logs/ai/ai-server.log` + stdout (동시 출력)
+- Web: stdout (Docker logs로 확인)
+
+### 로그 확인 방법
+
+```bash
+# Docker 로그 (stdout)
+docker-compose -f docker-compose.prod.yml logs -f api
+docker-compose -f docker-compose.prod.yml logs -f ai-server --tail=100
+docker-compose -f docker-compose.prod.yml logs -f --tail=100  # 모든 서비스
+
+# 파일 로그 (프로덕션)
+tail -f logs/api/api.log
+tail -f logs/ai/ai-server.log
+
+# 과거 로그 검색
+grep "ERROR" logs/api/api.log
+grep "status.*500" logs/api/api.log
+```
+
+### 로그 레벨 변경
+
+**.env 파일에 추가**:
+```env
+# API 로그 레벨 (debug, info, warn, error)
+LOG_LEVEL=info
+
+# AI-Server 로그 레벨 (DEBUG, INFO, WARNING, ERROR)
+LOG_LEVEL=INFO
+```
+
+변경 후 즉시 반영:
+```bash
+docker-compose -f docker-compose.prod.yml restart api        # API 로그 레벨 변경 시
+docker-compose -f docker-compose.prod.yml restart ai-server  # AI 로그 레벨 변경 시
+```
+
+### 로그 로테이션
+
+**AI-Server** (자동):
+- 전략: 크기 기반 (10MB마다 로테이션)
+- 보관: 최근 7개 파일 (총 ~70MB)
+- 파일: `ai-server.log`, `ai-server.log.1`, ..., `ai-server.log.7`
+
+**API** (수동 관리 필요):
+- Pino `destination()`은 자동 로테이션 없음
+- 정기적으로 오래된 로그 삭제 권장:
+
+```bash
+# 7일 이상 된 로그 삭제
+find logs/api -name "*.log" -mtime +7 -delete
+```
+
+### Langfuse 통합 (선택사항)
 
 - `@observe()` 데코레이터를 통한 자동 LLM 추적
 - 캡처: 입력, 출력, 지연시간, 비용
 - 사용자 피드백 기록 (좋아요/싫어요)
 - 대시보드: https://cloud.langfuse.com
 
-**로그**:
+## 🔧 환경변수 관리
 
-- Fastify: 개발 환경에서 pretty-print를 사용한 Pino 로거
-- FastAPI: Uvicorn 접근 로그
-- 프로덕션 환경에서 구조화된 로깅
+### 환경변수 변경 절차
+
+**.env 파일 수정 후 서비스별 반영 방법**:
+
+| 서비스 | 변경 방법 | 재빌드 필요 | 소요 시간 |
+|--------|----------|-------------|----------|
+| API | docker-compose restart api | ❌ | 5초 |
+| AI-Server | docker-compose restart ai-server | ❌ | 5초 |
+| Web | docker-compose up -d --build web | ✅ | 2-3분 |
+
+**API/AI-Server 환경변수 변경 (즉시 반영)**:
+
+```bash
+# 1. .env 파일 수정
+nano .env
+
+# 2. 해당 서비스 재시작 (재빌드 불필요)
+docker-compose -f docker-compose.prod.yml restart api        # API 환경변수 변경 시
+docker-compose -f docker-compose.prod.yml restart ai-server  # AI 환경변수 변경 시
+
+# 3. 즉시 반영 확인
+docker-compose -f docker-compose.prod.yml logs -f --tail=20 api
+```
+
+**Web 환경변수 변경 (재빌드 필요)**:
+
+Next.js는 빌드 시 `NEXT_PUBLIC_*` 환경변수를 코드에 인라인하므로 재빌드가 필요합니다.
+
+```bash
+# 1. .env 파일 수정
+nano .env
+
+# 2. Web 서비스만 재빌드 (빌드 캐시로 2-3분 소요)
+docker-compose -f docker-compose.prod.yml up -d --build web
+
+# 3. 브라우저 하드 리프레시 (Ctrl + Shift + R)
+```
+
+### 주요 환경변수
+
+**Web (NEXT_PUBLIC_*)**:
+- `NEXT_PUBLIC_APP_URL` - 프론트엔드 URL
+- `NEXT_PUBLIC_API_URL` - API 서버 URL
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase 프로젝트 URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase 익명 키
+- `NEXT_PUBLIC_PORTONE_STORE_ID` - PortOne 상점 ID
+- `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` - PortOne 채널 키
+
+**API**:
+- `DATABASE_URL` - PostgreSQL 연결 문자열
+- `DIRECT_URL` - Prisma 마이그레이션용 직접 연결
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase 서비스 키
+- `AI_SERVER_URL` - AI 서버 내부 URL
+- `OPENROUTER_API_KEY` - OpenRouter API 키
+- `LOG_LEVEL` - 로그 레벨 (debug, info, warn, error)
+
+**AI-Server**:
+- `OPENROUTER_API_KEY` - OpenRouter API 키
+- `LANGFUSE_PUBLIC_KEY` - Langfuse 공개 키 (선택)
+- `LANGFUSE_SECRET_KEY` - Langfuse 비밀 키 (선택)
+- `LOG_LEVEL` - 로그 레벨 (DEBUG, INFO, WARNING, ERROR)
 
 ## 🔧 개발 명령어
 
@@ -406,6 +568,104 @@ pnpm proto:gen    # .proto 파일에서 TypeScript 생성
 - `LlmModelService` - AI 모델 설정
 
 전체 API 참조는 `/docs` 엔드포인트 참조.
+
+## 🐛 트러블슈팅
+
+### 환경변수가 반영되지 않음
+
+**증상**:
+- .env 파일 수정했는데 변경 안됨
+- 웹 페이지에서 이전 API URL로 접속
+
+**해결**:
+```bash
+# API/AI-Server: 재시작만 하면 됨
+docker-compose -f docker-compose.prod.yml restart api
+
+# Web: 재빌드 필요 (NEXT_PUBLIC_* 변수가 코드에 인라인됨)
+docker-compose -f docker-compose.prod.yml up -d --build web
+
+# 브라우저 캐시 초기화 (Ctrl + Shift + R)
+```
+
+### 로그 파일이 생성되지 않음
+
+**증상**:
+- `logs/api/api.log` 파일 없음
+
+**원인**:
+- Docker 컨테이너가 logs 디렉토리에 쓰기 권한 없음
+
+**해결**:
+```bash
+# 호스트에서 권한 설정 (Linux/Mac)
+chmod -R 777 logs/
+
+# 또는 Docker 재시작
+docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 포트 충돌
+
+**증상**:
+- "port 3000 is already allocated"
+
+**원인**:
+- 호스트에서 이미 해당 포트 사용 중
+
+**해결**:
+```bash
+# 사용 중인 프로세스 확인 (Linux/Mac)
+sudo lsof -i :3000
+sudo netstat -tulpn | grep 3000
+
+# Windows
+netstat -ano | findstr :3000
+
+# Docker 컨테이너 중지
+docker-compose -f docker-compose.prod.yml down
+```
+
+### Docker 이미지 크기가 큼
+
+**증상**:
+- 빌드 시간 오래 걸림
+- 디스크 공간 부족
+
+**해결**:
+```bash
+# 사용하지 않는 이미지 정리
+docker image prune -a
+
+# 빌드 캐시 정리
+docker builder prune
+
+# 특정 이미지만 삭제
+docker rmi mini-whif-web mini-whif-api mini-whif-ai-server
+```
+
+### SSE 스트리밍 실패
+
+**증상**:
+- AI 응답이 스트리밍되지 않음
+- "Failed to send message" 오류
+
+**해결**:
+```bash
+# 1. AI 서버 실행 확인
+curl http://localhost:8000/health
+
+# 2. OPENROUTER_API_KEY 설정 확인
+docker-compose -f docker-compose.prod.yml exec api env | grep OPENROUTER
+
+# 3. Gem 잔액 확인
+# /mypage/wallet 페이지에서 확인
+
+# 4. 로그 확인
+docker-compose -f docker-compose.prod.yml logs -f api
+docker-compose -f docker-compose.prod.yml logs -f ai-server
+```
 
 ## 🗺️ 로드맵
 
