@@ -314,7 +314,7 @@ export default function ChatPage() {
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm('이 메시지를 삭제하시겠습니까? 사용자 메시지인 경우 다음 AI 응답도 함께 삭제됩니다.')) {
+    if (!confirm('이 메시지를 삭제하시겠습니까? 이 메시지 이후의 모든 대화가 함께 삭제됩니다.')) {
       return;
     }
 
@@ -656,6 +656,9 @@ export default function ChatPage() {
         .find((msg: any) => msg.role === 'assistant')?.id
     : null;
 
+  // Find the first message ID (greeting message, should not be deletable)
+  const firstMessageId = messagesData?.messages?.[0]?.id || null;
+
   return (
     <div className="h-screen bg-background flex flex-col">
       <Toaster position="top-center" />
@@ -762,6 +765,7 @@ export default function ChatPage() {
                 versionNumber={message.versionNumber || 1}
                 modelCost={modelCost}
                 isLastAiMessage={message.id === lastAiMessageId}
+                isFirstMessage={message.id === firstMessageId}
                 onCharacterAvatarClick={() => setIsCharacterModalOpen(true)}
                 onEdit={handleOpenEditModal}
                 onDelete={handleDeleteMessage}

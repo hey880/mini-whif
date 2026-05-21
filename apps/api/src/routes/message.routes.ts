@@ -59,7 +59,7 @@ export async function messageRoutes(server: FastifyInstance) {
     preHandler: [authenticateUser],
     schema: {
       tags: ['Messages'],
-      description: 'Delete a message and its AI response',
+      description: 'Delete a message and all subsequent messages',
       security: [{ bearerAuth: [] }],
       params: {
         type: 'object',
@@ -86,24 +86,14 @@ export async function messageRoutes(server: FastifyInstance) {
       return reply.status(403).send({ error: 'Forbidden' });
     }
 
-    // If this is a user message, find and delete the next AI response
-    if (message.role === 'user') {
-      const aiResponse = await prisma.message.findFirst({
-        where: {
-          roomId: message.roomId,
-          role: 'assistant',
-          createdAt: { gt: message.createdAt },
-        },
-        orderBy: { createdAt: 'asc' },
-      });
-
-      if (aiResponse) {
-        await prisma.message.delete({ where: { id: aiResponse.id } });
-      }
-    }
-
-    // Delete the message
-    await prisma.message.delete({ where: { id } });
+    // Delete this message and all subsequent messages
+    // This ensures conversation consistency (no orphaned messages after deletion)
+    await prisma.message.deleteMany({
+      where: {
+        roomId: message.roomId,
+        createdAt: { gte: message.createdAt },
+      },
+    });
 
     return { success: true };
   });

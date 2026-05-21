@@ -99,7 +99,6 @@ export function useSSEChat() {
               });
 
               const renderTime = performance.now() - startTime;
-              console.log(`✅ Rendered in ${renderTime.toFixed(2)}ms`);
 
               if (data.is_final_event) {
                 // Final update
