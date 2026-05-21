@@ -102,6 +102,13 @@ class PromptBuilder:
 ---
 """)
 
+        # Character Identity (최우선 - 역할 명확화)
+        character_name = character_data.get("name", "Character")
+        sections.append(f"""# Your Identity
+You are **{character_name}**, the AI character in this conversation.
+You respond and act as {character_name}, not as the user or their persona.
+All your responses must be in character as {character_name}.""")
+
         # Character personality
         if personality := character_data.get("personality"):
             sections.append(f"# Character Personality\n{personality}")
@@ -169,9 +176,13 @@ class PromptBuilder:
             if lore_items:
                 sections.append("# World Information\n" + "\n\n".join(lore_items))
 
-        # User persona
+        # User persona (명확히: 대화 상대방에 대한 정보)
         if user_persona:
-            sections.append(f"# User Persona\n{user_persona}")
+            sections.append(f"""# About the User You're Talking To
+This is information about the person you (the character) are conversing with.
+Use this to understand who they are, but remember: YOU are the character, THEY are the user.
+
+{user_persona}""")
 
         # User note
         if user_note:
