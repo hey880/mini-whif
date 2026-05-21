@@ -28,6 +28,9 @@ jobs:
       - name: Generate proto code
         run: pnpm proto:gen
 
+      - name: Generate Prisma client
+        run: pnpm --filter @persona-chat/api db:generate
+
       - name: Lint
         run: pnpm turbo lint
 
