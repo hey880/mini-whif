@@ -119,20 +119,6 @@ export function UniverseWizard({ isOpen, onClose, onSuccess, editingUniverse }: 
   // Get drafts list
   const drafts = user?.id ? getUniverseDrafts(user.id) : [];
 
-  // Auto-save on form data change
-  useEffect(() => {
-    if (isOpen && user?.id && formData.name) {
-      console.log('⏱️  Auto-save scheduled (2s delay)');
-      const timer = setTimeout(() => {
-        console.log('💾 Auto-saving now...');
-        const draftId = saveDraft(user.id);
-        setCurrentDraftId(draftId);
-        setLastSaved(new Date().toLocaleTimeString('ko-KR'));
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [formData, user?.id, saveDraft, isOpen]);
-
   // Save immediately on step change
   useEffect(() => {
     if (isOpen && user?.id && formData.name && currentStep > 1) {

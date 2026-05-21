@@ -37,10 +37,12 @@ export function linkifyText(text: string): React.ReactNode {
  * - https://youtu.be/VIDEO_ID
  * - https://www.youtube.com/embed/VIDEO_ID
  * - https://www.youtube.com/v/VIDEO_ID
+ * - https://www.youtube.com/shorts/VIDEO_ID
  */
 export function extractYoutubeVideoId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^&\?\/\s]+)/,
+    /youtube\.com\/shorts\/([^&\?\/\s]+)/,
   ];
 
   for (const pattern of patterns) {

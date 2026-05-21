@@ -44,7 +44,8 @@ export default function CharacterDetailPage() {
       const response = await chatRoomClient.findRecentRoomByCharacter({
         characterId,
       });
-      return response.chatRoom;
+      // React Query requires non-undefined return value
+      return response.chatRoom ?? null;
     },
     enabled: !!user && !!characterId,
   });
