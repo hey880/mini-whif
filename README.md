@@ -18,7 +18,29 @@ API 서버의 주요 성능 병목을 제거했습니다:
 - ✅ **Reaction 트랜잭션 추가**: race condition 방지로 데이터 정합성 보장
 - ✅ **리스트 엔드포인트 최적화**: 무거운 JSON 필드 제외 (2초 → 0.3초, 6배 향상)
 
-자세한 내용은 [CLAUDE.md의 성능 최적화 섹션](./CLAUDE.md#성능-최적화)을 참조하세요.
+### Phase 2: Repository 레이어 도입 (2025년 1월)
+
+Clean Architecture 기반 Repository 패턴을 구현했습니다:
+
+- ✅ **7개 Repository 구현**: ChatRoom, Message, GemWallet, Character, Persona, Universe, LlmModel
+- ✅ **데이터 접근 로직 캡슐화**: Prisma 직접 호출 제거 준비
+- ✅ **인터페이스로 추상화**: 의존성 역전 원칙 적용
+- ✅ **테스트 가능한 구조**: Mock Repository 사용 가능
+- ✅ **Phase 1 최적화 계승**: createMany, Promise.all, select 패턴 적용
+
+### Phase 3: Service 레이어 강화 (2025년 1월)
+
+비즈니스 로직을 Service 레이어로 분리했습니다:
+
+- ✅ **4개 Service 구현**: ChatService, MessageService, CharacterService, PersonaService
+- ✅ **Routes/Handlers 간소화**: chat.routes.ts 256줄 → 84줄 (67% 감소)
+- ✅ **의존성 주입**: 수동 DI로 명시적 의존성 관리
+- ✅ **비즈니스 로직 재사용**: Repository 조합으로 복잡한 작업 처리
+- ✅ **AI 컨텍스트 구성**: Lorebook 파싱, Placeholder 치환 로직 캡슐화
+
+**아키텍처 성숙도:** 2/5점 → **4/5점** (Clean Architecture 달성)
+
+자세한 내용은 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)를 참조하세요.
 
 ## 🎯 프로젝트 개요
 

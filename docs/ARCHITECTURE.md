@@ -281,56 +281,157 @@ const myRepo = new PrismaMyRepository(prisma);
 const entity = await myRepo.findById('123');
 ```
 
-## Phase 3: Service 레이어 (예정)
+## Phase 3: Service 레이어 (완료)
 
 Service 레이어는 복잡한 비즈니스 로직을 캡슐화합니다.
 
-**예정 구조:**
+**구조:**
 ```
 application/
 ├── services/
 │   ├── ChatService.ts          # 채팅 비즈니스 로직
 │   ├── MessageService.ts       # 메시지 관리
 │   ├── CharacterService.ts     # 캐릭터 관리
-│   └── GemService.ts           # Gem 관리
+│   └── PersonaService.ts       # 페르소나 관리
 └── dto/
-    └── SendMessageDto.ts       # 데이터 전송 객체
+    ├── SendMessageDto.ts       # 메시지 전송 DTO
+    └── RegenerateMessageDto.ts # 메시지 재생성 DTO
 ```
 
 **Service 역할:**
 - Repository 조합
 - 복잡한 비즈니스 로직
 - 트랜잭션 관리
-- 이벤트 발행 (선택)
+- AI 스트리밍 조율
 
-**예시:**
+### 구현된 Services
+
+#### 1. ChatService
+**책임:** 채팅 메시지 전송 및 AI 응답 스트리밍
+
 ```typescript
 export class ChatService {
   constructor(
+    private prisma: PrismaClient,
     private chatRoomRepo: IChatRoomRepository,
     private messageRepo: IMessageRepository,
-    private gemService: GemService
+    private gemWalletRepo: IGemWalletRepository,
+    private llmModelRepo: ILlmModelRepository,
+    private aiStreamingService: AIStreamingService
   ) {}
 
   async sendMessage(dto: SendMessageDto) {
-    // 1. 권한 검증
-    const room = await this.chatRoomRepo.findById(dto.roomId, dto.userId);
-    if (!room) throw new ForbiddenError();
+    // 1. 채팅방 조회 + 권한 검증
+    // 2. 모델 선택 (chosen or default)
+    // 3. Gem 잔액 확인
+    // 4. 메시지 저장 (user + AI placeholder)
+    // 5. AI 컨텍스트 구성 (lorebook, placeholder)
+    // 6. SSE 스트리밍
+  }
 
-    // 2. Gem 차감
-    await this.gemService.deduct(dto.userId, room.modelCost);
-
-    // 3. 메시지 생성
-    await this.messageRepo.createMessagePair({
-      roomId: dto.roomId,
-      userContent: dto.content,
-    });
-
-    // 4. AI 스트리밍 (별도 서비스)
-    // ...
+  private buildAIContext(room: any, persona: any): AIContext {
+    // Lorebook 파싱 (Universe + Character)
+    // Placeholder 치환 ({{userName}}, {{characterName}})
+    // Situational images 추출
   }
 }
 ```
+
+**개선 효과:**
+- chat.routes.ts: 256줄 → 84줄 (67% 감소)
+- 비즈니스 로직 재사용 가능
+- 테스트 가능한 구조
+
+#### 2. MessageService
+**책임:** 메시지 재생성, Reaction 업데이트, 삭제
+
+```typescript
+export class MessageService {
+  async regenerateMessage(dto: RegenerateMessageDto) {
+    // 1. 메시지 조회 + 권한 검증
+    // 2. 모델 선택 + Gem 확인 (Phase 1 병렬화 적용)
+    // 3. 현재 버전 저장 (MessageVersion)
+    // 4. AI 재생성 스트리밍
+  }
+
+  async updateReaction(dto: UpdateReactionDto) {
+    // Phase 1 최적화: 트랜잭션으로 원자성 보장
+    // Toggle, Change, Create 로직
+  }
+}
+```
+
+**개선 효과:**
+- Phase 1 최적화 (병렬 쿼리, 트랜잭션) 적용
+- Reaction 로직 재사용 가능
+
+#### 3. CharacterService
+**책임:** 캐릭터 CRUD (Repository 활용)
+
+```typescript
+export class CharacterService {
+  constructor(private characterRepo: ICharacterRepository) {}
+
+  async listCharacters(params: FindCharactersParams) {
+    const { characters, total } = await this.characterRepo.findMany(params);
+    // hasMore 계산
+    return { characters, total, hasMore };
+  }
+
+  // create, update, delete는 Repository 위임
+}
+```
+
+**특징:**
+- 얇은 Service 레이어 (Repository 주로 활용)
+- 페이지네이션 로직 캡슐화
+
+#### 4. PersonaService
+**책임:** 페르소나 CRUD (Repository 활용)
+
+```typescript
+export class PersonaService {
+  constructor(private personaRepo: IPersonaRepository) {}
+
+  async setDefaultPersona(id: string, userId: string) {
+    return await this.personaRepo.setDefault(id, userId);
+  }
+}
+```
+
+**특징:**
+- 기본 페르소나 설정 로직
+- Repository 패턴 활용
+
+### 의존성 주입
+
+**index.ts에서 수동 DI:**
+
+```typescript
+// 1. Repository 인스턴스 생성
+const chatRoomRepo = new PrismaChatRoomRepository(prisma);
+const messageRepo = new PrismaMessageRepository(prisma);
+const gemWalletRepo = new PrismaGemWalletRepository(prisma);
+// ...
+
+// 2. Service 인스턴스 생성 (의존성 주입)
+const chatService = new ChatService(
+  prisma,
+  chatRoomRepo,
+  messageRepo,
+  gemWalletRepo,
+  llmModelRepo,
+  aiStreamingService
+);
+
+// 3. Routes에 주입
+await server.register(chatRoutes, { chatService });
+```
+
+**장점:**
+- 명시적 의존성 관리
+- 테스트 시 Mock 주입 가능
+- DI 프레임워크 불필요 (단순성)
 
 ## 테스트 전략
 
