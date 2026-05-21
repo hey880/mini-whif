@@ -2,22 +2,47 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import pino from 'pino';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export function createServer() {
+  let logger;
+
+  if (process.env.NODE_ENV === 'production') {
+    // 프로덕션: stdout + 파일 동시 출력
+    const logDir = path.resolve(__dirname, '../../logs');
+    fs.mkdirSync(logDir, { recursive: true });
+
+    const streams = [
+      { stream: process.stdout },
+      { stream: pino.destination(path.join(logDir, 'api.log')) }
+    ];
+
+    logger = {
+      level: process.env.LOG_LEVEL || 'info',
+      stream: pino.multistream(streams)
+    };
+  } else {
+    // 개발: stdout only (pretty-print)
+    logger = {
+      level: process.env.LOG_LEVEL || 'debug',
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          translateTime: 'HH:MM:ss Z',
+          ignore: 'pid,hostname',
+        },
+      },
+    };
+  }
+
   const server = Fastify({
-    logger: {
-      level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-      transport:
-        process.env.NODE_ENV === 'development'
-          ? {
-              target: 'pino-pretty',
-              options: {
-                translateTime: 'HH:MM:ss Z',
-                ignore: 'pid,hostname',
-              },
-            }
-          : undefined,
-    },
+    logger,
     // OPTIMIZATION: timeout settings for stability
     connectionTimeout: 60000,      // 60s - max time for connection to remain open
     keepAliveTimeout: 65000,       // 65s - must be > connectionTimeout

@@ -1,5 +1,7 @@
 import os
 import logging
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,10 +19,33 @@ if os.getenv('NEW_RELIC_LICENSE_KEY'):
     except Exception as e:
         logging.warning(f"Failed to initialize New Relic: {e}")
 
+# 로그 디렉토리 생성
+log_dir = Path(__file__).parent.parent / 'logs'
+log_dir.mkdir(exist_ok=True)
+
+# 로그 레벨 (환경변수로 제어)
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# 핸들러 설정
+handlers = [logging.StreamHandler()]  # stdout
+
+if os.getenv('NODE_ENV') == 'production':
+    # 프로덕션: 파일 핸들러 추가 (10MB마다 로테이션, 최대 7개 파일)
+    file_handler = RotatingFileHandler(
+        log_dir / 'ai-server.log',
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=7,              # ai-server.log.1 ~ ai-server.log.7
+        encoding='utf-8'
+    )
+    file_handler.setFormatter(logging.Formatter(log_format))
+    handlers.append(file_handler)
+
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=getattr(logging, log_level),
+    format=log_format,
+    handlers=handlers
 )
 logger = logging.getLogger(__name__)
 
