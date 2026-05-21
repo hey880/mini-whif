@@ -710,5 +710,3 @@ MIT License - 자세한 내용은 LICENSE 파일 참조
 - [Turborepo](https://turbo.build) - 모노레포 빌드 시스템
 
 ---
-
-**모던 풀스택 아키텍처를 보여주는 포트폴리오 프로젝트로 ❤️를 담아 제작했습니다**
