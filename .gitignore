@@ -72,3 +72,6 @@ load-tests/results/*.json
 load-tests/results/*.html
 load-tests/results/*.csv
 load-tests/results/archive/
+
+# Logs
+logs/
