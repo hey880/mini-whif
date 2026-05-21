@@ -5,6 +5,7 @@ import { IMessageRepository } from '../../domain/repositories/IMessageRepository
 import { IGemWalletRepository } from '../../domain/repositories/IGemWalletRepository.js';
 import { ILlmModelRepository } from '../../domain/repositories/ILlmModelRepository.js';
 import { AIStreamingService } from '../../services/ai-streaming.service.js';
+import type { FastifyInstance } from 'fastify';
 
 /**
  * AI 컨텍스트
@@ -37,7 +38,8 @@ export class ChatService {
     private messageRepo: IMessageRepository,
     private gemWalletRepo: IGemWalletRepository,
     private llmModelRepo: ILlmModelRepository,
-    private aiStreamingService: AIStreamingService
+    private aiStreamingService: AIStreamingService,
+    private server: FastifyInstance
   ) {}
 
   /**
@@ -74,6 +76,7 @@ export class ChatService {
                   id: true,
                   name: true,
                   lorebook: true,
+                  data: true, // Universe의 상황별 이미지를 위해 필요
                 },
               },
             },
@@ -148,25 +151,21 @@ export class ChatService {
     const aiContext = this.buildAIContext(room, persona);
 
     // 7. Stream AI response
-    await this.aiStreamingService.streamResponse({
-      roomId,
+    await this.aiStreamingService.streamAIResponse({
       userId,
-      characterData: {
-        id: room.character.id,
-        name: aiContext.characterName,
-        description: aiContext.characterContext.description,
-        greeting: aiContext.characterContext.greeting,
-        personality: aiContext.characterContext.personality,
-        lorebook: { entries: aiContext.lorebookEntries },
-        situationalImages: aiContext.situationalImagesInfo,
-      },
-      personaName: aiContext.personaName,
+      roomId,
+      messageId: aiMessage.id,
       userMessage: content || '',
-      aiMessageId: aiMessage.id,
-      modelSlug: model.slug,
-      gemCost,
       hint,
+      modelSlug: model.slug,
+      maxTokens: 1000, // Default max tokens
+      characterContext: aiContext.characterContext,
+      lorebookEntries: aiContext.lorebookEntries,
+      situationalImagesInfo: aiContext.situationalImagesInfo,
+      characterData: room.character.data,
+      personaName: aiContext.personaName,
       reply,
+      server: this.server,
     });
   }
 
@@ -243,15 +242,37 @@ export class ChatService {
     // Sort by priority
     lorebookEntries.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-    // Extract situational images
+    // Extract and merge situational images (Universe + Character)
     let situationalImagesInfo: any[] = [];
+
+    // 1. Add Universe situational images (if exists)
     try {
-      const characterData = room.character.data as any;
-      if (characterData?.situationalImages) {
-        situationalImagesInfo = characterData.situationalImages;
+      const universeData = room.character.universe?.data as any;
+      if (universeData?.situationalImages && Array.isArray(universeData.situationalImages)) {
+        const universeImages = universeData.situationalImages.map((img: any) => ({
+          ...img,
+          source: 'universe',
+          universeName: room.character.universe?.name,
+        }));
+        situationalImagesInfo.push(...universeImages);
       }
     } catch (e) {
-      console.warn('Failed to parse situational images:', e);
+      console.warn('Failed to parse universe situational images:', e);
+    }
+
+    // 2. Add Character situational images (if exists)
+    try {
+      const characterData = room.character.data as any;
+      if (characterData?.situationalImages && Array.isArray(characterData.situationalImages)) {
+        const characterImages = characterData.situationalImages.map((img: any) => ({
+          ...img,
+          source: 'character',
+          characterName: room.character.name,
+        }));
+        situationalImagesInfo.push(...characterImages);
+      }
+    } catch (e) {
+      console.warn('Failed to parse character situational images:', e);
     }
 
     return {

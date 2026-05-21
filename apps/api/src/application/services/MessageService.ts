@@ -4,6 +4,7 @@ import { IMessageRepository } from '../../domain/repositories/IMessageRepository
 import { IGemWalletRepository } from '../../domain/repositories/IGemWalletRepository.js';
 import { ILlmModelRepository } from '../../domain/repositories/ILlmModelRepository.js';
 import { AIStreamingService } from '../../services/ai-streaming.service.js';
+import type { FastifyInstance } from 'fastify';
 
 /**
  * Reaction 업데이트 결과
@@ -30,7 +31,8 @@ export class MessageService {
     private messageRepo: IMessageRepository,
     private gemWalletRepo: IGemWalletRepository,
     private llmModelRepo: ILlmModelRepository,
-    private aiStreamingService: AIStreamingService
+    private aiStreamingService: AIStreamingService,
+    private server: FastifyInstance
   ) {}
 
   /**
@@ -130,25 +132,28 @@ export class MessageService {
 
     const userMessageContent = previousUserMessage?.content || '';
 
+    // TODO: Improve AI context building (use ChatService.buildAIContext pattern)
     // 5. Stream AI response (regenerate)
-    await this.aiStreamingService.streamResponse({
-      roomId: message.roomId,
+    await this.aiStreamingService.streamAIResponse({
       userId,
-      characterData: {
-        id: message.room.character.id,
+      roomId: message.roomId,
+      messageId: message.id,
+      userMessage: userMessageContent,
+      hint: undefined,
+      modelSlug: model.slug,
+      maxTokens: 1000,
+      characterContext: {
         name: message.room.character.name,
         description: message.room.character.description || '',
         greeting: message.room.character.greeting || '',
         personality: message.room.character.tagline || '',
-        lorebook: message.room.character.lorebook || {},
       },
+      lorebookEntries: [], // TODO: Parse lorebook properly
+      situationalImagesInfo: [], // TODO: Extract from character.data
+      characterData: message.room.character.data,
       personaName: '사용자', // TODO: fetch from persona
-      userMessage: userMessageContent,
-      aiMessageId: message.id,
-      modelSlug: model.slug,
-      gemCost,
-      hint: undefined,
       reply,
+      server: this.server,
     });
   }
 

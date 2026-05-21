@@ -76,7 +76,8 @@ async function start() {
     messageRepo,
     gemWalletRepo,
     llmModelRepo,
-    aiStreamingService
+    aiStreamingService,
+    server
   );
 
   const messageService = new MessageService(
@@ -84,11 +85,12 @@ async function start() {
     messageRepo,
     gemWalletRepo,
     llmModelRepo,
-    aiStreamingService
+    aiStreamingService,
+    server
   );
 
   const characterService = new CharacterAppService(characterRepo);
-  const personaService = new CharacterAppService(personaRepo);
+  const personaService = new PersonaAppService(personaRepo);
 
   // === End DI Container ===
 

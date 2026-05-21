@@ -15,6 +15,7 @@ describe('ChatService', () => {
   let mockGemWalletRepo: any;
   let mockLlmModelRepo: any;
   let mockAIStreamingService: any;
+  let mockServer: any;
 
   beforeEach(() => {
     // Mock Prisma
@@ -46,7 +47,16 @@ describe('ChatService', () => {
 
     // Mock AI Streaming Service
     mockAIStreamingService = {
-      streamResponse: vi.fn(),
+      streamAIResponse: vi.fn(),
+    };
+
+    // Mock Fastify Server
+    mockServer = {
+      log: {
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
+      },
     };
 
     chatService = new ChatService(
@@ -55,7 +65,8 @@ describe('ChatService', () => {
       mockMessageRepo as IMessageRepository,
       mockGemWalletRepo as IGemWalletRepository,
       mockLlmModelRepo as ILlmModelRepository,
-      mockAIStreamingService as AIStreamingService
+      mockAIStreamingService as AIStreamingService,
+      mockServer as any
     );
   });
 
@@ -103,7 +114,7 @@ describe('ChatService', () => {
       mockPrisma.profile.findUnique.mockResolvedValue(mockProfile);
       mockPrisma.message.create.mockResolvedValue(mockMessage);
       mockGemWalletRepo.hasSufficientBalance.mockResolvedValue(true);
-      mockAIStreamingService.streamResponse.mockResolvedValue(undefined);
+      mockAIStreamingService.streamAIResponse.mockResolvedValue(undefined);
 
       const dto = {
         userId: 'user-1',
@@ -122,7 +133,7 @@ describe('ChatService', () => {
         include: expect.any(Object),
       });
       expect(mockGemWalletRepo.hasSufficientBalance).toHaveBeenCalledWith('user-1', 5);
-      expect(mockAIStreamingService.streamResponse).toHaveBeenCalled();
+      expect(mockAIStreamingService.streamAIResponse).toHaveBeenCalled();
     });
 
     it('should throw error if room not found', async () => {
@@ -224,7 +235,7 @@ describe('ChatService', () => {
       mockLlmModelRepo.findDefaultModel.mockResolvedValue(mockDefaultModel);
       mockGemWalletRepo.hasSufficientBalance.mockResolvedValue(true);
       mockPrisma.message.create.mockResolvedValue({ id: 'msg-1' });
-      mockAIStreamingService.streamResponse.mockResolvedValue(undefined);
+      mockAIStreamingService.streamAIResponse.mockResolvedValue(undefined);
 
       const dto = {
         userId: 'user-1',
