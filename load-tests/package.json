@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "k6 load testing suite for Persona Chat",
   "scripts": {
+    "type-check": "echo 'No type-check needed for load-tests'",
     "seed": "tsx setup/seed-test-db.ts",
     "cleanup": "tsx setup/cleanup.ts",
     "cleanup:full": "tsx setup/cleanup-full.ts",

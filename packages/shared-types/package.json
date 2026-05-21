@@ -14,7 +14,8 @@
     "./common": "./src/common.ts"
   },
   "scripts": {
-    "lint": "echo 'No linting configured for shared-types'"
+    "lint": "echo 'No linting configured for shared-types'",
+    "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.5.0"
