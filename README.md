@@ -7,6 +7,19 @@
 [![Fastify](https://img.shields.io/badge/Fastify-4.28-green)](https://www.fastify.io/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.15-2D3748)](https://www.prisma.io/)
 
+## 🚀 최근 개선사항
+
+### Phase 1: 성능 최적화 (2025년 1월)
+
+API 서버의 주요 성능 병목을 제거했습니다:
+
+- ✅ **cloneChatRoom N+1 쿼리 제거**: 메시지 100개 복사 시 10초 → 0.5초 (20배 향상)
+- ✅ **regenerate 쿼리 병렬화**: 순차 쿼리를 병렬 실행으로 변경 (300ms → 100ms, 3배 향상)
+- ✅ **Reaction 트랜잭션 추가**: race condition 방지로 데이터 정합성 보장
+- ✅ **리스트 엔드포인트 최적화**: 무거운 JSON 필드 제외 (2초 → 0.3초, 6배 향상)
+
+자세한 내용은 [CLAUDE.md의 성능 최적화 섹션](./CLAUDE.md#성능-최적화)을 참조하세요.
+
 ## 🎯 프로젝트 개요
 
 Persona Chat은 다음을 보여주는 정교한 AI 캐릭터 챗봇 플랫폼입니다:

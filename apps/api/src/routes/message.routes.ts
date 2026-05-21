@@ -214,67 +214,58 @@ export async function messageRoutes(server: FastifyInstance) {
       },
     });
 
+    // Use transaction to ensure atomicity and prevent race conditions
     if (existingReaction) {
       // If same reaction, delete it (toggle off)
       if (existingReaction.reactionType === reactionType) {
-        await prisma.userReaction.delete({
-          where: { id: existingReaction.id },
-        });
-
-        // Update counts
-        if (isPositive) {
-          await prisma.message.update({
+        await prisma.$transaction([
+          prisma.userReaction.delete({
+            where: { id: existingReaction.id },
+          }),
+          prisma.message.update({
             where: { id },
-            data: { positiveReactionCount: { decrement: 1 } },
-          });
-        } else {
-          await prisma.message.update({
-            where: { id },
-            data: { negativeReactionCount: { decrement: 1 } },
-          });
-        }
+            data: isPositive
+              ? { positiveReactionCount: { decrement: 1 } }
+              : { negativeReactionCount: { decrement: 1 } },
+          }),
+        ]);
 
         return { success: true, removed: true };
       } else {
         // Change reaction
-        await prisma.userReaction.update({
-          where: { id: existingReaction.id },
-          data: { reactionType },
-        });
-
-        // Update counts
-        await prisma.message.update({
-          where: { id },
-          data: {
-            positiveReactionCount: isPositive ? { increment: 1 } : { decrement: 1 },
-            negativeReactionCount: isPositive ? { decrement: 1 } : { increment: 1 },
-          },
-        });
+        await prisma.$transaction([
+          prisma.userReaction.update({
+            where: { id: existingReaction.id },
+            data: { reactionType },
+          }),
+          prisma.message.update({
+            where: { id },
+            data: {
+              positiveReactionCount: isPositive ? { increment: 1 } : { decrement: 1 },
+              negativeReactionCount: isPositive ? { decrement: 1 } : { increment: 1 },
+            },
+          }),
+        ]);
 
         return { success: true, changed: true, isPositive };
       }
     } else {
       // Create new reaction
-      await prisma.userReaction.create({
-        data: {
-          userId: request.user!.id,
-          messageId: id,
-          reactionType,
-        },
-      });
-
-      // Update counts
-      if (isPositive) {
-        await prisma.message.update({
+      await prisma.$transaction([
+        prisma.userReaction.create({
+          data: {
+            userId: request.user!.id,
+            messageId: id,
+            reactionType,
+          },
+        }),
+        prisma.message.update({
           where: { id },
-          data: { positiveReactionCount: { increment: 1 } },
-        });
-      } else {
-        await prisma.message.update({
-          where: { id },
-          data: { negativeReactionCount: { increment: 1 } },
-        });
-      }
+          data: isPositive
+            ? { positiveReactionCount: { increment: 1 } }
+            : { negativeReactionCount: { increment: 1 } },
+        }),
+      ]);
 
       return { success: true, created: true, isPositive };
     }
@@ -336,19 +327,19 @@ export async function messageRoutes(server: FastifyInstance) {
       return reply.status(400).send({ error: 'Can only regenerate assistant messages' });
     }
 
-    // 2. Get user's chosen model and check gem balance
-    const profile = await prisma.profile.findUnique({
-      where: { id: request.user!.id },
-      include: { chosenLlmModel: true, gemWallet: true },
-    });
-
-    let model = profile?.chosenLlmModel;
-    if (!model) {
-      model = await prisma.llmModel.findFirst({
+    // 2. Get user's chosen model and check gem balance (Optimized: parallel queries)
+    const [profile, defaultModel] = await Promise.all([
+      prisma.profile.findUnique({
+        where: { id: request.user!.id },
+        include: { chosenLlmModel: true, gemWallet: true },
+      }),
+      prisma.llmModel.findFirst({
         where: { isActive: true },
         orderBy: { gemCostPerMessage: 'asc' },
-      });
-    }
+      }),
+    ]);
+
+    const model = profile?.chosenLlmModel || defaultModel;
 
     if (!model) {
       return reply.status(500).send({ error: 'No active models available' });
@@ -360,15 +351,18 @@ export async function messageRoutes(server: FastifyInstance) {
     );
     const gemCost = Math.round(model.gemCostPerMessage * REGENERATE_GEM_COST_MULTIPLIER);
 
-    // Check gem balance
-    const gemService = new GemService();
-    const balance = await gemService.getBalance(request.user!.id);
+    // Check gem balance (Optimized: use wallet from profile query)
+    const wallet = profile?.gemWallet;
+    if (!wallet) {
+      return reply.status(500).send({ error: 'Wallet not found' });
+    }
 
-    if (balance.totalGems < gemCost) {
+    const totalGems = wallet.freeDailyGemAmount + wallet.freePromoGemAmount + wallet.paidGemAmount;
+    if (totalGems < gemCost) {
       return reply.status(402).send({
         error: 'Insufficient gems',
         required: gemCost,
-        available: balance.totalGems,
+        available: totalGems,
       });
     }
 

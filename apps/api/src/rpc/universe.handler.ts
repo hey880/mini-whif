@@ -32,13 +32,24 @@ export const universeHandler: ServiceImpl<typeof UniverseService> = {
     const limit = req.limit || 16;
     const offset = req.offset || 0;
 
+    // Optimized: use select to exclude heavy JSON fields (lorebook, data) in list view
     const [universes, total] = await Promise.all([
       prisma.universe.findMany({
         where,
         take: limit,
         skip: offset,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          creatorId: true,
+          visibility: true,
+          imageUrl: true,
+          genre: true,
+          tags: true,
+          createdAt: true,
+          updatedAt: true,
           creator: {
             select: {
               displayName: true,
@@ -65,8 +76,8 @@ export const universeHandler: ServiceImpl<typeof UniverseService> = {
         imageUrl: universe.imageUrl || undefined,
         genre: universe.genre || undefined,
         tags: universe.tags,
-        lorebookJson: universe.lorebook ? JSON.stringify(universe.lorebook) : undefined,
-        dataJson: JSON.stringify(universe.data),
+        lorebookJson: undefined, // Excluded for performance (use getUniverse for full data)
+        dataJson: undefined, // Excluded for performance (use getUniverse for full data)
         createdAt: universe.createdAt.toISOString(),
         updatedAt: universe.updatedAt.toISOString(),
         characterCount: universe._count.characters,

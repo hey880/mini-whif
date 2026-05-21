@@ -425,6 +425,84 @@ Dockerfile은 Phase 5에 추가됩니다.
 
 ---
 
+## 성능 고려사항
+
+### N+1 쿼리 방지
+
+대량 데이터 삽입 시 `createMany` 사용:
+
+```typescript
+// ❌ Bad: N+1 쿼리
+for (const message of messages) {
+  await prisma.message.create({ data: message });
+}
+
+// ✅ Good: 일괄 삽입
+await prisma.message.createMany({
+  data: messages,
+});
+```
+
+### 병렬 쿼리 패턴
+
+독립적인 쿼리는 병렬로 실행:
+
+```typescript
+// ❌ Bad: 순차 실행 (300ms)
+const user = await prisma.user.findUnique({ where: { id } });
+const settings = await prisma.settings.findUnique({ where: { userId: id } });
+
+// ✅ Good: 병렬 실행 (100ms)
+const [user, settings] = await Promise.all([
+  prisma.user.findUnique({ where: { id } }),
+  prisma.settings.findUnique({ where: { userId: id } }),
+]);
+```
+
+### 트랜잭션 사용
+
+원자성이 필요한 작업은 트랜잭션으로:
+
+```typescript
+// ❌ Bad: race condition 가능
+await prisma.reaction.create({ data });
+await prisma.message.update({
+  where: { id },
+  data: { count: { increment: 1 } }
+});
+
+// ✅ Good: 원자성 보장
+await prisma.$transaction([
+  prisma.reaction.create({ data }),
+  prisma.message.update({
+    where: { id },
+    data: { count: { increment: 1 } }
+  }),
+]);
+```
+
+### Select로 필요한 필드만 조회
+
+리스트 조회 시 무거운 필드 제외:
+
+```typescript
+// ❌ Bad: 모든 필드 로딩 (2초)
+const characters = await prisma.character.findMany({ where });
+
+// ✅ Good: 필요한 필드만 조회 (0.3초)
+const characters = await prisma.character.findMany({
+  where,
+  select: {
+    id: true,
+    name: true,
+    imageUrl: true,
+    // data, lorebook 제외
+  },
+});
+```
+
+---
+
 ## 지원
 
 문제 발생 시:

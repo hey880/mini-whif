@@ -557,16 +557,16 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
       },
     });
 
-    // Clone messages
-    for (const msg of sourceRoom.messages) {
-      await prisma.message.create({
-        data: {
+    // Clone messages (Optimized: createMany instead of N+1 queries)
+    if (sourceRoom.messages.length > 0) {
+      await prisma.message.createMany({
+        data: sourceRoom.messages.map(msg => ({
           roomId: newRoom.id,
           role: msg.role,
           content: msg.content,
           modelSlug: msg.modelSlug,
           metadata: msg.metadata as any,
-        },
+        })),
       });
     }
 

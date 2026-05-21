@@ -44,13 +44,28 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
     const limit = req.limit || 16;
     const offset = req.offset || 0;
 
+    // Optimized: use select instead of include to avoid loading heavy JSON fields (data, lorebook)
     const [characters, total] = await Promise.all([
       prisma.character.findMany({
         where,
         take: limit,
         skip: offset,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          tagline: true,
+          description: true,
+          greeting: true,
+          imageUrl: true,
+          bannerImageUrl: true,
+          visibility: true,
+          isNsfw: true,
+          creatorId: true,
+          universeId: true,
+          keywords: true,
+          createdAt: true,
+          updatedAt: true,
           universe: {
             select: {
               id: true,
