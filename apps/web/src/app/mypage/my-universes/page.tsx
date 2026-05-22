@@ -106,7 +106,7 @@ export default function MyUniversesPage() {
 
       // getCharacter RPC로 완전한 데이터 로드 (dataJson, lorebookJson 포함)
       const response = await characterClient.getCharacter({ id: character.id });
-      setEditingCharacter(response.character);
+      setEditingCharacter(response.character || null);
       setIsCharacterWizardOpen(true);
     } catch (error) {
       console.error('Failed to load character:', error);
@@ -123,7 +123,7 @@ export default function MyUniversesPage() {
       // getUniverse RPC로 완전한 데이터 로드 (dataJson, lorebookJson 포함)
       const response = await universeClient.getUniverse({ id: universe.id });
 
-      setEditingUniverse(response.universe);
+      setEditingUniverse(response.universe || null);
       setIsUniverseWizardOpen(true);
     } catch (error) {
       console.error('Failed to load universe:', error);

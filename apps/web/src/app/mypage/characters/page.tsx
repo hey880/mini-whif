@@ -67,7 +67,7 @@ export default function CharactersPage() {
 
       // getCharacter RPC로 완전한 데이터 로드 (dataJson, lorebookJson 포함)
       const response = await characterClient.getCharacter({ id: character.id });
-      setEditingCharacter(response.character);
+      setEditingCharacter(response.character || null);
       setIsModalOpen(true);
     } catch (error) {
       console.error('Failed to load character:', error);
