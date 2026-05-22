@@ -74,7 +74,7 @@ export function UserNoteModal({
             description: `필요: ${errorData.required} Gem, 보유: ${errorData.available} Gem`,
             action: {
               label: '충전하기',
-              onClick: () => window.location.href = '/gem-shop',
+              onClick: () => window.location.href = '/gem-store',
             },
           });
           return;

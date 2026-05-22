@@ -450,7 +450,7 @@ export default function ChatPage() {
             description: `필요: ${error.required} Gem, 보유: ${error.available} Gem`,
             action: {
               label: '충전하기',
-              onClick: () => router.push('/gem-shop'),
+              onClick: () => router.push('/gem-store'),
             },
           });
           return;
