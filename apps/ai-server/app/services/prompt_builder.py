@@ -226,45 +226,74 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
         return "\n\n".join(sections) if sections else "You are a helpful AI assistant."
 
     @staticmethod
-    def deduplicate_messages(messages: list[dict]) -> list[dict]:
+    def should_add_diversity_prompt(
+        recent_assistant_messages: list[str],
+        threshold: float = 0.85
+    ) -> tuple[bool, list[str]]:
         """
-        연속된 동일 메시지 제거
+        최근 AI 응답들을 분석하여 다양성 프롬프트 필요 여부 판단 (예방적)
 
         Args:
-            messages: 메시지 리스트
+            recent_assistant_messages: 최근 AI 응답들 (최대 3개)
+            threshold: 유사도 임계값 (기본 0.85)
 
         Returns:
-            중복이 제거된 메시지 리스트
+            (다양성 프롬프트 필요 여부, 유사한 메시지 리스트)
         """
-        if not messages:
-            return []
+        if len(recent_assistant_messages) < 2:
+            return False, []
 
-        deduplicated = [messages[0]]
-        for msg in messages[1:]:
-            if msg.get("content") != deduplicated[-1].get("content"):
-                deduplicated.append(msg)
+        similar_messages = []
+        messages_to_check = recent_assistant_messages[-3:]  # 최근 3개만
 
-        return deduplicated
+        # 모든 쌍 비교
+        for i in range(len(messages_to_check)):
+            for j in range(i + 1, len(messages_to_check)):
+                msg1 = messages_to_check[i].strip()
+                msg2 = messages_to_check[j].strip()
+
+                if not msg1 or not msg2:
+                    continue
+
+                similarity = SequenceMatcher(None, msg1, msg2).ratio()
+
+                if similarity >= threshold:
+                    if msg1 not in similar_messages:
+                        similar_messages.append(msg1)
+                    if msg2 not in similar_messages:
+                        similar_messages.append(msg2)
+
+        # 2개 이상 유사한 메시지가 있으면 다양성 필요
+        needs_diversity = len(similar_messages) >= 2
+
+        return needs_diversity, similar_messages
 
     @staticmethod
-    def check_similarity(new_msg: str, recent_messages: list[dict], threshold: float = 0.95) -> bool:
+    def build_diversity_prompt(similar_responses: list[str]) -> str:
         """
-        최근 메시지와의 유사도 검사 (threshold 이상이면 True 반환)
+        다양성을 위한 프롬프트 생성 (예방적)
 
         Args:
-            new_msg: 새 메시지
-            recent_messages: 최근 메시지 리스트
-            threshold: 유사도 임계값 (기본 0.95)
+            similar_responses: 유사한 이전 응답들
 
         Returns:
-            유사도가 임계값 이상인 경우 True
+            다양성 유도 프롬프트
         """
-        for msg in recent_messages[-5:]:  # 최근 5개만 체크
-            if msg.get("role") == "assistant":
-                similarity = SequenceMatcher(None, new_msg, msg.get("content", "")).ratio()
-                if similarity >= threshold:
-                    return True
-        return False
+        prev_texts = "\n".join([f"- \"{resp[:100]}...\"" for resp in similar_responses if resp])
+
+        return f"""# ⚠️ Response Diversity Required
+
+You have recently generated similar responses:
+{prev_texts}
+
+**CRITICAL**: Your next response MUST be significantly different. Please:
+1. Use a **completely different emotional tone** (if previous was cheerful, try contemplative, serious, playful, or melancholic)
+2. Take a **new angle or perspective** on the situation
+3. Use **entirely different vocabulary and phrasing**
+4. Add **fresh details, observations, or actions** not mentioned before
+5. Vary your **narrative style and structure**
+
+Avoid repeating similar phrases, actions, reactions, or sentiments from the above responses."""
 
     @staticmethod
     def filter_triggered_lorebook_entries(
@@ -333,7 +362,6 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
         new_user_message: str,
         hint: str | None = None,
         character_name: str | None = None,
-        enable_deduplication: bool = True,
     ) -> list[dict[str, str]]:
         """
         Build complete message array for AI model.
@@ -343,7 +371,6 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
             message_history: Previous messages
             new_user_message: New message from user
             hint: Optional hint for character's next action (auto-continue)
-            enable_deduplication: 중복 제거 활성화 (기본 True)
 
         Returns:
             Complete message list
@@ -351,13 +378,7 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
         messages = [{"role": "system", "content": system_prompt}]
 
         # Add history (last 20 messages to stay within context)
-        formatted_history = message_history[-20:]
-
-        # Apply deduplication if enabled
-        if enable_deduplication:
-            formatted_history = PromptBuilder.deduplicate_messages(formatted_history)
-
-        messages.extend(formatted_history)
+        messages.extend(message_history[-20:])
 
         # Add new user message first (if provided)
         if new_user_message:

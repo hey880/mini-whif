@@ -66,6 +66,7 @@ export class ChatService {
               id: true,
               name: true,
               description: true,
+              aiPromptDescription: true,
               greeting: true,
               tagline: true,
               lorebook: true,
@@ -164,6 +165,8 @@ export class ChatService {
       situationalImagesInfo: aiContext.situationalImagesInfo,
       characterData: room.character.data,
       personaName: aiContext.personaName,
+      userNote: room.userNote,
+      conversationSummary: room.conversationSummary,
       reply,
       server: this.server,
     });
@@ -193,7 +196,9 @@ export class ChatService {
       name: characterName,
       description: replacePlaceholders(room.character.description || ''),
       greeting: replacePlaceholders(room.character.greeting || ''),
-      personality: replacePlaceholders(room.character.tagline || ''),
+      personality: replacePlaceholders(
+        room.character.aiPromptDescription || room.character.tagline || ''
+      ),
     };
 
     // Parse and merge lorebooks

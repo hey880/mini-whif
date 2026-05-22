@@ -122,6 +122,25 @@ async def send_chat_message(
             hint=request.hint,  # Layer 1 enforcement
         )
 
+        # Proactive diversity check: analyze recent assistant messages BEFORE generation
+        recent_assistant_messages = [
+            msg["content"]
+            for msg in message_history
+            if msg.get("role") == "assistant"
+        ][-3:]  # Last 3 assistant messages
+
+        needs_diversity, similar_messages = PromptBuilder.should_add_diversity_prompt(
+            recent_assistant_messages, threshold=0.85
+        )
+
+        if needs_diversity:
+            logger.info(
+                f"🎨 Proactive diversity: Detected {len(similar_messages)} similar recent responses "
+                f"(threshold: 0.85), adding diversity prompt to prevent repetition"
+            )
+            diversity_prompt = PromptBuilder.build_diversity_prompt(similar_messages)
+            system_prompt = system_prompt + "\n\n" + diversity_prompt
+
         # Debug log for hint
         if request.hint:
             logger.info(f"Regenerating with hint: {request.hint}")

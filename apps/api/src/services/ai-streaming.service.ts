@@ -30,6 +30,8 @@ interface StreamAIResponseParams {
   situationalImagesInfo: any[];
   characterData: any; // OPTIMIZATION: pre-loaded character data
   personaName: string; // OPTIMIZATION: pre-loaded persona name
+  userNote?: string | null;
+  conversationSummary?: string | null;
   reply: any;
   server: FastifyInstance;
 }
@@ -223,6 +225,8 @@ export class AIStreamingService {
           lorebook_entries: params.lorebookEntries,
           situational_triggers: params.situationalImagesInfo,
           persona_name: params.personaName, // OPTIMIZATION: send persona name to avoid AI server DB query
+          user_note: params.userNote,
+          conversation_summary: params.conversationSummary,
         }),
         signal: controller.signal,
       });
