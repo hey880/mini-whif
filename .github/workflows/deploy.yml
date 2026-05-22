@@ -28,12 +28,16 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
+            # 로그 디렉토리 생성
+            mkdir -p logs/api logs/ai
+
             # 환경 변수 업데이트
             echo "${{ secrets.ENV_FILE }}" > .env
 
             # 이미지 빌드 및 재시작
             docker-compose pull || true
-            docker-compose build --pull
+            docker-compose build --pull api ai-server
+            docker-compose build --no-cache --pull web
             docker-compose up -d --remove-orphans
 
             # 오래된 이미지 정리
