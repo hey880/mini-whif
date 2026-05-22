@@ -650,6 +650,16 @@ export default function ChatPage() {
         .find((msg: any) => msg.role === 'assistant')?.id
     : null;
 
+  // Find the last overall message ID (regardless of role)
+  const lastOverallMessageId = messagesData?.messages?.[messagesData.messages.length - 1]?.id || null;
+
+  // Find the last user message ID
+  const lastUserMessageId = messagesData?.messages
+    ? [...messagesData.messages]
+        .reverse()
+        .find((msg: any) => msg.role === 'user')?.id
+    : null;
+
   // Find the first message ID (greeting message, should not be deletable)
   const firstMessageId = messagesData?.messages?.[0]?.id || null;
 
@@ -759,6 +769,7 @@ export default function ChatPage() {
                 versionNumber={message.versionNumber || 1}
                 modelCost={modelCost}
                 isLastAiMessage={message.id === lastAiMessageId}
+                isLastUserMessage={message.id === lastUserMessageId && message.id === lastOverallMessageId}
                 isFirstMessage={message.id === firstMessageId}
                 onCharacterAvatarClick={() => setIsCharacterModalOpen(true)}
                 onEdit={handleOpenEditModal}

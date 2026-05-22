@@ -497,55 +497,57 @@ export default function CharacterDetailPage() {
         {sameUniverseCharacters && sameUniverseCharacters.length > 0 && (
           <div className="glass-card p-6">
             <h2 className="text-headline-small font-headline mb-4">같은 작품 캐릭터</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sameUniverseCharacters.map((char: Character) => (
-                <Link
-                  key={char.id}
-                  href={`/characters/${char.id}`}
-                  className="flex gap-4 p-4 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors group"
-                >
-                  {/* Character Image */}
-                  <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-surface-container-highest">
-                    {char.imageUrl ? (
-                      <img
-                        src={char.imageUrl}
-                        alt={char.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="material-symbols-outlined text-3xl text-on-surface-variant">
-                          person
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Character Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-title-medium font-bold mb-1 group-hover:text-primary transition-colors">
-                      {char.name}
-                    </h3>
-                    {char.tagline && (
-                      <p className="text-body-small text-on-surface-variant line-clamp-2 mb-2">
-                        {char.tagline}
-                      </p>
-                    )}
-                    {char.keywords && char.keywords.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {char.keywords.slice(0, 3).map((keyword) => (
-                          <span
-                            key={keyword}
-                            className="px-2 py-0.5 rounded-full bg-surface-container-high text-label-small text-on-surface-variant"
-                          >
-                            {keyword}
+            <div className="w-full overflow-x-auto custom-scrollbar pb-2">
+              <div className="flex gap-4 min-w-max">
+                {sameUniverseCharacters.map((char: Character) => (
+                  <Link
+                    key={char.id}
+                    href={`/characters/${char.id}`}
+                    className="flex flex-col gap-3 p-4 w-64 flex-shrink-0 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors group"
+                  >
+                    {/* Character Image */}
+                    <div className="w-full h-64 rounded-lg overflow-hidden bg-surface-container-highest">
+                      {char.imageUrl ? (
+                        <img
+                          src={char.imageUrl}
+                          alt={char.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="material-symbols-outlined text-6xl text-on-surface-variant">
+                            person
                           </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Character Info */}
+                    <div className="flex-1">
+                      <h3 className="text-title-medium font-bold mb-1 group-hover:text-primary transition-colors">
+                        {char.name}
+                      </h3>
+                      {char.tagline && (
+                        <p className="text-body-small text-on-surface-variant line-clamp-2 mb-2">
+                          {char.tagline}
+                        </p>
+                      )}
+                      {char.keywords && char.keywords.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {char.keywords.slice(0, 3).map((keyword) => (
+                            <span
+                              key={keyword}
+                              className="px-2 py-0.5 rounded-full bg-surface-container-high text-label-small text-on-surface-variant"
+                            >
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         )}

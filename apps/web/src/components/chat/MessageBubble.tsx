@@ -27,6 +27,7 @@ interface MessageBubbleProps {
   versionNumber?: number;
   modelCost?: number;
   isLastAiMessage?: boolean;
+  isLastUserMessage?: boolean;
   isFirstMessage?: boolean;
   onReroll?: (messageId: string, modelCost: number) => void;
   onEdit?: (messageId: string) => void;
@@ -50,6 +51,7 @@ export function MessageBubble({
   versionNumber = 1,
   modelCost = 10,
   isLastAiMessage = false,
+  isLastUserMessage = false,
   isFirstMessage = false,
   onReroll,
   onEdit,
@@ -168,6 +170,15 @@ export function MessageBubble({
         {/* User message actions (hover only) */}
         {!isAI && (
           <div className="mt-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onReroll && isLastUserMessage && (
+              <button
+                onClick={() => onReroll(messageId, modelCost)}
+                className="p-1.5 hover:bg-surface-container rounded-lg transition-colors"
+                title="재생성"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={() => onEdit?.(messageId)}
               className="p-1.5 hover:bg-surface-container rounded-lg transition-colors"
