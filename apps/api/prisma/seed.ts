@@ -93,22 +93,24 @@ async function main() {
   // ============================================
   // 3. Demo Universe (Optional)
   // ============================================
-  console.log('Creating demo universe...');
+  // Note: Universe creation requires a valid Profile (creatorId)
+  // Uncomment and modify if needed after creating test users
 
-  const demoUniverse = await prisma.universe.upsert({
-    where: { id: '00000000-0000-0000-0000-000000000001' },
-    update: {
-      name: 'Persona Chat Demo World',
-      description: 'A sample universe for demonstration purposes',
-    },
-    create: {
-      id: '00000000-0000-0000-0000-000000000001',
-      name: 'Persona Chat Demo World',
-      description: 'A sample universe for demonstration purposes',
-    },
-  });
-
-  console.log(`✅ Created demo universe: ${demoUniverse.name}`);
+  // console.log('Creating demo universe...');
+  // const demoUniverse = await prisma.universe.upsert({
+  //   where: { id: '00000000-0000-0000-0000-000000000001' },
+  //   update: {
+  //     name: 'Persona Chat Demo World',
+  //     description: 'A sample universe for demonstration purposes',
+  //   },
+  //   create: {
+  //     id: '00000000-0000-0000-0000-000000000001',
+  //     name: 'Persona Chat Demo World',
+  //     creatorId: '<your-profile-id-here>', // Must be a valid Profile ID
+  //     description: 'A sample universe for demonstration purposes',
+  //   },
+  // });
+  // console.log(`✅ Created demo universe: ${demoUniverse.name}`);
 
   console.log('');
   console.log('🎉 Database seed completed successfully!');
@@ -116,7 +118,7 @@ async function main() {
   console.log('Summary:');
   console.log(`  - ${models.length} LLM models`);
   console.log(`  - ${keywords.length} popular keywords`);
-  console.log(`  - 1 demo universe`);
+  // console.log(`  - 1 demo universe`);
   console.log('');
 }
 

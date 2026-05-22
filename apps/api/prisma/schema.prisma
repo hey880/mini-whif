@@ -92,6 +92,7 @@ model GemLog {
   amount           Int
   gemType          String   @map("gem_type") // paid, free_daily, free_promo
   logType          String   @map("log_type") // chat_message, purchase, refund, daily_refill, promo_grant, admin_adjustment
+  balanceAfter     Int?     @map("balance_after") // 거래 후 전체 잔액
   relatedOrderId   String?  @map("related_order_id") @db.Uuid
   relatedMessageId String?  @map("related_message_id") @db.Uuid
   memo             String?  @db.Text
@@ -164,22 +165,23 @@ model Universe {
 }
 
 model Character {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name            String
-  tagline         String?
-  description     String?  @db.Text
-  greeting        String?  @db.Text
-  imageUrl        String?  @map("image_url")
-  bannerImageUrl  String?  @map("banner_image_url")
-  visibility      String   @default("public") // public, private
-  isNsfw          Boolean  @default(false) @map("is_nsfw")
-  creatorId       String   @map("creator_id") @db.Uuid
-  universeId      String?  @map("universe_id") @db.Uuid
-  keywords        String[] @default([])
-  data            Json     @default("{}")
-  lorebook        Json?
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String
+  tagline               String?
+  description           String?  @db.Text // UI 표시용 설명 (2000자 제한)
+  aiPromptDescription   String?  @map("ai_prompt_description") @db.Text // AI 프롬프트용 설명 (5000자 제한)
+  greeting              String?  @db.Text
+  imageUrl              String?  @map("image_url")
+  bannerImageUrl        String?  @map("banner_image_url")
+  visibility            String   @default("public") // public, private
+  isNsfw                Boolean  @default(false) @map("is_nsfw")
+  creatorId             String   @map("creator_id") @db.Uuid
+  universeId            String?  @map("universe_id") @db.Uuid
+  keywords              String[] @default([])
+  data                  Json     @default("{}")
+  lorebook              Json?
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
   creator           Profile       @relation(fields: [creatorId], references: [id], onDelete: Cascade)

@@ -425,6 +425,154 @@ Dockerfile은 Phase 5에 추가됩니다.
 
 ---
 
+## 성능 고려사항
+
+### N+1 쿼리 방지
+
+대량 데이터 삽입 시 `createMany` 사용:
+
+```typescript
+// ❌ Bad: N+1 쿼리
+for (const message of messages) {
+  await prisma.message.create({ data: message });
+}
+
+// ✅ Good: 일괄 삽입
+await prisma.message.createMany({
+  data: messages,
+});
+```
+
+### 병렬 쿼리 패턴
+
+독립적인 쿼리는 병렬로 실행:
+
+```typescript
+// ❌ Bad: 순차 실행 (300ms)
+const user = await prisma.user.findUnique({ where: { id } });
+const settings = await prisma.settings.findUnique({ where: { userId: id } });
+
+// ✅ Good: 병렬 실행 (100ms)
+const [user, settings] = await Promise.all([
+  prisma.user.findUnique({ where: { id } }),
+  prisma.settings.findUnique({ where: { userId: id } }),
+]);
+```
+
+### 트랜잭션 사용
+
+원자성이 필요한 작업은 트랜잭션으로:
+
+```typescript
+// ❌ Bad: race condition 가능
+await prisma.reaction.create({ data });
+await prisma.message.update({
+  where: { id },
+  data: { count: { increment: 1 } }
+});
+
+// ✅ Good: 원자성 보장
+await prisma.$transaction([
+  prisma.reaction.create({ data }),
+  prisma.message.update({
+    where: { id },
+    data: { count: { increment: 1 } }
+  }),
+]);
+```
+
+### Select로 필요한 필드만 조회
+
+리스트 조회 시 무거운 필드 제외:
+
+```typescript
+// ❌ Bad: 모든 필드 로딩 (2초)
+const characters = await prisma.character.findMany({ where });
+
+// ✅ Good: 필요한 필드만 조회 (0.3초)
+const characters = await prisma.character.findMany({
+  where,
+  select: {
+    id: true,
+    name: true,
+    imageUrl: true,
+    // data, lorebook 제외
+  },
+});
+```
+
+---
+
+## Repository 패턴 (Phase 2+)
+
+Phase 2부터 데이터 접근 로직을 Repository 레이어로 분리했습니다.
+
+### Repository 사용 예시
+
+#### Before (Prisma 직접 호출)
+
+```typescript
+// ❌ 권한 검증 + 데이터 접근 로직이 산재
+export const chatroomService = {
+  async cloneChatRoom(req, context) {
+    const sourceRoom = await prisma.chatRoom.findUnique({
+      where: { id: req.sourceRoomId },
+      include: { messages: true },
+    });
+
+    if (!sourceRoom || sourceRoom.userId !== context.user!.id) {
+      throw new Error('Forbidden');
+    }
+
+    // ... 복잡한 복제 로직
+  },
+};
+```
+
+#### After (Repository 사용)
+
+```typescript
+// ✅ 데이터 접근 로직 캡슐화
+import { PrismaChatRoomRepository } from '../infrastructure/repositories/PrismaChatRoomRepository.js';
+
+export const chatroomService = {
+  async cloneChatRoom(req, context) {
+    const chatRoomRepo = new PrismaChatRoomRepository(prisma);
+
+    // 권한 검증 + 복제 로직이 Repository에 캡슐화됨
+    const clonedRoom = await chatRoomRepo.cloneWithMessages(
+      req.sourceRoomId,
+      context.user!.id,
+      req.newPersonaId
+    );
+
+    return { chatRoom: mapToProto(clonedRoom) };
+  },
+};
+```
+
+**개선 효과:**
+- 코드 라인 수 50% 감소
+- 권한 검증 로직 재사용
+- 테스트 시 Mock Repository 사용 가능
+- Prisma 교체 시 Repository만 수정
+
+### 사용 가능한 Repository
+
+Phase 2에서 다음 Repository들이 구현되었습니다:
+
+1. **ChatRoomRepository**: 채팅방 CRUD, 메시지 포함 복제
+2. **MessageRepository**: 메시지 CRUD, 버저닝
+3. **GemWalletRepository**: 잔액 조회, Gem 차감
+4. **CharacterRepository**: 캐릭터 CRUD, 키워드 검색
+5. **PersonaRepository**: 페르소나 CRUD, 기본 페르소나 설정
+6. **UniverseRepository**: 세계관 CRUD
+7. **LlmModelRepository**: 모델 CRUD, 기본 모델 조회
+
+자세한 내용은 `docs/ARCHITECTURE.md`를 참조하세요.
+
+---
+
 ## 지원
 
 문제 발생 시:

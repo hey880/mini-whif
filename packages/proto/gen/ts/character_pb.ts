@@ -225,58 +225,67 @@ export class CreateCharacterRequest extends Message<CreateCharacterRequest> {
   tagline?: string;
 
   /**
+   * UI 표시용 설명 (2000자 제한)
+   *
    * @generated from field: optional string description = 3;
    */
   description?: string;
 
   /**
-   * @generated from field: optional string greeting = 4;
+   * AI 프롬프트용 설명 (5000자 제한)
+   *
+   * @generated from field: optional string ai_prompt_description = 4;
+   */
+  aiPromptDescription?: string;
+
+  /**
+   * @generated from field: optional string greeting = 5;
    */
   greeting?: string;
 
   /**
-   * @generated from field: optional string image_url = 5;
+   * @generated from field: optional string image_url = 6;
    */
   imageUrl?: string;
 
   /**
-   * @generated from field: optional string banner_image_url = 6;
+   * @generated from field: optional string banner_image_url = 7;
    */
   bannerImageUrl?: string;
 
   /**
    * public, private
    *
-   * @generated from field: string visibility = 7;
+   * @generated from field: string visibility = 8;
    */
   visibility = "";
 
   /**
-   * @generated from field: bool is_nsfw = 8;
+   * @generated from field: bool is_nsfw = 9;
    */
   isNsfw = false;
 
   /**
-   * @generated from field: optional string universe_id = 9;
+   * @generated from field: optional string universe_id = 10;
    */
   universeId?: string;
 
   /**
-   * @generated from field: repeated string keywords = 10;
+   * @generated from field: repeated string keywords = 11;
    */
   keywords: string[] = [];
 
   /**
    * JSON string of CharacterData
    *
-   * @generated from field: optional string data_json = 11;
+   * @generated from field: optional string data_json = 12;
    */
   dataJson?: string;
 
   /**
    * JSON string of CharacterLorebook
    *
-   * @generated from field: optional string lorebook_json = 12;
+   * @generated from field: optional string lorebook_json = 13;
    */
   lorebookJson?: string;
 
@@ -291,15 +300,16 @@ export class CreateCharacterRequest extends Message<CreateCharacterRequest> {
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "tagline", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 4, name: "greeting", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 5, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 6, name: "banner_image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 7, name: "visibility", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 8, name: "is_nsfw", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 9, name: "universe_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 10, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 11, name: "data_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 12, name: "lorebook_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 4, name: "ai_prompt_description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 5, name: "greeting", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 6, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 7, name: "banner_image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 8, name: "visibility", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "is_nsfw", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 10, name: "universe_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 11, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 12, name: "data_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 13, name: "lorebook_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateCharacterRequest {
@@ -376,52 +386,61 @@ export class UpdateCharacterRequest extends Message<UpdateCharacterRequest> {
   tagline?: string;
 
   /**
+   * UI 표시용 설명
+   *
    * @generated from field: optional string description = 4;
    */
   description?: string;
 
   /**
-   * @generated from field: optional string greeting = 5;
+   * AI 프롬프트용 설명
+   *
+   * @generated from field: optional string ai_prompt_description = 5;
+   */
+  aiPromptDescription?: string;
+
+  /**
+   * @generated from field: optional string greeting = 6;
    */
   greeting?: string;
 
   /**
-   * @generated from field: optional string image_url = 6;
+   * @generated from field: optional string image_url = 7;
    */
   imageUrl?: string;
 
   /**
-   * @generated from field: optional string banner_image_url = 7;
+   * @generated from field: optional string banner_image_url = 8;
    */
   bannerImageUrl?: string;
 
   /**
-   * @generated from field: optional string visibility = 8;
+   * @generated from field: optional string visibility = 9;
    */
   visibility?: string;
 
   /**
-   * @generated from field: optional bool is_nsfw = 9;
+   * @generated from field: optional bool is_nsfw = 10;
    */
   isNsfw?: boolean;
 
   /**
-   * @generated from field: optional string universe_id = 10;
+   * @generated from field: optional string universe_id = 11;
    */
   universeId?: string;
 
   /**
-   * @generated from field: repeated string keywords = 11;
+   * @generated from field: repeated string keywords = 12;
    */
   keywords: string[] = [];
 
   /**
-   * @generated from field: optional string data_json = 12;
+   * @generated from field: optional string data_json = 13;
    */
   dataJson?: string;
 
   /**
-   * @generated from field: optional string lorebook_json = 13;
+   * @generated from field: optional string lorebook_json = 14;
    */
   lorebookJson?: string;
 
@@ -437,15 +456,16 @@ export class UpdateCharacterRequest extends Message<UpdateCharacterRequest> {
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 3, name: "tagline", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 4, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 5, name: "greeting", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 6, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 7, name: "banner_image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 8, name: "visibility", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 9, name: "is_nsfw", kind: "scalar", T: 8 /* ScalarType.BOOL */, opt: true },
-    { no: 10, name: "universe_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 11, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 12, name: "data_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 13, name: "lorebook_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 5, name: "ai_prompt_description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 6, name: "greeting", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 7, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 8, name: "banner_image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 9, name: "visibility", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 10, name: "is_nsfw", kind: "scalar", T: 8 /* ScalarType.BOOL */, opt: true },
+    { no: 11, name: "universe_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 12, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 13, name: "data_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 14, name: "lorebook_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateCharacterRequest {
@@ -596,87 +616,96 @@ export class Character extends Message<Character> {
   tagline?: string;
 
   /**
+   * UI 표시용 설명
+   *
    * @generated from field: optional string description = 4;
    */
   description?: string;
 
   /**
-   * @generated from field: optional string greeting = 5;
+   * AI 프롬프트용 설명
+   *
+   * @generated from field: optional string ai_prompt_description = 5;
+   */
+  aiPromptDescription?: string;
+
+  /**
+   * @generated from field: optional string greeting = 6;
    */
   greeting?: string;
 
   /**
-   * @generated from field: optional string image_url = 6;
+   * @generated from field: optional string image_url = 7;
    */
   imageUrl?: string;
 
   /**
-   * @generated from field: optional string banner_image_url = 7;
+   * @generated from field: optional string banner_image_url = 8;
    */
   bannerImageUrl?: string;
 
   /**
-   * @generated from field: string visibility = 8;
+   * @generated from field: string visibility = 9;
    */
   visibility = "";
 
   /**
-   * @generated from field: bool is_nsfw = 9;
+   * @generated from field: bool is_nsfw = 10;
    */
   isNsfw = false;
 
   /**
-   * @generated from field: string creator_id = 10;
+   * @generated from field: string creator_id = 11;
    */
   creatorId = "";
 
   /**
-   * @generated from field: optional string universe_id = 11;
+   * @generated from field: optional string universe_id = 12;
    */
   universeId?: string;
 
   /**
-   * @generated from field: repeated string keywords = 12;
+   * @generated from field: repeated string keywords = 13;
    */
   keywords: string[] = [];
 
   /**
-   * @generated from field: string data_json = 13;
+   * @generated from field: string data_json = 14;
    */
   dataJson = "";
 
   /**
-   * @generated from field: optional string lorebook_json = 14;
+   * @generated from field: optional string lorebook_json = 15;
    */
   lorebookJson?: string;
 
   /**
-   * @generated from field: string created_at = 15;
+   * @generated from field: string created_at = 16;
    */
   createdAt = "";
 
   /**
-   * @generated from field: string updated_at = 16;
+   * @generated from field: string updated_at = 17;
    */
   updatedAt = "";
 
   /**
-   * @generated from field: int32 total_chat_count = 17;
+   * @generated from field: int32 total_chat_count = 18;
    */
   totalChatCount = 0;
 
   /**
-   * @generated from field: int32 total_message_count = 18;
+   * @generated from field: int32 total_message_count = 19;
    */
   totalMessageCount = 0;
 
   /**
-   * @generated from field: double avg_rating = 19;
+   * @generated from field: double avg_rating = 20;
    */
   avgRating = 0;
 
   /**
-   * @generated from field: optional string creator_display_name = 20;
+   * @generated from field: optional string creator_display_name = 21;
    */
   creatorDisplayName?: string;
 
@@ -692,22 +721,23 @@ export class Character extends Message<Character> {
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "tagline", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 4, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 5, name: "greeting", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 6, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 7, name: "banner_image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 8, name: "visibility", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: "is_nsfw", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 10, name: "creator_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 11, name: "universe_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 12, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 13, name: "data_json", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 14, name: "lorebook_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
-    { no: 15, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 16, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 17, name: "total_chat_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 18, name: "total_message_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 19, name: "avg_rating", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
-    { no: 20, name: "creator_display_name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 5, name: "ai_prompt_description", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 6, name: "greeting", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 7, name: "image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 8, name: "banner_image_url", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 9, name: "visibility", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "is_nsfw", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 11, name: "creator_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 12, name: "universe_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 13, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 14, name: "data_json", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 15, name: "lorebook_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 16, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 17, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 18, name: "total_chat_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 19, name: "total_message_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 20, name: "avg_rating", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 21, name: "creator_display_name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Character {

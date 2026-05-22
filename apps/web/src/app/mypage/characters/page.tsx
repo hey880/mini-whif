@@ -15,6 +15,7 @@ export default function CharactersPage() {
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [visibilityFilter, setVisibilityFilter] = useState<string>('all');
   const [nsfwFilter, setNsfwFilter] = useState<boolean | null>(null);
+  const [loadingCharacterId, setLoadingCharacterId] = useState<string | null>(null);
 
   // Fetch user's characters
   const { data: charactersData, isLoading } = useQuery({
@@ -60,9 +61,20 @@ export default function CharactersPage() {
     setIsModalOpen(true);
   };
 
-  const handleEditClick = (character: Character) => {
-    setEditingCharacter(character);
-    setIsModalOpen(true);
+  const handleEditClick = async (character: Character) => {
+    try {
+      setLoadingCharacterId(character.id);
+
+      // getCharacter RPC로 완전한 데이터 로드 (dataJson, lorebookJson 포함)
+      const response = await characterClient.getCharacter({ id: character.id });
+      setEditingCharacter(response.character || null);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Failed to load character:', error);
+      alert('캐릭터 데이터를 불러오는데 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoadingCharacterId(null);
+    }
   };
 
   const handleDeleteClick = (character: Character) => {
@@ -240,10 +252,15 @@ export default function CharactersPage() {
                     e.preventDefault();
                     handleEditClick(character);
                   }}
-                  className="p-2 rounded-lg bg-surface-container/90 hover:bg-primary hover:text-on-primary backdrop-blur-md transition-all"
+                  disabled={loadingCharacterId === character.id}
+                  className="p-2 rounded-lg bg-surface-container/90 hover:bg-primary hover:text-on-primary backdrop-blur-md transition-all disabled:opacity-50"
                   title="Edit character"
                 >
-                  <span className="material-symbols-outlined text-xl">edit</span>
+                  {loadingCharacterId === character.id ? (
+                    <span className="material-symbols-outlined text-xl animate-spin">refresh</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-xl">edit</span>
+                  )}
                 </button>
                 <button
                   onClick={(e) => {

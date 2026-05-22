@@ -27,6 +27,7 @@ interface MessageBubbleProps {
   versionNumber?: number;
   modelCost?: number;
   isLastAiMessage?: boolean;
+  isFirstMessage?: boolean;
   onReroll?: (messageId: string, modelCost: number) => void;
   onEdit?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
@@ -49,6 +50,7 @@ export function MessageBubble({
   versionNumber = 1,
   modelCost = 10,
   isLastAiMessage = false,
+  isFirstMessage = false,
   onReroll,
   onEdit,
   onDelete,
@@ -62,14 +64,11 @@ export function MessageBubble({
   const [displayContent, setDisplayContent] = useState(content);
   const [currentDisplayVersion, setCurrentDisplayVersion] = useState(versionNumber);
 
-  // ✅ CRITICAL FIX: Update displayContent when content prop changes (for streaming)
-  // This is essential for real-time streaming updates
+  // ✅ CRITICAL FIX: Update displayContent when content prop changes
+  // This handles: streaming updates, message edits, and external content changes
   useEffect(() => {
-    // For streaming messages or when content changes externally, update display
-    if (messageId === 'streaming' || messageId.startsWith('optimistic-')) {
-      setDisplayContent(content);
-    }
-  }, [content, messageId]);
+    setDisplayContent(content);
+  }, [content]);
 
   // Handle version change from selector
   const handleVersionChange = (newContent: string, newVersion: number) => {
@@ -176,13 +175,15 @@ export function MessageBubble({
             >
               <Edit2 className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => onDelete?.(messageId)}
-              className="p-1.5 hover:bg-error-container rounded-lg transition-colors text-error"
-              title="삭제"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {!isFirstMessage && (
+              <button
+                onClick={() => onDelete?.(messageId)}
+                className="p-1.5 hover:bg-error-container rounded-lg transition-colors text-error"
+                title="삭제"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={() => onBookmark?.(messageId)}
               className="p-1.5 hover:bg-surface-container rounded-lg transition-colors"
@@ -204,7 +205,7 @@ export function MessageBubble({
               {formatDate(timestamp)}
             </span>
 
-            {onReroll && (
+            {onReroll && isLastAiMessage && (
               <button
                 onClick={() => onReroll(messageId, modelCost)}
                 className="p-1.5 hover:bg-surface-container rounded-lg transition-colors"
@@ -224,7 +225,7 @@ export function MessageBubble({
               </button>
             )}
 
-            {onReaction && (
+            {onReaction && isLastAiMessage && (
               userReaction ? (
                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-surface-container">
                   {userReaction.reactionType === 'positive' ? (
@@ -268,13 +269,15 @@ export function MessageBubble({
               )}
             </button>
 
-            <button
-              onClick={() => onDelete?.(messageId)}
-              className="p-1.5 hover:bg-error-container rounded-lg transition-colors text-error"
-              title="삭제"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {!isFirstMessage && (
+              <button
+                onClick={() => onDelete?.(messageId)}
+                className="p-1.5 hover:bg-error-container rounded-lg transition-colors text-error"
+                title="삭제"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         )}
 

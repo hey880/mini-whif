@@ -19,22 +19,49 @@ export class AuthService {
     }
 
     try {
-      // Create profile
-      const profile = await prisma.profile.create({
-        data: {
-          id: authData.user.id,
-          email: input.email,
-          displayName: input.displayName,
-        },
+      console.log('🔵 [SignUp] Starting transaction for user:', input.email);
+
+      // Create profile, gem wallet, and initial gem log in a transaction
+      const profile = await prisma.$transaction(async (tx) => {
+        console.log('🔵 [SignUp] Step 1: Creating profile');
+        // 1. Create profile
+        const newProfile = await tx.profile.create({
+          data: {
+            id: authData.user!.id,
+            email: input.email,
+            displayName: input.displayName,
+          },
+        });
+        console.log('✅ [SignUp] Profile created:', newProfile.id);
+
+        console.log('🔵 [SignUp] Step 2: Creating gem wallet');
+        // 2. Create gem wallet with 200 free daily gems
+        const wallet = await tx.gemWallet.create({
+          data: {
+            userId: newProfile.id,
+            freeDailyGemAmount: 200,
+          },
+        });
+        console.log('✅ [SignUp] Wallet created:', wallet.id, 'with', wallet.freeDailyGemAmount, 'gems');
+
+        console.log('🔵 [SignUp] Step 3: Creating initial gem log');
+        // 3. Create initial gem log for signup bonus
+        const gemLog = await tx.gemLog.create({
+          data: {
+            userId: newProfile.id,
+            amount: 200,
+            gemType: 'free_daily',
+            logType: 'daily_refill',
+            balanceAfter: 200, // 회원가입 시 첫 충전이므로 총 잔액 = 200
+            memo: '회원가입 축하 보너스',
+          },
+        });
+        console.log('✅ [SignUp] Gem log created:', gemLog.id, 'amount:', gemLog.amount);
+
+        return newProfile;
       });
 
-      // Create gem wallet with 200 free gems
-      await prisma.gemWallet.create({
-        data: {
-          userId: profile.id,
-          freeDailyGemAmount: 200,
-        },
-      });
+      console.log('✅ [SignUp] Transaction completed successfully');
 
       return {
         session: authData.session!,

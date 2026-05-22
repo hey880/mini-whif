@@ -33,8 +33,8 @@ export function RelatedContentCard({
   const [imageError, setImageError] = useState(false);
   const Icon = typeIcons[content.type];
 
-  // Check if this is a YouTube video
-  const isYoutube = content.type === 'video' && isYoutubeUrl(content.url);
+  // Check if this is a YouTube video (type can be 'video' or 'link')
+  const isYoutube = (content.type === 'video' || content.type === 'link') && isYoutubeUrl(content.url);
   const youtubeVideoId = isYoutube ? extractYoutubeVideoId(content.url) : null;
 
   return (
@@ -116,12 +116,16 @@ export function RelatedContentCard({
       {/* YouTube Player Embed (readOnly mode only) */}
       {readOnly && isYoutube && youtubeVideoId && (
         <div className="mt-4">
-          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+          <div className="mb-2 flex items-center gap-2">
+            <Video className="w-4 h-4 text-error" />
+            <span className="text-sm font-medium text-on-surface">YouTube 영상</span>
+          </div>
+          <div className="relative w-full rounded-lg overflow-hidden" style={{ paddingBottom: '56.25%' }}>
             <iframe
-              className="absolute top-0 left-0 w-full h-full rounded-lg"
+              className="absolute top-0 left-0 w-full h-full"
               src={`https://www.youtube.com/embed/${youtubeVideoId}`}
               title={content.title || 'YouTube video'}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
           </div>

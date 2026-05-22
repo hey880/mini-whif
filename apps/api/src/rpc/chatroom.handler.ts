@@ -187,6 +187,16 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
       throw new ConnectError('Unauthorized', Code.Unauthenticated);
     }
 
+    // WORKAROUND: ConnectRPC 직렬화 버그로 인해 userNote를 통해 greetingId를 전달받음
+    // selectedGreetingId 필드가 HTTP 페이로드에 포함되지 않는 문제
+    let actualGreetingId = req.selectedGreetingId;
+    let actualUserNote = req.userNote;
+
+    if (req.userNote && req.userNote.startsWith('__greeting:')) {
+      actualGreetingId = req.userNote.substring(11);
+      actualUserNote = undefined;
+    }
+
     // Verify character exists
     const character = await prisma.character.findUnique({
       where: { id: req.characterId },
@@ -213,7 +223,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
         userId: user.id,
         characterId: req.characterId,
         personaId: req.personaId || undefined,
-        userNote: req.userNote || undefined,
+        userNote: actualUserNote || undefined,
       },
       include: {
         character: {
@@ -245,10 +255,25 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
     if (character.data && typeof character.data === 'object') {
       const data = character.data as any;
       if (Array.isArray(data.greetings) && data.greetings.length > 0) {
-        // Find default greeting or use first one
-        const defaultGreeting = data.greetings.find((g: any) => g.isDefault);
-        const greeting = defaultGreeting || data.greetings[0];
-        greetingContent = greeting.content || '';
+        let selectedGreeting = null;
+
+        // Priority 1: Use specified greetingId if provided
+        if (actualGreetingId) {
+          selectedGreeting = data.greetings.find((g: any) => g.id === actualGreetingId);
+        }
+
+        // Priority 2: Use default greeting
+        if (!selectedGreeting) {
+          selectedGreeting = data.greetings.find((g: any) => g.isDefault);
+        }
+
+        // Priority 3: Use first greeting
+        if (!selectedGreeting) {
+          selectedGreeting = data.greetings[0];
+          console.log('[CreateChatRoom] Using first greeting:', selectedGreeting.title);
+        }
+
+        greetingContent = selectedGreeting.content || '';
       }
     }
 
@@ -259,13 +284,22 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
 
     // Create greeting message if we have content
     if (greetingContent) {
-      await prisma.message.create({
+      const greetingMessage = await prisma.message.create({
         data: {
           roomId: chatRoom.id,
           role: 'assistant',
           content: greetingContent,
         },
       });
+
+      // Update room's lastMessageAt to ensure it appears in "Today" section
+      await prisma.chatRoom.update({
+        where: { id: chatRoom.id },
+        data: { lastMessageAt: greetingMessage.createdAt },
+      });
+
+      // Update the in-memory chatRoom object for response
+      chatRoom.lastMessageAt = greetingMessage.createdAt;
     }
 
     return {
@@ -557,16 +591,16 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
       },
     });
 
-    // Clone messages
-    for (const msg of sourceRoom.messages) {
-      await prisma.message.create({
-        data: {
+    // Clone messages (Optimized: createMany instead of N+1 queries)
+    if (sourceRoom.messages.length > 0) {
+      await prisma.message.createMany({
+        data: sourceRoom.messages.map(msg => ({
           roomId: newRoom.id,
           role: msg.role,
           content: msg.content,
           modelSlug: msg.modelSlug,
           metadata: msg.metadata as any,
-        },
+        })),
       });
     }
 
@@ -613,6 +647,19 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
       where: {
         userId: user.id,
         characterId: req.characterId,
+        // Exclude rooms where persona is based on this character
+        // (we want rooms where character is assistant, not where user is using character as persona)
+        OR: [
+          { personaId: null }, // No persona
+          {
+            persona: {
+              OR: [
+                { sourceCharacterId: null }, // Persona not based on any character
+                { sourceCharacterId: { not: req.characterId } }, // Persona based on different character
+              ],
+            },
+          },
+        ],
       },
       orderBy: { lastMessageAt: 'desc' },
       include: {
@@ -628,6 +675,7 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
           select: {
             id: true,
             name: true,
+            sourceCharacterId: true, // Include to verify filter
           },
         },
         messages: {

@@ -137,6 +137,7 @@ export async function mypageRoutes(server: FastifyInstance) {
                   amount: { type: 'number' },
                   gemType: { type: 'string' },
                   logType: { type: 'string' },
+                  balanceAfter: { type: 'number' },
                   relatedOrderId: { type: 'string' },
                   relatedMessageId: { type: 'string' },
                   memo: { type: 'string' },

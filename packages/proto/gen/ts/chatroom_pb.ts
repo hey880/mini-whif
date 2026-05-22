@@ -203,6 +203,13 @@ export class CreateChatRoomRequest extends Message$1<CreateChatRoomRequest> {
    */
   userNote?: string;
 
+  /**
+   * ID of the greeting to use (from character.data.greetings)
+   *
+   * @generated from field: optional string selected_greeting_id = 4;
+   */
+  selectedGreetingId?: string;
+
   constructor(data?: PartialMessage<CreateChatRoomRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -214,6 +221,7 @@ export class CreateChatRoomRequest extends Message$1<CreateChatRoomRequest> {
     { no: 1, name: "character_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "persona_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 3, name: "user_note", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 4, name: "selected_greeting_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateChatRoomRequest {

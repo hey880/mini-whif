@@ -51,7 +51,10 @@
       "Bash(docker-compose:*)",
       "Bash(npx playwright:*)",
       "Bash(NEXT_PUBLIC_APP_URL=http://13.236.207.105:3001 pnpm test:e2e:*)",
-      "Bash(PLAYWRIGHT_BASE_URL=http://13.236.207.105:3001 pnpm test:e2e:*)"
+      "Bash(PLAYWRIGHT_BASE_URL=http://13.236.207.105:3001 pnpm test:e2e:*)",
+      "Bash(find:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(npx prisma generate:*)"
     ]
   }
 }

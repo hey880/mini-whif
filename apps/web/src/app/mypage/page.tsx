@@ -77,7 +77,18 @@ export default function MyPage() {
     <>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-display-small font-display mb-2">Profile</h1>
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={() => router.back()}
+            className="icon-button"
+            aria-label="Go back"
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div>
+            <h1 className="text-display-small font-display mb-2">Profile</h1>
+          </div>
+        </div>
         <p className="text-body-large text-on-surface-variant">
           Manage your profile and gems
         </p>

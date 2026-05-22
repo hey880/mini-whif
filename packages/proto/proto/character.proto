@@ -40,16 +40,17 @@ message GetCharacterResponse {
 message CreateCharacterRequest {
   string name = 1;
   optional string tagline = 2;
-  optional string description = 3;
-  optional string greeting = 4;
-  optional string image_url = 5;
-  optional string banner_image_url = 6;
-  string visibility = 7; // public, private
-  bool is_nsfw = 8;
-  optional string universe_id = 9;
-  repeated string keywords = 10;
-  optional string data_json = 11; // JSON string of CharacterData
-  optional string lorebook_json = 12; // JSON string of CharacterLorebook
+  optional string description = 3; // UI 표시용 설명 (2000자 제한)
+  optional string ai_prompt_description = 4; // AI 프롬프트용 설명 (5000자 제한)
+  optional string greeting = 5;
+  optional string image_url = 6;
+  optional string banner_image_url = 7;
+  string visibility = 8; // public, private
+  bool is_nsfw = 9;
+  optional string universe_id = 10;
+  repeated string keywords = 11;
+  optional string data_json = 12; // JSON string of CharacterData
+  optional string lorebook_json = 13; // JSON string of CharacterLorebook
 }
 
 message CreateCharacterResponse {
@@ -60,16 +61,17 @@ message UpdateCharacterRequest {
   string id = 1;
   optional string name = 2;
   optional string tagline = 3;
-  optional string description = 4;
-  optional string greeting = 5;
-  optional string image_url = 6;
-  optional string banner_image_url = 7;
-  optional string visibility = 8;
-  optional bool is_nsfw = 9;
-  optional string universe_id = 10;
-  repeated string keywords = 11;
-  optional string data_json = 12;
-  optional string lorebook_json = 13;
+  optional string description = 4; // UI 표시용 설명
+  optional string ai_prompt_description = 5; // AI 프롬프트용 설명
+  optional string greeting = 6;
+  optional string image_url = 7;
+  optional string banner_image_url = 8;
+  optional string visibility = 9;
+  optional bool is_nsfw = 10;
+  optional string universe_id = 11;
+  repeated string keywords = 12;
+  optional string data_json = 13;
+  optional string lorebook_json = 14;
 }
 
 message UpdateCharacterResponse {
@@ -88,23 +90,24 @@ message Character {
   string id = 1;
   string name = 2;
   optional string tagline = 3;
-  optional string description = 4;
-  optional string greeting = 5;
-  optional string image_url = 6;
-  optional string banner_image_url = 7;
-  string visibility = 8;
-  bool is_nsfw = 9;
-  string creator_id = 10;
-  optional string universe_id = 11;
-  repeated string keywords = 12;
-  string data_json = 13;
-  optional string lorebook_json = 14;
-  string created_at = 15;
-  string updated_at = 16;
-  int32 total_chat_count = 17;
-  int32 total_message_count = 18;
-  double avg_rating = 19;
-  optional string creator_display_name = 20;
+  optional string description = 4; // UI 표시용 설명
+  optional string ai_prompt_description = 5; // AI 프롬프트용 설명
+  optional string greeting = 6;
+  optional string image_url = 7;
+  optional string banner_image_url = 8;
+  string visibility = 9;
+  bool is_nsfw = 10;
+  string creator_id = 11;
+  optional string universe_id = 12;
+  repeated string keywords = 13;
+  string data_json = 14;
+  optional string lorebook_json = 15;
+  string created_at = 16;
+  string updated_at = 17;
+  int32 total_chat_count = 18;
+  int32 total_message_count = 19;
+  double avg_rating = 20;
+  optional string creator_display_name = 21;
 }
 
 message ListCharactersByUniverseRequest {

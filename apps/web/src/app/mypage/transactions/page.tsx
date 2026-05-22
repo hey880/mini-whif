@@ -12,6 +12,7 @@ interface GemLog {
   logType: string; // chat_message, purchase, refund, daily_refill, promo_grant, admin_adjustment
   memo: string | null;
   createdAt: string;
+  balanceAfter?: number; // 거래 후 전체 잔액 (옵셔널: 기존 로그 대응)
 }
 
 interface WalletBalance {
@@ -66,26 +67,8 @@ export default function TransactionsPage() {
     },
   });
 
-  // Calculate balance after each transaction (in reverse chronological order)
-  const logsWithBalance = useMemo(() => {
-    if (!logsData?.data || !walletData) return [];
-
-    const logs = logsData.data as GemLog[];
-    let currentBalance = walletData.totalGems;
-
-    return logs.map((log) => {
-      const balanceAtTransaction = currentBalance;
-      // Move backwards: subtract the transaction amount to get previous balance
-      // If amount is positive (earn), subtract to go back in time
-      // If amount is negative (spend), subtracting makes it positive (adding)
-      currentBalance -= log.amount;
-
-      return {
-        ...log,
-        balanceAfter: balanceAtTransaction,
-      };
-    });
-  }, [logsData, walletData]);
+  // Backend에서 balanceAfter를 제공하므로 직접 사용
+  const logs = (logsData?.data as GemLog[]) || [];
 
   const getLogTypeLabel = (logType: string, amount: number) => {
     if (logType === 'chat_message') {
@@ -138,7 +121,7 @@ export default function TransactionsPage() {
               progress_activity
             </span>
           </div>
-        ) : logsWithBalance.length === 0 ? (
+        ) : logs.length === 0 ? (
           <div className="text-center py-12">
             <span className="material-symbols-outlined text-on-surface-variant text-5xl mb-4">
               receipt_long
@@ -149,7 +132,7 @@ export default function TransactionsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {logsWithBalance.map((log) => (
+            {logs.map((log) => (
               <div
                 key={log.id}
                 className="glass-panel p-4 rounded-lg hover:bg-surface-container-high transition-colors"

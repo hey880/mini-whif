@@ -34,12 +34,65 @@ import { llmModelHandler } from './rpc/llmmodel.handler.js';
 import { universeHandler } from './rpc/universe.handler.js';
 import { userContextKey } from './context.js';
 import { supabase } from './config/supabase.js';
+import { prisma } from './config/prisma.js';
+
+// Phase 3: Repository implementations
+import { PrismaChatRoomRepository } from './infrastructure/repositories/PrismaChatRoomRepository.js';
+import { PrismaMessageRepository } from './infrastructure/repositories/PrismaMessageRepository.js';
+import { PrismaGemWalletRepository } from './infrastructure/repositories/PrismaGemWalletRepository.js';
+import { PrismaLlmModelRepository } from './infrastructure/repositories/PrismaLlmModelRepository.js';
+import { PrismaCharacterRepository } from './infrastructure/repositories/PrismaCharacterRepository.js';
+import { PrismaPersonaRepository } from './infrastructure/repositories/PrismaPersonaRepository.js';
+
+// Phase 3: Services
+import { ChatService } from './application/services/ChatService.js';
+import { MessageService } from './application/services/MessageService.js';
+import { CharacterService as CharacterAppService } from './application/services/CharacterService.js';
+import { PersonaService as PersonaAppService } from './application/services/PersonaService.js';
+import { AIStreamingService } from './services/ai-streaming.service.js';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = '0.0.0.0';
 
 async function start() {
   const server = createServer();
+
+  // === Dependency Injection Container (Phase 3) ===
+
+  // 1. Initialize Repositories
+  const chatRoomRepo = new PrismaChatRoomRepository(prisma);
+  const messageRepo = new PrismaMessageRepository(prisma);
+  const gemWalletRepo = new PrismaGemWalletRepository(prisma);
+  const llmModelRepo = new PrismaLlmModelRepository(prisma);
+  const characterRepo = new PrismaCharacterRepository(prisma);
+  const personaRepo = new PrismaPersonaRepository(prisma);
+
+  // 2. Initialize Services (with injected dependencies)
+  const aiStreamingService = new AIStreamingService();
+
+  const chatService = new ChatService(
+    prisma,
+    chatRoomRepo,
+    messageRepo,
+    gemWalletRepo,
+    llmModelRepo,
+    aiStreamingService,
+    server
+  );
+
+  const messageService = new MessageService(
+    prisma,
+    messageRepo,
+    gemWalletRepo,
+    llmModelRepo,
+    aiStreamingService,
+    server
+  );
+
+  const characterService = new CharacterAppService(characterRepo);
+  const personaService = new PersonaAppService(personaRepo);
+
+  // === End DI Container ===
 
   try {
     // Auth hook for ConnectRPC routes
@@ -96,7 +149,10 @@ async function start() {
     await server.register(authRoutes);
     await server.register(keywordsRoutes);
     await server.register(mypageRoutes);
-    await server.register(chatRoutes);
+
+    // Phase 3: Inject services into routes
+    await server.register(chatRoutes, { chatService });
+
     await server.register(paymentsRoutes);
     await server.register(messageRoutes);
     await server.register(chatroomExtraRoutes);

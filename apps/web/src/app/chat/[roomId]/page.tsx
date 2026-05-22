@@ -314,7 +314,7 @@ export default function ChatPage() {
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm('이 메시지를 삭제하시겠습니까? 사용자 메시지인 경우 다음 AI 응답도 함께 삭제됩니다.')) {
+    if (!confirm('이 메시지를 삭제하시겠습니까? 이 메시지 이후의 모든 대화가 함께 삭제됩니다.')) {
       return;
     }
 
@@ -450,7 +450,7 @@ export default function ChatPage() {
             description: `필요: ${error.required} Gem, 보유: ${error.available} Gem`,
             action: {
               label: '충전하기',
-              onClick: () => router.push('/gem-shop'),
+              onClick: () => router.push('/gem-store'),
             },
           });
           return;
@@ -557,22 +557,16 @@ export default function ChatPage() {
               appendStreamChunk(data.content);
 
               if (data.is_final_event) {
-                // Final update
-                appendStreamChunk(data.content);
+                setStreaming(false);
+                toast.success('메시지가 재생성되었습니다');
 
-                // 5. Refresh data to get accurate server data
-                const refetchPromises = [
-                  queryClient.invalidateQueries({ queryKey: ['messages', roomId] }),
-                  queryClient.invalidateQueries({ queryKey: ['wallet'] }),
-                ];
-
-                // Wait for refetch before hiding streaming UI
-                Promise.all(refetchPromises).then(() => {
-                  setTimeout(() => {
-                    setStreaming(false);
-                    toast.success('메시지가 재생성되었습니다');
-                  }, 100);
-                });
+                // 백엔드의 DB 업데이트(Gem 차감 등) 완료를 위해 짧은 지연 후 쿼리 무효화
+                setTimeout(async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ['messages', roomId] }),
+                    queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+                  ]);
+                }, 300);
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);
@@ -655,6 +649,9 @@ export default function ChatPage() {
         .reverse()
         .find((msg: any) => msg.role === 'assistant')?.id
     : null;
+
+  // Find the first message ID (greeting message, should not be deletable)
+  const firstMessageId = messagesData?.messages?.[0]?.id || null;
 
   return (
     <div className="h-screen bg-background flex flex-col">
@@ -762,6 +759,7 @@ export default function ChatPage() {
                 versionNumber={message.versionNumber || 1}
                 modelCost={modelCost}
                 isLastAiMessage={message.id === lastAiMessageId}
+                isFirstMessage={message.id === firstMessageId}
                 onCharacterAvatarClick={() => setIsCharacterModalOpen(true)}
                 onEdit={handleOpenEditModal}
                 onDelete={handleDeleteMessage}

@@ -5,12 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { characterClient, chatRoomClient, personaClient, universeClient } from '@/lib/connectrpc/client';
 import { TopNav } from '@/components/layout/TopNav';
 import { useAuthStore } from '@/stores/authStore';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { formatNumber } from '@/lib/utils';
 import { RelatedContentCard } from '@/components/character/components/RelatedContentCard';
 import { linkifyText } from '@/lib/linkify';
 import { ChatRoomCreationModal } from '@/components/chat/ChatRoomCreationModal';
 import { PersonaSelectionModal } from '@/components/persona/PersonaSelectionModal';
+import { GreetingSelectionModal } from '@/components/chat/GreetingSelectionModal';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import type { Character } from '../../../../../../packages/proto/gen/ts/character_pb';
@@ -24,7 +25,9 @@ export default function CharacterDetailPage() {
 
   const [showCreationModal, setShowCreationModal] = useState(false);
   const [showPersonaModal, setShowPersonaModal] = useState(false);
+  const [showGreetingModal, setShowGreetingModal] = useState(false);
   const [creationOption, setCreationOption] = useState<'continue' | 'new' | 'clone'>();
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>();
   const [recentRoomId, setRecentRoomId] = useState<string>();
 
   // Fetch character
@@ -44,7 +47,8 @@ export default function CharacterDetailPage() {
       const response = await chatRoomClient.findRecentRoomByCharacter({
         characterId,
       });
-      return response.chatRoom;
+      // React Query requires non-undefined return value
+      return response.chatRoom ?? null;
     },
     enabled: !!user && !!characterId,
   });
@@ -77,32 +81,40 @@ export default function CharacterDetailPage() {
     enabled: !!character?.universeId,
   });
 
-  // Parse dataJson to extract additional info
-  let characterData: any = {};
-  try {
-    if (character?.dataJson) {
-      characterData = JSON.parse(character.dataJson);
+  // Parse dataJson to extract additional info (memoized to prevent re-parsing)
+  const characterData = useMemo(() => {
+    try {
+      if (character?.dataJson) {
+        return JSON.parse(character.dataJson);
+      }
+    } catch (e) {
+      console.error('Failed to parse character data:', e);
     }
-  } catch (e) {
-    console.error('Failed to parse character data:', e);
-  }
+    return {};
+  }, [character?.dataJson]);
 
-  const relatedContent = characterData.relatedContent || [];
-  const situationalImages = characterData.situationalImages || [];
-  const exampleDialogues = characterData.exampleDialogues || [];
+  // Memoize arrays to prevent unnecessary re-renders
+  const relatedContent = useMemo(() => characterData.relatedContent || [], [characterData.relatedContent]);
+  const situationalImages = useMemo(() => characterData.situationalImages || [], [characterData.situationalImages]);
+  const exampleDialogues = useMemo(() => characterData.exampleDialogues || [], [characterData.exampleDialogues]);
   const authorComments = characterData.authorComments;
+  const greetings = useMemo(() => characterData.greetings || [], [characterData.greetings]);
 
   // Create chat room mutation
   const createChatMutation = useMutation({
-    mutationFn: async (personaId?: string) => {
+    mutationFn: async ({ personaId, greetingId }: { personaId?: string; greetingId?: string }) => {
+      // WORKAROUND: ConnectRPC가 selectedGreetingId 필드를 직렬화하지 않는 버그로 인해
+      // userNote 필드를 통해 greetingId를 전달 (백엔드에서 파싱)
       const response = await chatRoomClient.createChatRoom({
         characterId,
         personaId: personaId || undefined,
+        userNote: greetingId ? `__greeting:${greetingId}` : undefined,
       });
       return response.chatRoom;
     },
     onSuccess: (chatRoom) => {
       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      queryClient.invalidateQueries({ queryKey: ['recentRoom', characterId] });
       if (chatRoom) {
         router.push(`/chat/${chatRoom.id}`);
       }
@@ -123,6 +135,7 @@ export default function CharacterDetailPage() {
     },
     onSuccess: (chatRoom) => {
       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      queryClient.invalidateQueries({ queryKey: ['recentRoom', characterId] });
       if (chatRoom) {
         router.push(`/chat/${chatRoom.id}`);
       }
@@ -145,11 +158,28 @@ export default function CharacterDetailPage() {
 
   // Handle persona selection complete
   const handlePersonaComplete = (personaId: string) => {
+    setSelectedPersonaId(personaId);
+
     if (creationOption === 'clone' && recentRoomData) {
       cloneChatMutation.mutate({ sourceRoomId: recentRoomData.id, personaId });
     } else {
-      createChatMutation.mutate(personaId);
+      // Check if character has multiple greetings (use memoized greetings)
+      if (greetings.length > 1) {
+        // Show greeting selection modal
+        setShowGreetingModal(true);
+      } else {
+        // Create room directly (use default greeting)
+        createChatMutation.mutate({ personaId });
+      }
     }
+  };
+
+  // Handle greeting selection complete
+  const handleGreetingComplete = (greetingId?: string) => {
+    createChatMutation.mutate({
+      personaId: selectedPersonaId,
+      greetingId,
+    });
   };
 
   if (loadingCharacter) {
@@ -543,6 +573,17 @@ export default function CharacterDetailPage() {
             characterName={character.name}
             universeId={character.universeId}
             onComplete={handlePersonaComplete}
+          />
+
+          <GreetingSelectionModal
+            isOpen={showGreetingModal}
+            onClose={() => {
+              setShowGreetingModal(false);
+              setSelectedPersonaId(undefined);
+            }}
+            greetings={greetings}
+            characterName={character.name}
+            onSelect={handleGreetingComplete}
           />
         </>
       )}

@@ -24,6 +24,8 @@ export default function MyUniversesPage() {
   const [isCharacterWizardOpen, setIsCharacterWizardOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [editingUniverse, setEditingUniverse] = useState<Universe | null>(null);
+  const [loadingUniverseId, setLoadingUniverseId] = useState<string | null>(null);
+  const [loadingCharacterId, setLoadingCharacterId] = useState<string | null>(null);
 
   // Fetch universes
   const { data: universesData, isLoading: universesLoading } = useQuery({
@@ -98,14 +100,37 @@ export default function MyUniversesPage() {
     }
   };
 
-  const handleEditCharacter = (character: Character) => {
-    setEditingCharacter(character);
-    setIsCharacterWizardOpen(true);
+  const handleEditCharacter = async (character: Character) => {
+    try {
+      setLoadingCharacterId(character.id);
+
+      // getCharacter RPC로 완전한 데이터 로드 (dataJson, lorebookJson 포함)
+      const response = await characterClient.getCharacter({ id: character.id });
+      setEditingCharacter(response.character || null);
+      setIsCharacterWizardOpen(true);
+    } catch (error) {
+      console.error('Failed to load character:', error);
+      alert('캐릭터 데이터를 불러오는데 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoadingCharacterId(null);
+    }
   };
 
-  const handleEditUniverse = (universe: Universe) => {
-    setEditingUniverse(universe);
-    setIsUniverseWizardOpen(true);
+  const handleEditUniverse = async (universe: Universe) => {
+    try {
+      setLoadingUniverseId(universe.id);
+
+      // getUniverse RPC로 완전한 데이터 로드 (dataJson, lorebookJson 포함)
+      const response = await universeClient.getUniverse({ id: universe.id });
+
+      setEditingUniverse(response.universe || null);
+      setIsUniverseWizardOpen(true);
+    } catch (error) {
+      console.error('Failed to load universe:', error);
+      alert('작품 데이터를 불러오는데 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoadingUniverseId(null);
+    }
   };
 
   const handleWizardSuccess = () => {
@@ -313,10 +338,15 @@ export default function MyUniversesPage() {
                   </Link>
                   <button
                     onClick={() => handleEditUniverse(universe)}
-                    className="p-2 rounded-lg bg-surface-container/90 hover:bg-primary hover:text-on-primary backdrop-blur-md transition-all"
+                    disabled={loadingUniverseId === universe.id}
+                    className="p-2 rounded-lg bg-surface-container/90 hover:bg-primary hover:text-on-primary backdrop-blur-md transition-all disabled:opacity-50"
                     title="수정"
                   >
-                    <span className="material-symbols-outlined text-xl">edit</span>
+                    {loadingUniverseId === universe.id ? (
+                      <span className="material-symbols-outlined text-xl animate-spin">refresh</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-xl">edit</span>
+                    )}
                   </button>
                   <button
                     onClick={() => handleDeleteUniverse(universe)}
@@ -397,10 +427,15 @@ export default function MyUniversesPage() {
                     e.preventDefault();
                     handleEditCharacter(character);
                   }}
-                  className="p-2 rounded-lg bg-surface-container/90 hover:bg-primary hover:text-on-primary backdrop-blur-md transition-all"
+                  disabled={loadingCharacterId === character.id}
+                  className="p-2 rounded-lg bg-surface-container/90 hover:bg-primary hover:text-on-primary backdrop-blur-md transition-all disabled:opacity-50"
                   title="수정"
                 >
-                  <span className="material-symbols-outlined text-xl">edit</span>
+                  {loadingCharacterId === character.id ? (
+                    <span className="material-symbols-outlined text-xl animate-spin">refresh</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-xl">edit</span>
+                  )}
                 </button>
                 <button
                   onClick={(e) => {

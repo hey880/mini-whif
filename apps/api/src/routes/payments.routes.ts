@@ -185,7 +185,7 @@ export async function paymentsRoutes(server: FastifyInstance) {
     });
 
     // Add gems to wallet
-    await prisma.gemWallet.update({
+    const updatedWallet = await prisma.gemWallet.update({
       where: { userId: order.userId },
       data: {
         paidGemAmount: {
@@ -194,6 +194,9 @@ export async function paymentsRoutes(server: FastifyInstance) {
       },
     });
 
+    // Calculate total balance after purchase
+    const totalAfter = updatedWallet.paidGemAmount + updatedWallet.freeDailyGemAmount + updatedWallet.freePromoGemAmount;
+
     // Log transaction
     await prisma.gemLog.create({
       data: {
@@ -201,6 +204,7 @@ export async function paymentsRoutes(server: FastifyInstance) {
         amount: order.gemAmount,
         gemType: 'paid',
         logType: 'purchase',
+        balanceAfter: totalAfter,
         relatedOrderId: orderId,
         memo: `Purchased ${order.gemAmount} gems (${order.productId})`,
       },

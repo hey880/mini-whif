@@ -7,6 +7,7 @@ interface CharacterFormData {
   name: string;
   tagline: string;
   description: string;
+  aiPromptDescription: string;
   greeting: string;
   imageUrl: string;
   visibility: 'public' | 'private';
@@ -33,6 +34,7 @@ export function CharacterFormModal({
     name: '',
     tagline: '',
     description: '',
+    aiPromptDescription: '',
     greeting: '',
     imageUrl: '',
     visibility: 'public',
@@ -49,6 +51,7 @@ export function CharacterFormModal({
         name: initialData.name || '',
         tagline: initialData.tagline || '',
         description: initialData.description || '',
+        aiPromptDescription: initialData.aiPromptDescription || '',
         greeting: initialData.greeting || '',
         imageUrl: initialData.imageUrl || '',
         visibility: initialData.visibility || 'public',
@@ -60,6 +63,7 @@ export function CharacterFormModal({
         name: '',
         tagline: '',
         description: '',
+        aiPromptDescription: '',
         greeting: '',
         imageUrl: '',
         visibility: 'public',
@@ -87,9 +91,13 @@ export function CharacterFormModal({
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+      newErrors.description = 'UI Description is required';
     } else if (formData.description.length > 2000) {
-      newErrors.description = 'Description must be 2000 characters or less';
+      newErrors.description = 'UI Description must be 2000 characters or less';
+    }
+
+    if (formData.aiPromptDescription && formData.aiPromptDescription.length > 5000) {
+      newErrors.aiPromptDescription = 'AI Prompt Description must be 5000 characters or less';
     }
 
     if (!formData.greeting.trim()) {
@@ -308,10 +316,13 @@ export function CharacterFormModal({
 
             {/* Right Column */}
             <div className="space-y-6">
-              {/* Description */}
+              {/* UI Description (2000자) */}
               <div>
                 <label className="block text-label-large font-medium mb-2">
-                  Description <span className="text-error">*</span>
+                  UI Description <span className="text-error">*</span>
+                  <span className="text-label-small text-on-surface-variant ml-2">
+                    (캐릭터 상세페이지에 표시)
+                  </span>
                 </label>
                 <textarea
                   value={formData.description}
@@ -319,7 +330,7 @@ export function CharacterFormModal({
                     setFormData({ ...formData, description: e.target.value })
                   }
                   className="input-glow w-full min-h-[120px] resize-y"
-                  placeholder="Detailed character description, personality, background..."
+                  placeholder="Character description shown on detail page (2000 chars max)"
                   maxLength={2000}
                   disabled={isLoading}
                 />
@@ -331,6 +342,36 @@ export function CharacterFormModal({
                   )}
                   <span className="text-label-small text-on-surface-variant ml-auto">
                     {formData.description.length}/2000
+                  </span>
+                </div>
+              </div>
+
+              {/* AI Prompt Description (5000자) */}
+              <div>
+                <label className="block text-label-large font-medium mb-2">
+                  AI Prompt Description
+                  <span className="text-label-small text-on-surface-variant ml-2">
+                    (AI 프롬프트용 상세 설명)
+                  </span>
+                </label>
+                <textarea
+                  value={formData.aiPromptDescription}
+                  onChange={(e) =>
+                    setFormData({ ...formData, aiPromptDescription: e.target.value })
+                  }
+                  className="input-glow w-full min-h-[180px] resize-y"
+                  placeholder="Detailed character info for AI (personality, background, speaking style, etc. - 5000 chars max)"
+                  maxLength={5000}
+                  disabled={isLoading}
+                />
+                <div className="flex items-center justify-between mt-1">
+                  {errors.aiPromptDescription && (
+                    <span className="text-label-small text-error">
+                      {errors.aiPromptDescription}
+                    </span>
+                  )}
+                  <span className="text-label-small text-on-surface-variant ml-auto">
+                    {formData.aiPromptDescription.length}/5000
                   </span>
                 </div>
               </div>

@@ -38,12 +38,25 @@ mini-whif/
 - Zustand 상태 관리, React Query 서버 상태
 - 다크 사이버펑크 디자인 시스템
 
-**apps/api (Fastify)**
+**apps/api (Fastify) - Clean Architecture 적용**
 - REST 엔드포인트: `/auth/*`, `/health`, `/docs`
 - ConnectRPC 서비스: CharacterService, PersonaService, ChatRoomService, LlmModelService, UniverseService
-- Prisma ORM으로 PostgreSQL 접근
+- **Repository 레이어**: 데이터 접근 추상화 (7개 Repository)
+  - domain/repositories: 인터페이스 (IChatRoomRepository, IMessageRepository 등)
+  - infrastructure/repositories: Prisma 구현
 - Supabase Auth JWT 검증 미들웨어
 - AI 서버로 SSE 스트리밍 중계
+
+**아키텍처 레이어:**
+```
+HTTP Layer (routes, handlers)
+     ↓
+Application Layer (services - Phase 3 예정)
+     ↓
+Domain Layer (repository interfaces)
+     ↑
+Infrastructure Layer (Prisma implementations)
+```
 
 **apps/ai-server (FastAPI)**
 - OpenRouter로 LLM 접근 (Claude, Gemini 등)
@@ -132,6 +145,18 @@ pnpm db:generate  # Prisma 클라이언트 재생성 (schema 변경 후)
 pnpm proto:gen    # .proto 파일에서 TypeScript 코드 생성
 ```
 
+### 테스트
+```bash
+# 단위 테스트 (API 서버)
+cd apps/api
+pnpm test         # Vitest 실행
+pnpm test --coverage  # 커버리지 확인
+
+# E2E 테스트 (프론트엔드)
+cd apps/web
+pnpm test:e2e     # Playwright 실행
+```
+
 ### 부하 테스트 (k6)
 ```bash
 cd load-tests
@@ -179,6 +204,84 @@ pnpm cleanup      # 테스트 데이터 정리
 - **컴파일 타임 검증**: API 변경 시 즉시 오류 감지
 - **HTTP/2 효율성**: 다중 동시 요청 지원
 - **Better DX**: 자동완성, 타입 추론, 수동 fetch() 불필요
+
+## 성능 최적화
+
+### Phase 1 개선 사항 (2025년 1월)
+
+다음과 같은 성능 병목을 제거했습니다:
+
+**1. cloneChatRoom N+1 쿼리 제거**
+- 위치: `apps/api/src/rpc/chatroom.handler.ts:561-571`
+- 개선: `createMany`로 일괄 삽입 (메시지 100개 기준 10초 → 0.5초, 20배 향상)
+
+**2. regenerate 순차 쿼리 병렬화**
+- 위치: `apps/api/src/routes/message.routes.ts:340-373`
+- 개선: `Promise.all`로 병렬 실행 + gemWallet 추가 쿼리 제거 (300ms → 100ms, 3배 향상)
+
+**3. Reaction 업데이트 트랜잭션 추가**
+- 위치: `apps/api/src/routes/message.routes.ts:186-281`
+- 개선: `prisma.$transaction`으로 원자성 보장 (race condition 방지)
+
+**4. 리스트 엔드포인트 최적화**
+- 위치: `apps/api/src/rpc/character.handler.ts:47-74`, `universe.handler.ts:35-77`
+- 개선: `select`로 필요한 필드만 조회 (data, lorebook 제외) (2초 → 0.3초, 6배 향상)
+
+### 성능 최적화 가이드라인
+
+**N+1 쿼리 방지:**
+```typescript
+// ❌ Bad: N+1 쿼리
+for (const item of items) {
+  await prisma.item.create({ data: item });
+}
+
+// ✅ Good: 일괄 삽입
+await prisma.item.createMany({ data: items });
+```
+
+**쿼리 병렬화:**
+```typescript
+// ❌ Bad: 순차 실행
+const user = await prisma.user.findUnique({ where: { id } });
+const settings = await prisma.settings.findUnique({ where: { userId: id } });
+
+// ✅ Good: 병렬 실행
+const [user, settings] = await Promise.all([
+  prisma.user.findUnique({ where: { id } }),
+  prisma.settings.findUnique({ where: { userId: id } }),
+]);
+```
+
+**트랜잭션 사용:**
+```typescript
+// ❌ Bad: race condition 가능
+await prisma.reaction.create({ data });
+await prisma.message.update({ where: { id }, data: { count: { increment: 1 } } });
+
+// ✅ Good: 원자성 보장
+await prisma.$transaction([
+  prisma.reaction.create({ data }),
+  prisma.message.update({ where: { id }, data: { count: { increment: 1 } } }),
+]);
+```
+
+**select로 필요한 필드만 조회:**
+```typescript
+// ❌ Bad: 모든 필드 로딩 (무거운 JSON 포함)
+const characters = await prisma.character.findMany({ where });
+
+// ✅ Good: 필요한 필드만 조회
+const characters = await prisma.character.findMany({
+  where,
+  select: {
+    id: true,
+    name: true,
+    imageUrl: true,
+    // data, lorebook 제외
+  },
+});
+```
 
 ## 데이터베이스 스키마
 
@@ -305,6 +408,28 @@ pnpm db:generate
 # 3. 타입 정의 업데이트 (필요시)
 # 4. README.md 문서화
 ```
+
+### Repository 추가 시 (Phase 2+)
+```bash
+# 1. 인터페이스 생성
+# apps/api/src/domain/repositories/IMyRepository.ts
+
+# 2. 구현 생성
+# apps/api/src/infrastructure/repositories/PrismaMyRepository.ts
+
+# 3. 테스트 작성
+# apps/api/src/infrastructure/repositories/__tests__/PrismaMyRepository.test.ts
+
+# 4. 사용
+# const myRepo = new PrismaMyRepository(prisma);
+```
+
+**Repository 설계 가이드라인:**
+- 인터페이스는 Prisma에 의존하지 않음 (순수 TypeScript)
+- 권한 검증은 Repository 레이어에서 처리 (userId 파라미터)
+- Phase 1 최적화 적용 (createMany, Promise.all, select)
+- 트랜잭션이 필요한 복잡한 작업도 Repository에 캡슐화
+- 자세한 내용은 `docs/ARCHITECTURE.md` 참조
 
 ## 디자인 시스템
 

@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { flushSync } from 'react-dom';
 import { useChatStore } from '@/stores/chatStore';
 import { supabase } from '@/lib/supabase';
 
@@ -89,46 +88,32 @@ export function useSSEChat() {
             try {
               const data: SSEEvent = JSON.parse(line.slice(6));
 
-              // DEBUG: Log when SSE event arrives
-              const startTime = performance.now();
-
-              // ✅ CRITICAL: Force immediate synchronous rendering
-              // This bypasses React 19 batching completely
-              flushSync(() => {
-                appendStreamChunk(data.content);
-              });
-
-              const renderTime = performance.now() - startTime;
-              console.log(`✅ Rendered in ${renderTime.toFixed(2)}ms`);
+              // Update streaming content immediately (React 19 batching handles optimization)
+              appendStreamChunk(data.content);
 
               if (data.is_final_event) {
-                // Final update
-                flushSync(() => {
-                  appendStreamChunk(data.content);
-                });
+                setStreaming(false);
+                // Clear optimistic message after real messages loaded
+                setOptimisticUserMessage(null);
 
-                // Invalidate queries first to trigger refetch
-                const refetchPromises = [
-                  queryClient.invalidateQueries({
-                    queryKey: ['messages', roomId],
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: ['chatRooms'],
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: ['wallet'],
-                  }),
-                ];
-
-                // Wait for refetch to complete before hiding streaming UI
-                Promise.all(refetchPromises).then(() => {
-                  // Small delay to ensure DOM has updated
-                  setTimeout(() => {
-                    setStreaming(false);
-                    // Clear optimistic message after real messages loaded
-                    setOptimisticUserMessage(null);
-                  }, 100);
-                });
+                // 백엔드의 DB 업데이트(Gem 차감 등) 완료를 위해 짧은 지연 후 쿼리 무효화
+                // SSE 이벤트 중계와 DB 업데이트가 비동기적으로 처리되므로 타이밍 이슈 방지
+                setTimeout(async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({
+                      queryKey: ['messages', roomId],
+                      refetchType: 'active', // 활성 쿼리 즉시 refetch
+                    }),
+                    queryClient.invalidateQueries({
+                      queryKey: ['chatRooms'],
+                      refetchType: 'active',
+                    }),
+                    queryClient.invalidateQueries({
+                      queryKey: ['wallet'],
+                      refetchType: 'active', // 활성 쿼리 즉시 refetch
+                    }),
+                  ]);
+                }, 500); // 500ms 지연 (300ms → 500ms)
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);
