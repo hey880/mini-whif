@@ -92,22 +92,25 @@ export function useSSEChat() {
               appendStreamChunk(data.content);
 
               if (data.is_final_event) {
-                // Invalidate queries to trigger refetch
-                await Promise.all([
-                  queryClient.invalidateQueries({
-                    queryKey: ['messages', roomId],
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: ['chatRooms'],
-                  }),
-                  queryClient.invalidateQueries({
-                    queryKey: ['wallet'],
-                  }),
-                ]);
-
                 setStreaming(false);
                 // Clear optimistic message after real messages loaded
                 setOptimisticUserMessage(null);
+
+                // 백엔드의 DB 업데이트(Gem 차감 등) 완료를 위해 짧은 지연 후 쿼리 무효화
+                // SSE 이벤트 중계와 DB 업데이트가 비동기적으로 처리되므로 타이밍 이슈 방지
+                setTimeout(async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({
+                      queryKey: ['messages', roomId],
+                    }),
+                    queryClient.invalidateQueries({
+                      queryKey: ['chatRooms'],
+                    }),
+                    queryClient.invalidateQueries({
+                      queryKey: ['wallet'],
+                    }),
+                  ]);
+                }, 300); // 300ms 지연
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);

@@ -557,14 +557,16 @@ export default function ChatPage() {
               appendStreamChunk(data.content);
 
               if (data.is_final_event) {
-                // Refresh data to get accurate server data
-                await Promise.all([
-                  queryClient.invalidateQueries({ queryKey: ['messages', roomId] }),
-                  queryClient.invalidateQueries({ queryKey: ['wallet'] }),
-                ]);
-
                 setStreaming(false);
                 toast.success('메시지가 재생성되었습니다');
+
+                // 백엔드의 DB 업데이트(Gem 차감 등) 완료를 위해 짧은 지연 후 쿼리 무효화
+                setTimeout(async () => {
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ['messages', roomId] }),
+                    queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+                  ]);
+                }, 300);
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);
