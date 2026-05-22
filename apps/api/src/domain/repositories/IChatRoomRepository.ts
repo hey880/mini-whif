@@ -25,8 +25,8 @@ export interface CreateChatRoomParams {
  * ChatRoom 응답 타입 (관계 포함)
  */
 export interface ChatRoomWithRelations extends ChatRoom {
-  character?: Partial<Character>;
-  persona?: Partial<UserPersona>;
+  character?: Partial<Character> | null;
+  persona?: Partial<UserPersona> | null;
   _count?: {
     messages: number;
   };

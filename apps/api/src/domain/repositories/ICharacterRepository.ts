@@ -35,8 +35,8 @@ export interface CreateCharacterParams {
  * 캐릭터 응답 타입 (관계 포함, 최적화)
  */
 export interface CharacterWithRelations extends Omit<Character, 'data' | 'lorebook'> {
-  universe?: Partial<Universe>;
-  creator?: Partial<Profile>;
+  universe?: Partial<Universe> | null;
+  creator?: Partial<Profile> | null;
   _count?: {
     chatRooms: number;
   };
@@ -46,8 +46,8 @@ export interface CharacterWithRelations extends Omit<Character, 'data' | 'lorebo
  * 캐릭터 상세 타입 (data, lorebook 포함)
  */
 export interface CharacterDetail extends Character {
-  universe?: Partial<Universe>;
-  creator?: Partial<Profile>;
+  universe?: Partial<Universe> | null;
+  creator?: Partial<Profile> | null;
 }
 
 /**

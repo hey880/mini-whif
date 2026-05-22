@@ -17,8 +17,8 @@ export interface CreateLlmModelParams {
   slug: string;
   name: string;
   provider: string;
-  modelId?: string;
-  description?: string;
+  contextWindow: number;
+  maxOutputTokens: number;
   gemCostPerMessage: number;
   isActive: boolean;
 }

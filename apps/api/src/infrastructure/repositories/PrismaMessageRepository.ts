@@ -88,7 +88,7 @@ export class PrismaMessageRepository implements IMessageRepository {
   ): Promise<Message> {
     return await this.prisma.message.update({
       where: { id },
-      data,
+      data: data as any,
     });
   }
 
