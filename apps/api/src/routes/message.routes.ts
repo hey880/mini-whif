@@ -312,9 +312,119 @@ export async function messageRoutes(server: FastifyInstance) {
       return reply.status(403).send({ error: 'Forbidden' });
     }
 
-    // Only allow regenerating assistant messages
+    // Handle user message regeneration (generate new AI response)
+    if (message.role === 'user') {
+      // 2. Get user's chosen model and check gem balance
+      const [profile, defaultModel] = await Promise.all([
+        prisma.profile.findUnique({
+          where: { id: request.user!.id },
+          include: { chosenLlmModel: true, gemWallet: true },
+        }),
+        prisma.llmModel.findFirst({
+          where: { isActive: true },
+          orderBy: { gemCostPerMessage: 'asc' },
+        }),
+      ]);
+
+      const model = profile?.chosenLlmModel || defaultModel;
+
+      if (!model) {
+        return reply.status(500).send({ error: 'No active models available' });
+      }
+
+      const REGENERATE_GEM_COST_MULTIPLIER = parseFloat(
+        process.env.REGENERATE_GEM_COST_MULTIPLIER || '1.0'
+      );
+      const gemCost = Math.round(model.gemCostPerMessage * REGENERATE_GEM_COST_MULTIPLIER);
+
+      const wallet = profile?.gemWallet;
+      if (!wallet) {
+        return reply.status(500).send({ error: 'Wallet not found' });
+      }
+
+      const totalGems = wallet.freeDailyGemAmount + wallet.freePromoGemAmount + wallet.paidGemAmount;
+      if (totalGems < gemCost) {
+        return reply.status(402).send({
+          error: 'Insufficient gems',
+          required: gemCost,
+          available: totalGems,
+        });
+      }
+
+      // 3. Create new AI message placeholder
+      const aiMessage = await prisma.message.create({
+        data: {
+          roomId: message.roomId,
+          role: 'assistant',
+          content: '',
+          modelSlug: model.slug,
+        },
+      });
+
+      // 4. Build AI context
+      const aiStreamingService = new AIStreamingService();
+      const aiContext = await aiStreamingService.buildAIContext({
+        characterId: message.room.characterId,
+        personaId: message.room.personaId,
+        roomId: message.roomId,
+      });
+
+      // Replace placeholders in user message and hint
+      const processedContent = message.content
+        .replace(/\{\{userName\}\}/g, aiContext.personaName)
+        .replace(/\{\{characterName\}\}/g, message.room.character.name)
+        .replace(/\{\{user\}\}/g, aiContext.personaName)
+        .replace(/\{\{char\}\}/g, message.room.character.name);
+
+      const processedHint = hint
+        ? hint
+            .replace(/\{\{userName\}\}/g, aiContext.personaName)
+            .replace(/\{\{characterName\}\}/g, message.room.character.name)
+            .replace(/\{\{user\}\}/g, aiContext.personaName)
+            .replace(/\{\{char\}\}/g, message.room.character.name)
+        : undefined;
+
+      server.log.info({
+        originalHint: hint,
+        processedHint,
+        personaName: aiContext.personaName,
+        characterName: message.room.character.name
+      }, 'Regenerate user message with hint');
+
+      // 5. Stream AI response
+      try {
+        await aiStreamingService.streamAIResponse({
+          userId: request.user!.id,
+          roomId: message.roomId,
+          messageId: aiMessage.id,
+          userMessage: processedContent,
+          hint: processedHint,
+          modelSlug: model.slug,
+          maxTokens: model.maxOutputTokens,
+          characterContext: aiContext.characterContext,
+          lorebookEntries: aiContext.lorebookEntries,
+          situationalImagesInfo: aiContext.situationalImagesInfo,
+          characterData: message.room.character.data,
+          personaName: aiContext.personaName,
+          reply,
+          server,
+        });
+      } catch (error) {
+        server.log.error({ error }, 'Error regenerating user message');
+
+        if (!reply.raw.headersSent) {
+          return reply.status(500).send({
+            error: 'Failed to regenerate message',
+            details: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      return; // Early return for user message regeneration
+    }
+
+    // Only allow regenerating assistant messages for the rest of this handler
     if (message.role !== 'assistant') {
-      return reply.status(400).send({ error: 'Can only regenerate assistant messages' });
+      return reply.status(400).send({ error: 'Can only regenerate assistant or user messages' });
     }
 
     // 2. Get user's chosen model and check gem balance (Optimized: parallel queries)

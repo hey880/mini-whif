@@ -593,13 +593,15 @@ export const chatRoomHandler: ServiceImpl<typeof ChatRoomService> = {
 
     // Clone messages (Optimized: createMany instead of N+1 queries)
     if (sourceRoom.messages.length > 0) {
+      const baseTime = new Date();
       await prisma.message.createMany({
-        data: sourceRoom.messages.map(msg => ({
+        data: sourceRoom.messages.map((msg, index) => ({
           roomId: newRoom.id,
           role: msg.role,
           content: msg.content,
           modelSlug: msg.modelSlug,
           metadata: msg.metadata as any,
+          createdAt: new Date(baseTime.getTime() + index), // ✅ 현재 시점 + 1ms 간격으로 순서 보장
         })),
       });
     }

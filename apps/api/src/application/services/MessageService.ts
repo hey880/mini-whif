@@ -77,9 +77,12 @@ export class MessageService {
       throw new Error('Forbidden');
     }
 
-    // Only allow regenerating assistant messages
+    // Handle user message regeneration separately
     if (message.role !== 'assistant') {
-      throw new Error('Can only regenerate assistant messages');
+      if (message.role === 'user') {
+        return await this.regenerateUserMessage(dto);
+      }
+      throw new Error('Can only regenerate assistant or user messages');
     }
 
     // 2. Get user's chosen model and check gem balance (Phase 1 optimization: parallel)
@@ -152,6 +155,119 @@ export class MessageService {
       situationalImagesInfo: [], // TODO: Extract from character.data
       characterData: message.room.character.data,
       personaName: '사용자', // TODO: fetch from persona
+      reply,
+      server: this.server,
+    });
+  }
+
+  /**
+   * 사용자 메시지 재생성
+   *
+   * 플로우:
+   * 1. user 메시지 조회 + 권한 검증
+   * 2. 모델 선택 + Gem 확인
+   * 3. 새 AI 메시지 플레이스홀더 생성
+   * 4. AI 응답 스트리밍
+   * 5. Gem 차감
+   */
+  private async regenerateUserMessage(dto: RegenerateMessageDto): Promise<void> {
+    const { userId, messageId, hint, reply } = dto;
+
+    // 1. Get user message (재사용)
+    const userMessage = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        room: {
+          include: {
+            character: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                greeting: true,
+                tagline: true,
+                lorebook: true,
+                data: true,
+              },
+            },
+            persona: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!userMessage) {
+      throw new Error('Message not found');
+    }
+
+    if (userMessage.room.userId !== userId) {
+      throw new Error('Forbidden');
+    }
+
+    // 2. Get model and check gems (parallel)
+    const [profile, defaultModel] = await Promise.all([
+      this.prisma.profile.findUnique({
+        where: { id: userId },
+        include: { chosenLlmModel: true, gemWallet: true },
+      }),
+      this.llmModelRepo.findDefaultModel(),
+    ]);
+
+    const model = profile?.chosenLlmModel || defaultModel;
+    if (!model) {
+      throw new Error('No active models available');
+    }
+
+    const gemCost = Math.round(
+      model.gemCostPerMessage * parseFloat(process.env.REGENERATE_GEM_COST_MULTIPLIER || '1.0')
+    );
+
+    const wallet = profile?.gemWallet;
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    const totalGems = wallet.freeDailyGemAmount + wallet.freePromoGemAmount + wallet.paidGemAmount;
+    if (totalGems < gemCost) {
+      throw new Error(`Insufficient gems. Required: ${gemCost}, Available: ${totalGems}`);
+    }
+
+    // 3. Create new AI message placeholder
+    const aiMessage = await this.prisma.message.create({
+      data: {
+        roomId: userMessage.roomId,
+        role: 'assistant',
+        content: '',
+        modelSlug: model.slug,
+      },
+    });
+
+    // 4. Stream AI response (기존 user 메시지 재사용)
+    await this.aiStreamingService.streamAIResponse({
+      userId,
+      roomId: userMessage.roomId,
+      messageId: aiMessage.id,
+      userMessage: userMessage.content, // ✅ 기존 user 메시지
+      hint,
+      modelSlug: model.slug,
+      maxTokens: model.maxOutputTokens,
+      characterContext: {
+        name: userMessage.room.character.name,
+        description: userMessage.room.character.description || '',
+        greeting: userMessage.room.character.greeting || '',
+        personality: userMessage.room.character.tagline || '',
+      },
+      lorebookEntries: [],
+      situationalImagesInfo: [],
+      characterData: userMessage.room.character.data,
+      personaName: userMessage.room.persona?.name || '사용자',
+      userNote: userMessage.room.userNote,
+      conversationSummary: userMessage.room.conversationSummary,
       reply,
       server: this.server,
     });
