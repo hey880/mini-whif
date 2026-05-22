@@ -59,6 +59,7 @@ export class AIStreamingService {
             id: true,
             name: true,
             description: true,
+            aiPromptDescription: true,
             greeting: true,
             tagline: true,
             lorebook: true,
@@ -99,9 +100,11 @@ export class AIStreamingService {
     };
 
     // Build character context with placeholders replaced
+    // Use aiPromptDescription if available, fallback to description
+    const characterDescription = room.character.aiPromptDescription || room.character.description || '';
     const characterContext: CharacterContext = {
       name: room.character.name,
-      description: replacePlaceholders(room.character.description || '', replacements),
+      description: replacePlaceholders(characterDescription, replacements),
       greeting: replacePlaceholders(room.character.greeting || '', replacements),
       personality: replacePlaceholders(room.character.tagline || '', replacements),
     };
