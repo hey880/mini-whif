@@ -68,6 +68,8 @@ describe('Message Routes - Performance Optimizations', () => {
         slug: 'test-model',
         name: 'Test Model',
         provider: 'test',
+        contextWindow: 4096,
+        maxOutputTokens: 2048,
         isActive: true,
         gemCostPerMessage: 5,
       },

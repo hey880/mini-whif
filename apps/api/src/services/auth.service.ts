@@ -27,7 +27,7 @@ export class AuthService {
         // 1. Create profile
         const newProfile = await tx.profile.create({
           data: {
-            id: authData.user.id,
+            id: authData.user!.id,
             email: input.email,
             displayName: input.displayName,
           },

@@ -74,10 +74,8 @@ export class PrismaPersonaRepository implements IPersonaRepository {
       data: {
         userId,
         name,
-        description,
-        avatarUrl,
+        persona: description || '',
         isDefault: isDefault || false,
-        data: data || {},
       },
     });
   }
