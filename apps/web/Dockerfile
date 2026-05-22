@@ -72,7 +72,7 @@ COPY --from=builder /app/packages/proto/gen ./packages/proto/gen
 
 # Copy Next.js build output from builder
 COPY --from=builder /app/apps/web/.next ./apps/web/.next
-COPY --from=builder /app/apps/web/public ./apps/web/public
+# COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder /app/apps/web/next.config.ts ./apps/web/
 
 # Expose port
