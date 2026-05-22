@@ -357,19 +357,19 @@ export function Step1BasicSettings() {
         </div>
       </div>
 
-      {/* Description (AI Prompt) */}
+      {/* UI Description */}
       <div>
         <label className="block text-sm font-medium text-on-surface mb-2">
-          AI 프롬프트 <span className="text-error">*</span>
+          상세 페이지 설명 <span className="text-error">*</span>
         </label>
         <p className="text-xs text-on-surface-variant mb-2">
-          AI에게 전달할 캐릭터의 역할, 외모, 성격, 말투 등을 자세히 작성해주세요
+          사용자에게 보여질 캐릭터 설명 (2000자 제한)
         </p>
         <textarea
           value={formData.description}
           onChange={(e) => updateFormData({ description: e.target.value })}
-          placeholder="캐릭터의 역할, 외모, 성격, 말투 등을 상세히 입력해주세요..."
-          rows={8}
+          placeholder="캐릭터의 기본 정보, 설정 등을 입력해주세요..."
+          rows={6}
           maxLength={2000}
           className="w-full px-4 py-3 rounded-xl bg-surface-container text-on-surface border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors resize-none"
         />
@@ -382,6 +382,27 @@ export function Step1BasicSettings() {
           <span className="text-xs text-on-surface-variant">
             {formData.description.length}/2000
           </span>
+        </div>
+      </div>
+
+      {/* AI Prompt Description */}
+      <div>
+        <label className="block text-sm font-medium text-on-surface mb-2">
+          AI 프롬프트 설명
+        </label>
+        <p className="text-xs text-on-surface-variant mb-2">
+          AI에게 전달할 상세한 캐릭터 정보 (역할, 외모, 성격, 말투 등 - 5000자 제한, 선택사항)
+        </p>
+        <textarea
+          value={formData.aiPromptDescription}
+          onChange={(e) => updateFormData({ aiPromptDescription: e.target.value })}
+          placeholder="AI가 캐릭터를 더 잘 이해하고 연기할 수 있도록 상세한 정보를 입력해주세요. 비워두면 상세 페이지 설명이 사용됩니다..."
+          rows={10}
+          maxLength={5000}
+          className="w-full px-4 py-3 rounded-xl bg-surface-container text-on-surface border border-outline-variant/30 focus:border-primary focus:outline-none transition-colors resize-none"
+        />
+        <div className="text-xs text-on-surface-variant mt-1 text-right">
+          {formData.aiPromptDescription.length}/5000
         </div>
       </div>
 

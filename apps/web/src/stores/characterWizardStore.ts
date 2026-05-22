@@ -45,6 +45,7 @@ export interface CharacterFormData {
   imageUrl: string;
   tagline: string;
   description: string;
+  aiPromptDescription: string;
   exampleDialogues: ExampleDialogue[];
   universeId?: string;
   noUniverse: boolean;
@@ -98,6 +99,7 @@ const initialFormData: CharacterFormData = {
   imageUrl: '',
   tagline: '',
   description: '',
+  aiPromptDescription: '',
   exampleDialogues: [],
   universeId: undefined,
   noUniverse: false,
@@ -203,6 +205,7 @@ export const useCharacterWizardStore = create<CharacterWizardState>((set, get) =
         imageUrl: character.imageUrl || '',
         tagline: character.tagline || '',
         description: character.description || '',
+        aiPromptDescription: character.aiPromptDescription || '',
         exampleDialogues: data.exampleDialogues || [],
         universeId: character.universeId || undefined,
         noUniverse: !character.universeId,

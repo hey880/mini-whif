@@ -95,6 +95,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
         name: char.name,
         tagline: char.tagline || undefined,
         description: char.description || undefined,
+        // aiPromptDescription는 무거운 필드이므로 리스트에서는 제외 (getCharacter에서만 포함)
         greeting: char.greeting || undefined,
         imageUrl: char.imageUrl || undefined,
         bannerImageUrl: char.bannerImageUrl || undefined,
@@ -143,6 +144,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
         name: character.name,
         tagline: character.tagline || undefined,
         description: character.description || undefined,
+        aiPromptDescription: character.aiPromptDescription || undefined,
         greeting: character.greeting || undefined,
         imageUrl: character.imageUrl || undefined,
         bannerImageUrl: character.bannerImageUrl || undefined,
@@ -179,6 +181,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
         name: req.name,
         tagline: req.tagline || undefined,
         description: req.description || undefined,
+        aiPromptDescription: req.aiPromptDescription || undefined,
         greeting: req.greeting || undefined,
         imageUrl: req.imageUrl || undefined,
         bannerImageUrl: req.bannerImageUrl || undefined,
@@ -198,6 +201,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
         name: character.name,
         tagline: character.tagline || undefined,
         description: character.description || undefined,
+        aiPromptDescription: character.aiPromptDescription || undefined,
         greeting: character.greeting || undefined,
         imageUrl: character.imageUrl || undefined,
         bannerImageUrl: character.bannerImageUrl || undefined,
@@ -243,6 +247,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
     if (req.name) updateData.name = req.name;
     if (req.tagline !== undefined) updateData.tagline = req.tagline;
     if (req.description !== undefined) updateData.description = req.description;
+    if (req.aiPromptDescription !== undefined) updateData.aiPromptDescription = req.aiPromptDescription;
     if (req.greeting !== undefined) updateData.greeting = req.greeting;
     if (req.imageUrl !== undefined) updateData.imageUrl = req.imageUrl;
     if (req.bannerImageUrl !== undefined) updateData.bannerImageUrl = req.bannerImageUrl;
@@ -271,6 +276,7 @@ export const characterHandler: ServiceImpl<typeof CharacterService> = {
         name: character.name,
         tagline: character.tagline || undefined,
         description: character.description || undefined,
+        aiPromptDescription: character.aiPromptDescription || undefined,
         greeting: character.greeting || undefined,
         imageUrl: character.imageUrl || undefined,
         bannerImageUrl: character.bannerImageUrl || undefined,
