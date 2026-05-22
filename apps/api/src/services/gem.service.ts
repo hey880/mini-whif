@@ -31,55 +31,71 @@ export class GemService {
       amount: number;
       gemType: string;
       logType: string;
+      balanceAfter: number;
     }> = [];
 
+    // 거래 중 잔액 추적
+    let currentPaid = wallet.paidGemAmount;
+    let currentDaily = wallet.freeDailyGemAmount;
+    let currentPromo = wallet.freePromoGemAmount;
+
     // Priority 1: Free daily
-    if (wallet.freeDailyGemAmount >= remaining) {
-      updates.freeDailyGemAmount = wallet.freeDailyGemAmount - remaining;
+    if (currentDaily >= remaining) {
+      currentDaily -= remaining;
+      updates.freeDailyGemAmount = currentDaily;
       logs.push({
         amount: -remaining,
         gemType: 'free_daily',
         logType: 'chat_message',
+        balanceAfter: currentPaid + currentDaily + currentPromo,
       });
       remaining = 0;
-    } else if (wallet.freeDailyGemAmount > 0) {
-      const deducted = wallet.freeDailyGemAmount;
+    } else if (currentDaily > 0) {
+      const deducted = currentDaily;
+      currentDaily = 0;
       updates.freeDailyGemAmount = 0;
       logs.push({
         amount: -deducted,
         gemType: 'free_daily',
         logType: 'chat_message',
+        balanceAfter: currentPaid + currentDaily + currentPromo,
       });
       remaining -= deducted;
     }
 
     // Priority 2: Free promo
-    if (remaining > 0 && wallet.freePromoGemAmount >= remaining) {
-      updates.freePromoGemAmount = wallet.freePromoGemAmount - remaining;
+    if (remaining > 0 && currentPromo >= remaining) {
+      currentPromo -= remaining;
+      updates.freePromoGemAmount = currentPromo;
       logs.push({
         amount: -remaining,
         gemType: 'free_promo',
         logType: 'chat_message',
+        balanceAfter: currentPaid + currentDaily + currentPromo,
       });
       remaining = 0;
-    } else if (remaining > 0 && wallet.freePromoGemAmount > 0) {
-      const deducted = wallet.freePromoGemAmount;
+    } else if (remaining > 0 && currentPromo > 0) {
+      const deducted = currentPromo;
+      currentPromo = 0;
       updates.freePromoGemAmount = 0;
       logs.push({
         amount: -deducted,
         gemType: 'free_promo',
         logType: 'chat_message',
+        balanceAfter: currentPaid + currentDaily + currentPromo,
       });
       remaining -= deducted;
     }
 
     // Priority 3: Paid
     if (remaining > 0) {
-      updates.paidGemAmount = wallet.paidGemAmount - remaining;
+      currentPaid -= remaining;
+      updates.paidGemAmount = currentPaid;
       logs.push({
         amount: -remaining,
         gemType: 'paid',
         logType: 'chat_message',
+        balanceAfter: currentPaid + currentDaily + currentPromo,
       });
     }
 
@@ -96,6 +112,7 @@ export class GemService {
             amount: log.amount,
             gemType: log.gemType,
             logType: log.logType,
+            balanceAfter: log.balanceAfter,
             relatedMessageId,
           },
         })
@@ -125,9 +142,9 @@ export class GemService {
         wallet.paidGemAmount +
         wallet.freeDailyGemAmount +
         wallet.freePromoGemAmount,
-      paidGems: wallet.paidGemAmount,
-      freeDailyGems: wallet.freeDailyGemAmount,
-      freePromoGems: wallet.freePromoGemAmount,
+      paidGemAmount: wallet.paidGemAmount,
+      freeDailyGemAmount: wallet.freeDailyGemAmount,
+      freePromoGemAmount: wallet.freePromoGemAmount,
       lastRefillDate: wallet.freeDailyGemLastRefillDate,
     };
   }
@@ -172,13 +189,17 @@ export class GemService {
       },
     });
 
+    const refillAmount = 200 - wallet.freeDailyGemAmount;
+    const totalAfter = updated.paidGemAmount + updated.freeDailyGemAmount + updated.freePromoGemAmount;
+
     // Log the refill
     await prisma.gemLog.create({
       data: {
         userId,
-        amount: 200 - wallet.freeDailyGemAmount,
+        amount: refillAmount,
         gemType: 'free_daily',
         logType: 'daily_refill',
+        balanceAfter: totalAfter,
       },
     });
 
