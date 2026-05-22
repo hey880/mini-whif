@@ -557,22 +557,14 @@ export default function ChatPage() {
               appendStreamChunk(data.content);
 
               if (data.is_final_event) {
-                // Final update
-                appendStreamChunk(data.content);
-
-                // 5. Refresh data to get accurate server data
-                const refetchPromises = [
+                // Refresh data to get accurate server data
+                await Promise.all([
                   queryClient.invalidateQueries({ queryKey: ['messages', roomId] }),
                   queryClient.invalidateQueries({ queryKey: ['wallet'] }),
-                ];
+                ]);
 
-                // Wait for refetch before hiding streaming UI
-                Promise.all(refetchPromises).then(() => {
-                  setTimeout(() => {
-                    setStreaming(false);
-                    toast.success('메시지가 재생성되었습니다');
-                  }, 100);
-                });
+                setStreaming(false);
+                toast.success('메시지가 재생성되었습니다');
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);

@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { flushSync } from 'react-dom';
 import { useChatStore } from '@/stores/chatStore';
 import { supabase } from '@/lib/supabase';
 
@@ -89,25 +88,12 @@ export function useSSEChat() {
             try {
               const data: SSEEvent = JSON.parse(line.slice(6));
 
-              // DEBUG: Log when SSE event arrives
-              const startTime = performance.now();
-
-              // ✅ CRITICAL: Force immediate synchronous rendering
-              // This bypasses React 19 batching completely
-              flushSync(() => {
-                appendStreamChunk(data.content);
-              });
-
-              const renderTime = performance.now() - startTime;
+              // Update streaming content immediately (React 19 batching handles optimization)
+              appendStreamChunk(data.content);
 
               if (data.is_final_event) {
-                // Final update
-                flushSync(() => {
-                  appendStreamChunk(data.content);
-                });
-
-                // Invalidate queries first to trigger refetch
-                const refetchPromises = [
+                // Invalidate queries to trigger refetch
+                await Promise.all([
                   queryClient.invalidateQueries({
                     queryKey: ['messages', roomId],
                   }),
@@ -117,17 +103,11 @@ export function useSSEChat() {
                   queryClient.invalidateQueries({
                     queryKey: ['wallet'],
                   }),
-                ];
+                ]);
 
-                // Wait for refetch to complete before hiding streaming UI
-                Promise.all(refetchPromises).then(() => {
-                  // Small delay to ensure DOM has updated
-                  setTimeout(() => {
-                    setStreaming(false);
-                    // Clear optimistic message after real messages loaded
-                    setOptimisticUserMessage(null);
-                  }, 100);
-                });
+                setStreaming(false);
+                // Clear optimistic message after real messages loaded
+                setOptimisticUserMessage(null);
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);
