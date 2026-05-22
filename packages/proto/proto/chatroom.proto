@@ -39,6 +39,7 @@ message CreateChatRoomRequest {
   string character_id = 1;
   optional string persona_id = 2;
   optional string user_note = 3;
+  optional string selected_greeting_id = 4; // ID of the greeting to use (from character.data.greetings)
 }
 
 message CreateChatRoomResponse {
