@@ -45,7 +45,7 @@ export class MessageService {
    * 4. AI 재생성 스트리밍
    */
   async regenerateMessage(dto: RegenerateMessageDto): Promise<void> {
-    const { userId, messageId, reply } = dto;
+    const { userId, messageId, hint, reply } = dto;
 
     // 1. Get message with room
     const message = await this.prisma.message.findUnique({
@@ -142,7 +142,7 @@ export class MessageService {
       roomId: message.roomId,
       messageId: message.id,
       userMessage: userMessageContent,
-      hint: undefined,
+      hint,
       modelSlug: model.slug,
       maxTokens: 1000,
       characterContext: {

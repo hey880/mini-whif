@@ -10,6 +10,9 @@ export interface RegenerateMessageDto {
   /** 재생성할 메시지 ID */
   messageId: string;
 
+  /** 사용자가 입력한 힌트 */
+  hint: string;
+
   /** SSE 응답용 Reply 객체 */
   reply: FastifyReply;
 }
