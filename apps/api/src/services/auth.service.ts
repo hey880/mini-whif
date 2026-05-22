@@ -52,6 +52,7 @@ export class AuthService {
             amount: 200,
             gemType: 'free_daily',
             logType: 'daily_refill',
+            balanceAfter: 200, // 회원가입 시 첫 충전이므로 총 잔액 = 200
             memo: '회원가입 축하 보너스',
           },
         });
