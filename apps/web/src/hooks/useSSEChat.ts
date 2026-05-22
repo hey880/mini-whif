@@ -102,15 +102,18 @@ export function useSSEChat() {
                   await Promise.all([
                     queryClient.invalidateQueries({
                       queryKey: ['messages', roomId],
+                      refetchType: 'active', // 활성 쿼리 즉시 refetch
                     }),
                     queryClient.invalidateQueries({
                       queryKey: ['chatRooms'],
+                      refetchType: 'active',
                     }),
                     queryClient.invalidateQueries({
                       queryKey: ['wallet'],
+                      refetchType: 'active', // 활성 쿼리 즉시 refetch
                     }),
                   ]);
-                }, 300); // 300ms 지연
+                }, 500); // 500ms 지연 (300ms → 500ms)
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError);
