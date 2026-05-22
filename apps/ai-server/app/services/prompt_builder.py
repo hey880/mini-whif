@@ -109,7 +109,11 @@ You are **{character_name}**, the AI character in this conversation.
 You respond and act as {character_name}, not as the user or their persona.
 All your responses must be in character as {character_name}.""")
 
-        # Character personality
+        # Character description (캐릭터 상세페이지의 설명)
+        if description := character_data.get("description"):
+            sections.append(f"# Character Description\n{description}")
+
+        # Character personality (aiPromptDescription. AI 프롬프트에 전달할 내용)
         if personality := character_data.get("personality"):
             sections.append(f"# Character Personality\n{personality}")
 

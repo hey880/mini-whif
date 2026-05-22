@@ -78,6 +78,7 @@ export class PrismaCharacterRepository implements ICharacterRepository {
           name: true,
           tagline: true,
           description: true,
+          aiPromptDescription: true,
           greeting: true,
           imageUrl: true,
           bannerImageUrl: true,
