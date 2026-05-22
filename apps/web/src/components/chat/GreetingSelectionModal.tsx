@@ -85,7 +85,6 @@ export function GreetingSelectionModal({
             <button
               key={greeting.id}
               onClick={() => setSelectedId(greeting.id)}
-              id={'=========>'+greeting.id}
               className={`w-full text-left glass-panel p-4 rounded-xl transition-all group ${
                 selectedId === greeting.id
                   ? 'ring-2 ring-primary bg-primary-container/20'
