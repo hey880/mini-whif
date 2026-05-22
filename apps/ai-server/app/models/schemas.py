@@ -20,6 +20,8 @@ class ChatRequest(BaseModel):
     lorebook_entries: list[dict] | None = Field(default=None, description="Lorebook entries")
     situational_triggers: list[dict] | None = Field(default=None, description="Situational image triggers")
     persona_name: str | None = Field(default=None, description="User persona name")
+    user_note: str | None = Field(default=None, description="User note about the conversation")
+    conversation_summary: str | None = Field(default=None, description="Previous conversation summary")
 
 
 class ChatResponseChunk(BaseModel):

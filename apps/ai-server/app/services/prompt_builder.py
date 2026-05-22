@@ -1,4 +1,5 @@
 from typing import Any
+from difflib import SequenceMatcher
 
 
 class PromptBuilder:
@@ -225,6 +226,47 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
         return "\n\n".join(sections) if sections else "You are a helpful AI assistant."
 
     @staticmethod
+    def deduplicate_messages(messages: list[dict]) -> list[dict]:
+        """
+        연속된 동일 메시지 제거
+
+        Args:
+            messages: 메시지 리스트
+
+        Returns:
+            중복이 제거된 메시지 리스트
+        """
+        if not messages:
+            return []
+
+        deduplicated = [messages[0]]
+        for msg in messages[1:]:
+            if msg.get("content") != deduplicated[-1].get("content"):
+                deduplicated.append(msg)
+
+        return deduplicated
+
+    @staticmethod
+    def check_similarity(new_msg: str, recent_messages: list[dict], threshold: float = 0.95) -> bool:
+        """
+        최근 메시지와의 유사도 검사 (threshold 이상이면 True 반환)
+
+        Args:
+            new_msg: 새 메시지
+            recent_messages: 최근 메시지 리스트
+            threshold: 유사도 임계값 (기본 0.95)
+
+        Returns:
+            유사도가 임계값 이상인 경우 True
+        """
+        for msg in recent_messages[-5:]:  # 최근 5개만 체크
+            if msg.get("role") == "assistant":
+                similarity = SequenceMatcher(None, new_msg, msg.get("content", "")).ratio()
+                if similarity >= threshold:
+                    return True
+        return False
+
+    @staticmethod
     def filter_triggered_lorebook_entries(
         lorebook_entries: list[dict[str, Any]],
         message_history: list[dict[str, str]],
@@ -291,6 +333,7 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
         new_user_message: str,
         hint: str | None = None,
         character_name: str | None = None,
+        enable_deduplication: bool = True,
     ) -> list[dict[str, str]]:
         """
         Build complete message array for AI model.
@@ -300,6 +343,7 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
             message_history: Previous messages
             new_user_message: New message from user
             hint: Optional hint for character's next action (auto-continue)
+            enable_deduplication: 중복 제거 활성화 (기본 True)
 
         Returns:
             Complete message list
@@ -307,7 +351,13 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
         messages = [{"role": "system", "content": system_prompt}]
 
         # Add history (last 20 messages to stay within context)
-        messages.extend(message_history[-20:])
+        formatted_history = message_history[-20:]
+
+        # Apply deduplication if enabled
+        if enable_deduplication:
+            formatted_history = PromptBuilder.deduplicate_messages(formatted_history)
+
+        messages.extend(formatted_history)
 
         # Add new user message first (if provided)
         if new_user_message:

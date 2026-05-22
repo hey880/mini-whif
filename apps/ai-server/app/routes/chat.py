@@ -36,114 +36,45 @@ async def send_chat_message(
         StreamingResponse with SSE events
     """
     try:
-        # Use character and lorebook data from API server if provided
-        # This avoids duplicate DB queries and ensures consistent data
-        if request.character and request.lorebook_entries is not None:
-            # Use data from API server (preferred)
-            character_data = request.character
-            lorebook_entries = request.lorebook_entries
-            situational_triggers = request.situational_triggers or []
+        # Use character and lorebook data from API server
+        character_data = request.character
+        lorebook_entries = request.lorebook_entries or []
+        situational_triggers = request.situational_triggers or []
 
-            # OPTIMIZATION: Use persona_name from API server if provided (avoid DB query)
-            if request.persona_name:
-                # Use pre-loaded persona name
-                persona_data = {"persona": request.persona_name}
-                # Fetch only room metadata (no joins)
-                room_response = supabase.table("chat_rooms").select("*").eq("id", request.room_id).single().execute()
-            else:
-                # Fallback: fetch room with persona (for backward compatibility)
-                room_response = supabase.table("chat_rooms").select(
-                    """
-                    *,
-                    persona:user_personas(
-                        persona
-                    )
-                    """
-                ).eq("id", request.room_id).single().execute()
-
-            if not room_response.data:
-                async def error_stream():
-                    error_data = ChatResponseChunk(
-                        event_id=0,
-                        content="Error: Chat room not found",
-                        is_final_event=True
-                    )
-                    yield f"data: {error_data.model_dump_json()}\n\n"
-
-                return StreamingResponse(
-                    error_stream(),
-                    media_type="text/event-stream"
-                )
-
-            room = room_response.data
-            if not request.persona_name:
-                persona_data = room.get("persona")
-
+        # OPTIMIZATION: Use persona_name from API server if provided (avoid DB query)
+        if request.persona_name:
+            # Use pre-loaded persona name
+            persona_data = {"persona": request.persona_name}
+            # Fetch only room metadata (no joins)
+            room_response = supabase.table("chat_rooms").select("*").eq("id", request.room_id).single().execute()
         else:
-            # Fallback: Fetch everything from DB (legacy behavior)
+            # Fallback: fetch room with persona (for backward compatibility)
             room_response = supabase.table("chat_rooms").select(
                 """
                 *,
-                character:characters(
-                    id,
-                    name,
-                    description,
-                    tagline,
-                    greeting,
-                    data,
-                    lorebook
-                ),
                 persona:user_personas(
                     persona
                 )
                 """
             ).eq("id", request.room_id).single().execute()
 
-            if not room_response.data:
-                async def error_stream():
-                    error_data = ChatResponseChunk(
-                        event_id=0,
-                        content="Error: Chat room not found",
-                        is_final_event=True
-                    )
-                    yield f"data: {error_data.model_dump_json()}\n\n"
-
-                return StreamingResponse(
-                    error_stream(),
-                    media_type="text/event-stream"
+        if not room_response.data:
+            async def error_stream():
+                error_data = ChatResponseChunk(
+                    event_id=0,
+                    content="Error: Chat room not found",
+                    is_final_event=True
                 )
+                yield f"data: {error_data.model_dump_json()}\n\n"
 
-            room = room_response.data
-            character = room.get("character", {})
+            return StreamingResponse(
+                error_stream(),
+                media_type="text/event-stream"
+            )
+
+        room = room_response.data
+        if not request.persona_name:
             persona_data = room.get("persona")
-
-            # Extract data for legacy path
-            character_data = {
-                "name": character.get("name"),
-                "description": character.get("description"),
-                "personality": character.get("tagline"),
-                "scenario": character.get("greeting"),
-            }
-
-            # Merge character.data if exists
-            if character.get("data"):
-                char_data_json = character.get("data")
-                if isinstance(char_data_json, dict):
-                    character_data.update(char_data_json)
-
-            # Extract lorebook
-            lorebook = character.get("lorebook") or {}
-            lorebook_entries = lorebook.get("entries", []) if isinstance(lorebook, dict) else []
-
-            # Extract situational triggers
-            situational_triggers = []
-            if "situationalImages" in character_data and isinstance(character_data["situationalImages"], list):
-                for img in character_data["situationalImages"]:
-                    if isinstance(img, dict) and "triggers" in img:
-                        situational_triggers.append({
-                            "triggers": img.get("triggers", []),
-                            "description": img.get("description", "")
-                        })
 
         # Fetch recent messages (last 20)
         messages_response = supabase.table("messages").select(
@@ -185,8 +116,8 @@ async def send_chat_message(
             character_data=character_data,
             lorebook={"entries": triggered_lorebook_entries} if triggered_lorebook_entries else None,
             user_persona=persona_data.get("persona") if persona_data else None,
-            user_note=room.get("user_note"),
-            conversation_summary=room.get("conversation_summary"),
+            user_note=request.user_note or room.get("user_note"),
+            conversation_summary=request.conversation_summary or room.get("conversation_summary"),
             situational_triggers=situational_triggers if situational_triggers else None,
             hint=request.hint,  # Layer 1 enforcement
         )
