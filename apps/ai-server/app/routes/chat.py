@@ -172,6 +172,7 @@ async def send_chat_message(
                 model_slug=request.model_slug,
                 messages=messages,
                 max_tokens=request.max_tokens,
+                character_name=character_data.get("name"),
             ):
                 accumulated += chunk
 

@@ -2,7 +2,7 @@ import logging
 from typing import AsyncGenerator
 import httpx
 from openai import AsyncOpenAI
-from langfuse.decorators import observe
+from langfuse.decorators import observe, langfuse_context
 from ..config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -30,23 +30,15 @@ async def stream_chat_completion(
     model_slug: str,
     messages: list[dict[str, str]],
     max_tokens: int = 2048,
+    character_name: str | None = None,
 ) -> AsyncGenerator[str, None]:
-    """
-    Stream chat completion from OpenRouter.
+    langfuse_context.update_current_trace(
+        user_id=user_id,
+        session_id=room_id,
+        tags=[model_slug],
+        metadata={"character_name": character_name} if character_name else {},
+    )
 
-    Args:
-        room_id: Chat room ID
-        user_id: User ID
-        model_slug: Model identifier (e.g., "anthropic/claude-sonnet-4-5")
-        messages: Message history in OpenAI format
-        max_tokens: Maximum tokens to generate
-
-    Yields:
-        Content chunks as they're generated
-
-    Note:
-        @observe() decorator automatically traces this function in Langfuse
-    """
     if not client or not settings.has_openrouter:
         # Mock response when OpenRouter not configured
         logger.warning(f"OpenRouter not configured, returning mock response for room {room_id}")
@@ -55,7 +47,7 @@ async def stream_chat_completion(
             "OpenRouter API key is not configured. "
             "Please set OPENROUTER_API_KEY in your environment variables."
         )
-        for i, char in enumerate(mock_response):
+        for char in mock_response:
             yield char
         return
 
