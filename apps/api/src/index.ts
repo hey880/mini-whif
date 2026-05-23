@@ -2,7 +2,7 @@
 if (process.env.NEW_RELIC_LICENSE_KEY) {
   const { createRequire } = await import('module');
   const require = createRequire(import.meta.url);
-  require('../newrelic.cjs');
+  require('newrelic');
 }
 
 import 'dotenv/config';

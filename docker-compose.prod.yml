@@ -18,6 +18,7 @@ services:
       - AI_SERVER_URL=http://ai-server:8000
       - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
       - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME_API:-PersonaChat-API}
+      - NEW_RELIC_CONFIG_FILE=/app/apps/api/newrelic.cjs
       - PORTONE_API_KEY=${PORTONE_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-info}
