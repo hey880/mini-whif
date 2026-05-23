@@ -1,5 +1,13 @@
-# 프로젝트 개요
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## 프로젝트 개요
 AI 캐릭터와 사용자의 페르소나 캐릭터가 대화하는 채팅 서비스
+- **모노레포 구조**: Turborepo + pnpm 워크스페이스 (apps/api, apps/web, apps/ai-server, packages/proto, packages/shared-types)
+- **타입 안전 RPC**: ConnectRPC + Protocol Buffers로 FE-BE 간 타입 동기화
+- **스트리밍 AI**: FastAPI AI 서버에서 SSE로 실시간 응답
+- **Clean Architecture**: Repository 패턴, Service 레이어, 의존성 역전 원칙
 
 ## 작업 규칙
 - 모든 md 문서 및 claude의 응답은 한글을 사용
@@ -7,9 +15,6 @@ AI 캐릭터와 사용자의 페르소나 캐릭터가 대화하는 채팅 서�
 - plan, README를 제외한 Claude가 참고해야 하는 md 문서 작성은 200줄 이내로 분할
 - Commit은 git-flow-commit-kr agent를 사용
 - 작업 중 실수를 한다면 다시 실수 하지 않도록 해당 사항을 md 파일에 추가
-
-## 코딩 규칙
-Clean Architecture를 지향
 
 ### AI 코드 어시스턴트 사용 시
 1. **파일 하나만 보지 말고 전체 패턴 검색**
@@ -22,3 +27,161 @@ Clean Architecture를 지향
 - 수정 전 10분 투자 → 2번의 재배포 방지 (20-30분 절약)
 - 패턴 검색 자동화 → 놓치는 케이스 제로화
 - 테스트 시나리오 문서화 → 재발 방지
+
+## 개발 명령어
+
+### 공통 (루트)
+```bash
+pnpm install              # 모든 패키지 의존성 설치
+pnpm dev                  # 모든 서비스 병렬 실행
+pnpm build                # 모든 패키지 빌드
+pnpm lint                 # 모든 패키지 린트
+pnpm test                 # 모든 테스트 실행
+pnpm proto:gen            # .proto 파일에서 TypeScript 생성
+```
+
+### API 서버 (apps/api)
+```bash
+cd apps/api
+pnpm dev                  # 핫 리로드 개발 서버 (포트 3000)
+pnpm build                # 프로덕션 빌드
+pnpm start                # 프로덕션 실행
+pnpm test                 # Vitest 테스트 실행
+pnpm db:migrate           # Prisma 마이그레이션
+pnpm db:seed              # 데이터베이스 시딩
+pnpm db:studio            # Prisma Studio 열기
+pnpm db:generate          # Prisma Client 재생성
+```
+
+### AI 서버 (apps/ai-server)
+```bash
+cd apps/ai-server
+fastapi dev                            # 개발 서버 (포트 8000)
+fastapi run                            # 프로덕션 서버
+uvicorn app.main:app --reload          # 또는 uvicorn 직접 실행
+```
+
+### 프론트엔드 (apps/web)
+```bash
+cd apps/web
+pnpm dev                  # 개발 서버 (포트 3001)
+pnpm build                # Next.js 프로덕션 빌드
+pnpm start                # 프로덕션 실행
+pnpm lint                 # ESLint 검사
+pnpm test:e2e             # Playwright E2E 테스트
+```
+
+## 아키텍처 핵심 원칙
+
+### Clean Architecture 레이어 (apps/api/src)
+```
+HTTP Layer (routes, rpc)          # 가장 외부 - Fastify 라우트, ConnectRPC 핸들러
+   ↓ depends on
+Application Layer (services)       # 비즈니스 로직 - ChatService, MessageService 등
+   ↓ depends on
+Domain Layer (repositories)        # 인터페이스 - IChatRoomRepository 등
+   ↑ implemented by
+Infrastructure Layer (repositories) # Prisma 구현 - PrismaChatRoomRepository 등
+```
+
+**핵심 규칙: 외부는 내부를 알 수 있지만, 내부는 외부를 모른다.**
+
+### Repository 패턴 사용 예시
+```typescript
+// ❌ 나쁨: Prisma 직접 호출
+const room = await prisma.chatRoom.findUnique({ where: { id } });
+if (!room || room.userId !== userId) throw new Error('Forbidden');
+
+// ✅ 좋음: Repository 사용 (권한 검증 캡슐화)
+const chatRoomRepo = new PrismaChatRoomRepository(prisma);
+const room = await chatRoomRepo.findById(id, userId);
+```
+
+### 성능 최적화 패턴 (필수)
+```typescript
+// 1. createMany로 N+1 쿼리 제거
+await prisma.message.createMany({ data: messages });
+
+// 2. Promise.all로 병렬 실행
+const [user, settings] = await Promise.all([
+  prisma.user.findUnique({ where: { id } }),
+  prisma.settings.findUnique({ where: { userId: id } })
+]);
+
+// 3. select로 무거운 필드 제외
+await prisma.character.findMany({
+  select: { id: true, name: true } // data, lorebook 제외
+});
+
+// 4. 트랜잭션으로 원자성 보장
+await prisma.$transaction([
+  prisma.reaction.create({ data }),
+  prisma.message.update({ where: { id }, data: { count: { increment: 1 } } })
+]);
+```
+
+## 데이터 흐름
+
+### SSE 채팅 스트리밍 플로우
+1. 프론트엔드 → Fastify API (`POST /chat-rooms/:roomId/messages`)
+2. Fastify: 권한 확인, Gem 확인, 메시지 저장, AI 플레이스홀더 생성
+3. Fastify → FastAPI AI 서버 (`POST /v1/chats?stream=true`)
+4. FastAPI: 시스템 프롬프트 구성, OpenRouter 스트리밍, SSE 이벤트 전송
+5. Fastify가 SSE를 프론트엔드로 중계
+6. 완료 시: DB 업데이트, Gem 차감 (일일 → 프로모 → 유료 순서)
+
+### ConnectRPC 서비스
+- CharacterService: 캐릭터 CRUD
+- PersonaService: 페르소나 관리
+- ChatRoomService: 채팅방 관리
+- LlmModelService: AI 모델 설정
+
+## 주요 디렉토리 구조
+```
+apps/api/src/
+├── domain/repositories/           # Repository 인터페이스 (추상)
+├── application/services/          # 비즈니스 로직
+├── infrastructure/repositories/   # Repository 구현 (Prisma)
+├── routes/                        # REST 라우트
+├── rpc/                          # ConnectRPC 핸들러
+└── config/                       # Prisma, Supabase 설정
+
+apps/ai-server/app/
+├── routes/                       # FastAPI 라우트 (chat, feedback)
+├── services/                     # LLM, Langfuse 서비스
+└── models/                       # Pydantic 스키마
+
+apps/web/src/
+├── app/                         # Next.js App Router 페이지
+├── components/                  # React 컴포넌트
+└── lib/                        # ConnectRPC 클라이언트, Supabase
+
+packages/
+├── proto/                       # Protocol Buffers 정의
+└── shared-types/                # 공유 TypeScript 타입
+```
+
+## 환경 변수
+- `DATABASE_URL`: PostgreSQL 연결 (Transaction Pooler 사용)
+- `DIRECT_URL`: Prisma 마이그레이션용 직접 연결
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`: Supabase 인증
+- `AI_SERVER_URL`: AI 서버 내부 URL
+- `OPENROUTER_API_KEY`: LLM API 키
+- `NEXT_PUBLIC_*`: 프론트엔드 환경 변수 (빌드 시 인라인)
+
+## 배포
+- **개발**: `pnpm dev` (모든 서비스 병렬 실행)
+- **프로덕션**: Docker Compose (`docker-compose -f docker-compose.prod.yml up -d`)
+- **CI/CD**: GitHub Actions → AWS EC2 배포 (`.github/workflows/deploy.yml`)
+- **로그**: `logs/api/api.log`, `logs/ai/ai-server.log`
+
+## 테스팅
+- API: Vitest (`apps/api/src/**/__tests__/*.test.ts`)
+- 프론트엔드: Playwright E2E (`apps/web/tests/`)
+- 부하 테스트: k6 (`load-tests/`)
+
+## 참고 문서
+- `README.md`: 전체 프로젝트 개요, 기술 스택, 빠른 시작
+- `API_QUICKSTART.md`: API 서버 설정, 엔드포인트 테스트, 성능 패턴
+- `docs/ARCHITECTURE.md`: Clean Architecture, Repository 패턴 상세 설명
+- `docs/ROLLING_UPDATE.md`: 무중단 배포 전략 (Docker Swarm, Blue-Green)
