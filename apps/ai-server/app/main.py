@@ -8,17 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config.settings import settings
 from .routes import chat, feedback
 
-# Initialize New Relic if license key is present
-if os.getenv('NEW_RELIC_LICENSE_KEY'):
-    try:
-        import newrelic.agent
-        config_file = os.path.join(os.path.dirname(__file__), '..', 'newrelic.ini')
-        if os.path.exists(config_file):
-            newrelic.agent.initialize(config_file)
-            logging.info("New Relic monitoring enabled")
-    except Exception as e:
-        logging.warning(f"Failed to initialize New Relic: {e}")
-
 # 로그 디렉토리 생성
 log_dir = Path(__file__).parent.parent / 'logs'
 log_dir.mkdir(exist_ok=True)
