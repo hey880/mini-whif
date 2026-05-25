@@ -19,20 +19,26 @@ COPY apps/ai-server/app ./ai-server/app
 # Copy New Relic config
 COPY apps/ai-server/newrelic.ini ./ai-server/
 
+# Copy entrypoint script
+COPY apps/ai-server/entrypoint.sh ./ai-server/
+RUN chmod +x ./ai-server/entrypoint.sh
+
 # Expose port
 EXPOSE 8000
 
 WORKDIR /app/ai-server
 
+# Create whif user/group and set up log directory with group write permissions
 RUN groupadd -g 1001 whif && \
     useradd -u 1001 -g whif -m whif && \
-    chown -R whif:whif /app
+    mkdir -p /app/ai-server/logs && \
+    chown -R whif:whif /app && \
+    chmod -R 775 /app/ai-server/logs
 
 USER whif
 
+# Use entrypoint to ensure correct permissions on mounted volumes
+ENTRYPOINT ["/app/ai-server/entrypoint.sh"]
+
 # Start server with New Relic wrapper if configured
-CMD if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then \
-      newrelic-admin run-program uvicorn app.main:app --host 0.0.0.0 --port 8000; \
-    else \
-      uvicorn app.main:app --host 0.0.0.0 --port 8000; \
-    fi
+CMD ["sh", "-c", "if [ -n \"$NEW_RELIC_LICENSE_KEY\" ]; then newrelic-admin run-program uvicorn app.main:app --host 0.0.0.0 --port 8000; else uvicorn app.main:app --host 0.0.0.0 --port 8000; fi"]

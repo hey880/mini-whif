@@ -28,8 +28,18 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
-            # 로그 디렉토리 생성
+            # 로그 디렉토리 생성 및 권한 설정
             mkdir -p logs/api logs/ai
+            sudo chown -R whif:whif logs
+            sudo chmod 775 logs/api logs/ai
+            # 기존 로그 파일이 있다면 권한 수정
+            [ -f logs/api/api.log ] && sudo chmod 664 logs/api/*.log || true
+            [ -f logs/ai/ai-server.log ] && sudo chmod 664 logs/ai/*.log || true
+
+            # Logrotate 설정 파일 복사
+            sudo cp logrotate/mini-whif-api /etc/logrotate.d/ || true
+            sudo cp logrotate/mini-whif-ai /etc/logrotate.d/ || true
+            sudo chmod 644 /etc/logrotate.d/mini-whif-api /etc/logrotate.d/mini-whif-ai || true
 
             # 환경 변수 업데이트
             echo "${{ secrets.ENV_FILE }}" > .env

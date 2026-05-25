@@ -1,0 +1,10 @@
+/home/ubuntu/mini-whif/logs/ai/*.log {
+    copytruncate
+    rotate 7
+    daily
+    compress
+    missingok
+    notifempty
+    su whif whif
+    create 0664 whif whif
+}

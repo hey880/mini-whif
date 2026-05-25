@@ -81,16 +81,26 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 # Copy New Relic config
 COPY apps/api/newrelic.cjs ./apps/api/
 
+# Copy entrypoint script
+COPY apps/api/entrypoint.sh ./apps/api/
+RUN chmod +x ./apps/api/entrypoint.sh
+
 # Expose port
 EXPOSE 3000
 
 WORKDIR /app/apps/api
 
+# Create whif user/group and set up log directory with group write permissions
 RUN addgroup -g 1001 whif && \
     adduser -D -u 1001 -G whif whif && \
-    chown -R whif:whif /app
+    mkdir -p /app/apps/api/logs && \
+    chown -R whif:whif /app && \
+    chmod -R 775 /app/apps/api/logs
 
 USER whif
+
+# Use entrypoint to ensure correct permissions on mounted volumes
+ENTRYPOINT ["/app/apps/api/entrypoint.sh"]
 
 # Start server
 CMD ["node", "dist/index.js"]
