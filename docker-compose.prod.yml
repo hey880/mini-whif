@@ -9,6 +9,7 @@ services:
     ports:
       - '0.0.0.0:3000:3000'
     environment:
+      - TZ=Asia/Seoul
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=${DATABASE_URL}
@@ -25,6 +26,7 @@ services:
     volumes:
       # 호스트 디렉토리 직접 마운트
       - ./logs/api:/app/apps/api/logs
+      - /etc/localtime:/etc/localtime:ro
     depends_on:
       - ai-server
     restart: unless-stopped
@@ -80,12 +82,15 @@ services:
     ports:
       - '0.0.0.0:3001:3001'
     environment:
+      - TZ=Asia/Seoul
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - NEXT_PUBLIC_PORTONE_STORE_ID=${NEXT_PUBLIC_PORTONE_STORE_ID}
       - NEXT_PUBLIC_PORTONE_CHANNEL_KEY=${NEXT_PUBLIC_PORTONE_CHANNEL_KEY}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
     depends_on:
       - api
     restart: unless-stopped
