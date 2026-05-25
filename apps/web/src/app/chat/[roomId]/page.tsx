@@ -540,42 +540,110 @@ export default function ChatPage() {
       // 4. SSE stream processing
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
+      let lineBuffer = '';
+      let receivedFinalEvent = false;  // ✅ 플래그 추가
+      let hasReceivedAnyContent = false;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // ✅ 스트림 타임아웃 설정 (2분)
+      const STREAM_TIMEOUT = 120000;
+      const streamTimeoutId = setTimeout(() => {
+        console.error('Reroll stream timeout after 2 minutes');
+        reader.cancel();
+      }, STREAM_TIMEOUT);
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
+          if (done) {
+            console.log('Reroll stream ended', { receivedFinalEvent, hasReceivedAnyContent });
 
-              // Update streaming content immediately (React 19 batching handles optimization)
-              appendStreamChunk(data.content);
+            // ✅ 스트림이 끝났는데 final event를 받지 못한 경우
+            if (!receivedFinalEvent) {
+              console.warn('Reroll stream ended without final event - forcing cleanup');
+              setStreaming(false);
 
-              if (data.is_final_event) {
-                setStreaming(false);
-                toast.success('메시지가 재생성되었습니다');
+              // 메시지 목록 강제 갱신
+              setTimeout(async () => {
+                await Promise.all([
+                  queryClient.invalidateQueries({
+                    queryKey: ['messages', roomId],
+                    refetchType: 'active',
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: ['wallet'],
+                    refetchType: 'active',
+                  }),
+                ]);
+              }, 500);
+            }
+            break;
+          }
 
-                // 백엔드의 DB 업데이트(Gem 차감 등) 완료를 위해 짧은 지연 후 쿼리 무효화
-                setTimeout(async () => {
-                  await Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ['messages', roomId] }),
-                    queryClient.invalidateQueries({ queryKey: ['wallet'] }),
-                  ]);
-                }, 300);
+          const chunk = decoder.decode(value, { stream: true });
+          lineBuffer += chunk;
+
+          // Split by newlines but keep incomplete line in buffer
+          const lines = lineBuffer.split('\n');
+          lineBuffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                // 콘텐츠 업데이트
+                if (data.content) {
+                  appendStreamChunk(data.content);
+                  hasReceivedAnyContent = true;
+                }
+
+                // ✅ 에러 이벤트 처리
+                if ('error' in data && data.error) {
+                  console.error('Received error event from server during reroll:', data);
+                }
+
+                if (data.is_final_event) {
+                  receivedFinalEvent = true;  // ✅ 플래그 설정
+                  setStreaming(false);
+                  toast.success('메시지가 재생성되었습니다');
+
+                  // 백엔드의 DB 업데이트(Gem 차감 등) 완료를 위해 짧은 지연 후 쿼리 무효화
+                  setTimeout(async () => {
+                    await Promise.all([
+                      queryClient.invalidateQueries({ queryKey: ['messages', roomId] }),
+                      queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+                    ]);
+                  }, 500);
+                }
+              } catch (parseError) {
+                console.error('Error parsing SSE data:', parseError);
               }
-            } catch (parseError) {
-              console.error('Error parsing SSE data:', parseError);
             }
           }
         }
+      } finally {
+        // ✅ 항상 실행되는 정리 로직
+        clearTimeout(streamTimeoutId);
+
+        // 상태 정리 보장
+        if (!receivedFinalEvent) {
+          setStreaming(false);
+        }
       }
     } catch (error: any) {
+      console.error('Error during reroll:', error);
+
+      // 상태 정리
       setStreaming(false);
+
+      // ✅ 에러 발생해도 메시지가 저장되었을 수 있으므로 갱신
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['messages', roomId],
+          refetchType: 'active',
+        });
+      }, 1000);
 
       // 6. Error handling
       if (error.message?.includes('Insufficient gems')) {

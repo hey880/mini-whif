@@ -293,35 +293,49 @@ export class AIStreamingService {
       const decoder = new TextDecoder();
       let accumulated = '';
       let buffer = ''; // Buffer for incomplete SSE events
+      let lastChunkTime = Date.now();
+      const STREAM_CHUNK_TIMEOUT = 30000; // 30초
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-
-        // Split by SSE event delimiter (\n\n)
-        const events = buffer.split('\n\n');
-        // Keep the last incomplete event in buffer
-        buffer = events.pop() || '';
-
-        // Send each complete SSE event individually with immediate flush
-        for (const event of events) {
-          if (event.trim()) {
-            reply.raw.write(event + '\n\n');
-            // Force immediate transmission by yielding to event loop
-            await new Promise(resolve => setImmediate(resolve));
-          }
+      // 청크 타임아웃 체크
+      const checkTimeout = setInterval(() => {
+        const elapsed = Date.now() - lastChunkTime;
+        if (elapsed > STREAM_CHUNK_TIMEOUT) {
+          server.log.warn('Stream chunk timeout detected');
+          reader.cancel();
         }
+      }, 5000); // 5초마다 체크
 
-        // Parse to check for final event
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              accumulated = data.content;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          lastChunkTime = Date.now(); // 타임아웃 리셋
+
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+
+          // Split by SSE event delimiter (\n\n)
+          const events = buffer.split('\n\n');
+          // Keep the last incomplete event in buffer
+          buffer = events.pop() || '';
+
+          // Send each complete SSE event individually with immediate flush
+          for (const event of events) {
+            if (event.trim()) {
+              reply.raw.write(event + '\n\n');
+              // Force immediate transmission by yielding to event loop
+              await new Promise(resolve => setImmediate(resolve));
+            }
+          }
+
+          // Parse to check for final event
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                accumulated = data.content;
 
               if (data.is_final_event) {
                 // Match situational images (OPTIMIZATION: use pre-loaded characterData)
@@ -364,10 +378,19 @@ export class AIStreamingService {
                 });
               }
             } catch (parseError) {
-              server.log.error({ error: parseError }, 'Error parsing SSE data');
+              server.log.error({
+                error: parseError,
+                line,
+                roomId: params.roomId,
+                messageId: params.messageId
+              }, 'Error parsing SSE data');
+              // 파싱 에러는 계속 진행 (일부 이벤트만 손상된 경우)
             }
           }
         }
+        }
+      } finally {
+        clearInterval(checkTimeout);
       }
 
       reply.raw.end();
@@ -415,12 +438,53 @@ export class AIStreamingService {
         }
       }
 
-      server.log.error({ error }, 'Error communicating with AI server');
+      server.log.error({
+        error,
+        roomId: params.roomId,
+        messageId: params.messageId,
+        headersSent: reply.raw.headersSent
+      }, 'Error during AI streaming');
 
-      // Send error response
-      if (!reply.raw.headersSent) {
-        throw error;
+      // ✅ 헤더가 이미 전송된 경우 (SSE 진행 중)
+      if (reply.raw.headersSent) {
+        try {
+          // SSE 에러 이벤트 전송
+          const errorEvent = {
+            event_id: -1,
+            content: accumulated || '[Error] Stream was interrupted. Please try again.',
+            is_final_event: true,  // ✅ 중요: 프론트엔드가 종료 처리할 수 있도록
+            error: true,
+            model: model.slug
+          };
+
+          reply.raw.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
+          reply.raw.end();
+
+          // DB 업데이트: 에러 메시지 저장
+          await prisma.message.update({
+            where: { id: params.messageId },
+            data: {
+              content: accumulated || '[Error] Stream interrupted',
+              metadata: { error: true, errorMessage: error instanceof Error ? error.message : 'Unknown error' }
+            }
+          });
+
+          // Gem 차감은 스트림이 시작되었으므로 진행
+          await this.gemService.deductGems(params.userId, gemCost, params.messageId);
+
+          // 채팅방 업데이트
+          await prisma.chatRoom.update({
+            where: { id: params.roomId },
+            data: { lastMessageAt: new Date() }
+          });
+        } catch (cleanupError) {
+          server.log.error({ error: cleanupError }, 'Error during cleanup');
+        }
+        return;
       }
+
+      // 헤더가 전송되지 않은 경우 (초기 연결 단계)
+      throw error;
     }
   }
 }
