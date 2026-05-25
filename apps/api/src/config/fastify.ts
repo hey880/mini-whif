@@ -25,6 +25,15 @@ export function createServer() {
 
     logger = {
       level: process.env.LOG_LEVEL || 'info',
+      timestamp: () => {
+        const now = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const offset = -now.getTimezoneOffset();
+        const sign = offset >= 0 ? '+' : '-';
+        const abs = Math.abs(offset);
+        const tz = `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+        return `,"time":"${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} ${tz}"`;
+      },
       stream: pino.multistream(streams)
     };
   } else {
@@ -34,7 +43,7 @@ export function createServer() {
       transport: {
         target: 'pino-pretty',
         options: {
-          translateTime: 'HH:MM:ss Z',
+          translateTime: 'SYS:yyyy-mm-dd HH:MM:ss o',
           ignore: 'pid,hostname',
         },
       },
@@ -124,7 +133,7 @@ export function createServer() {
   });
 
   // Global error handler
-  server.setErrorHandler((error, request, reply) => {
+  server.setErrorHandler((error, _request, reply) => {
     server.log.error(error);
 
     const statusCode = error.statusCode || 500;
