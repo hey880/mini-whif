@@ -5,6 +5,7 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apk add --no-cache openssl-dev tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+ENV TZ=Asia/Seoul
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -47,7 +48,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl-dev tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+ENV TZ=Asia/Seoul
 
 # Install pnpm
 RUN npm install -g pnpm

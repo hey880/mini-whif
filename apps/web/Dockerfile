@@ -21,6 +21,7 @@ ENV NEXT_PUBLIC_PORTONE_CHANNEL_KEY=$NEXT_PUBLIC_PORTONE_CHANNEL_KEY
 
 # Timezone setting
 RUN apk add --no-cache tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+ENV TZ=Asia/Seoul
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -50,6 +51,10 @@ RUN cd apps/web && pnpm build
 FROM node:20-alpine AS runner
 
 WORKDIR /app
+
+# Timezone setting
+RUN apk add --no-cache tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+ENV TZ=Asia/Seoul
 
 # Install pnpm
 RUN npm install -g pnpm
