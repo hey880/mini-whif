@@ -46,7 +46,7 @@ jobs:
 
             # 이미지 빌드 및 재시작
             docker-compose -f docker-compose.prod.yml pull || true
-            docker-compose -f docker-compose.prod.yml build --pull api ai-server
+            docker-compose -f docker-compose.prod.yml build --no-cache --pull api ai-server
             docker-compose -f docker-compose.prod.yml build --no-cache --pull web
             docker-compose -f docker-compose.prod.yml up -d --remove-orphans
 

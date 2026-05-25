@@ -1,10 +1,13 @@
 # Build stage - Only for TypeScript compilation
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
 # Install system dependencies
-RUN apk add --no-cache openssl-dev tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+RUN apt-get update && apt-get install -y --no-install-recommends openssl tzdata sudo vim && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && \
+    echo "Asia/Seoul" > /etc/timezone
 ENV TZ=Asia/Seoul
 
 # Install pnpm
@@ -25,15 +28,13 @@ COPY apps/api/prisma ./apps/api/prisma
 COPY apps/api/tsconfig.json ./apps/api/
 COPY apps/api/newrelic.cjs ./apps/api/
 
-COPY packages/proto/proto ./packages/proto/proto
-COPY packages/proto/buf.gen.yaml ./packages/proto/
-COPY packages/proto/buf.yaml ./packages/proto/
+COPY packages/proto/gen ./packages/proto/gen
 COPY packages/proto/tsconfig.json ./packages/proto/
 
 COPY packages/shared-types/src ./packages/shared-types/src
 COPY packages/shared-types/tsconfig.json ./packages/shared-types/
 
-# Generate and build proto (generates .ts then compiles to .js)
+# Build proto (tsc only — buf generate runs locally before commit)
 RUN cd packages/proto && pnpm build
 
 # Generate Prisma client
@@ -43,12 +44,15 @@ RUN cd apps/api && pnpm db:generate
 RUN cd apps/api && pnpm build
 
 # Production stage - Minimal runtime image
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apk add --no-cache openssl-dev tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+RUN apt-get update && apt-get install -y --no-install-recommends openssl tzdata sudo vim  && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime && \
+    echo "Asia/Seoul" > /etc/timezone
 ENV TZ=Asia/Seoul
 
 # Install pnpm
@@ -91,8 +95,8 @@ EXPOSE 3000
 WORKDIR /app/apps/api
 
 # Create whif user/group and set up log directory with group write permissions
-RUN addgroup -g 1001 whif && \
-    adduser -D -u 1001 -G whif whif && \
+RUN groupadd -g 1001 whif && \
+    useradd -u 1001 -g whif -s /bin/sh -m whif && \
     mkdir -p /app/apps/api/logs && \
     chown -R whif:whif /app && \
     chmod -R 775 /app/apps/api/logs
