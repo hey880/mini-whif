@@ -58,7 +58,7 @@ export class PersonaService {
   async updatePersona(
     id: string,
     userId: string,
-    data: Partial<CreatePersonaParams>
+    data: Partial<Omit<CreatePersonaParams, 'userId'>>
   ): Promise<UserPersona> {
     return await this.personaRepo.update(id, userId, data);
   }

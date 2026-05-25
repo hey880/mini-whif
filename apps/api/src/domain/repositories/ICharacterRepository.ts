@@ -5,8 +5,11 @@ import { Character, Universe, Profile } from '@prisma/client';
  */
 export interface FindCharactersParams {
   keyword?: string;
+  /** keyword와 별개로 name만 검색 (contains, insensitive) */
+  name?: string;
   universeId?: string;
   visibility?: 'public' | 'private' | 'unlisted';
+  isNsfw?: boolean;
   creatorId?: string;
   limit?: number;
   offset?: number;
@@ -20,6 +23,7 @@ export interface CreateCharacterParams {
   creatorId: string;
   tagline?: string;
   description?: string;
+  aiPromptDescription?: string;
   greeting?: string;
   imageUrl?: string;
   bannerImageUrl?: string;
@@ -48,6 +52,20 @@ export interface CharacterWithRelations extends Omit<Character, 'data' | 'lorebo
 export interface CharacterDetail extends Character {
   universe?: Partial<Universe> | null;
   creator?: Partial<Profile> | null;
+  _count?: {
+    chatRooms: number;
+  };
+}
+
+/**
+ * 유니버스 캐릭터 목록용 간략 타입
+ */
+export interface CharacterSummary {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  tagline: string | null;
+  description: string | null;
 }
 
 /**
@@ -72,6 +90,13 @@ export interface ICharacterRepository {
     characters: CharacterWithRelations[];
     total: number;
   }>;
+
+  /**
+   * 유니버스 내 공개 캐릭터 목록 조회 (간략 정보)
+   * @param universeId 유니버스 ID
+   * @returns 캐릭터 요약 목록
+   */
+  listByUniverse(universeId: string): Promise<CharacterSummary[]>;
 
   /**
    * 캐릭터 생성

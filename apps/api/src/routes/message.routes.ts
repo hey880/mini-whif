@@ -2,9 +2,10 @@ import type { FastifyInstance } from 'fastify';
 import { authenticateUser } from '../plugins/auth.js';
 import { prisma } from '../config/prisma.js';
 import { AIStreamingService } from '../services/ai-streaming.service.js';
-import { GemService } from '../services/gem.service.js';
+import { MessageService } from '../application/services/MessageService.js';
 
-export async function messageRoutes(server: FastifyInstance) {
+export async function messageRoutes(server: FastifyInstance, options: { messageService: MessageService }) {
+  const { messageService } = options;
   // Update message content
   server.put('/messages/:id', {
     preHandler: [authenticateUser],
@@ -177,88 +178,19 @@ export async function messageRoutes(server: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { isPositive } = request.body as { isPositive: boolean };
 
-    // Convert boolean to reactionType string
-    const reactionType = isPositive ? 'positive' : 'negative';
-
-    // Get message and verify ownership
-    const message = await prisma.message.findUnique({
-      where: { id },
-      include: { room: true },
-    });
-
-    if (!message) {
-      return reply.status(404).send({ error: 'Message not found' });
-    }
-
-    if (message.room.userId !== request.user!.id) {
-      return reply.status(403).send({ error: 'Forbidden' });
-    }
-
-    // Upsert reaction
-    const existingReaction = await prisma.userReaction.findUnique({
-      where: {
-        userId_messageId: {
-          userId: request.user!.id,
-          messageId: id,
-        },
-      },
-    });
-
-    // Use transaction to ensure atomicity and prevent race conditions
-    if (existingReaction) {
-      // If same reaction, delete it (toggle off)
-      if (existingReaction.reactionType === reactionType) {
-        await prisma.$transaction([
-          prisma.userReaction.delete({
-            where: { id: existingReaction.id },
-          }),
-          prisma.message.update({
-            where: { id },
-            data: isPositive
-              ? { positiveReactionCount: { decrement: 1 } }
-              : { negativeReactionCount: { decrement: 1 } },
-          }),
-        ]);
-
-        return { success: true, removed: true };
-      } else {
-        // Change reaction
-        await prisma.$transaction([
-          prisma.userReaction.update({
-            where: { id: existingReaction.id },
-            data: { reactionType },
-          }),
-          prisma.message.update({
-            where: { id },
-            data: {
-              positiveReactionCount: isPositive ? { increment: 1 } : { decrement: 1 },
-              negativeReactionCount: isPositive ? { decrement: 1 } : { increment: 1 },
-            },
-          }),
-        ]);
-
-        return { success: true, changed: true, isPositive };
+    const result = await messageService.updateReaction({
+      userId: request.user!.id,
+      messageId: id,
+      isPositive,
+    }).catch((error: unknown) => {
+      if (error instanceof Error) {
+        if (error.message === 'Message not found') return reply.status(404).send({ error: 'Message not found' });
+        if (error.message === 'Forbidden') return reply.status(403).send({ error: 'Forbidden' });
       }
-    } else {
-      // Create new reaction
-      await prisma.$transaction([
-        prisma.userReaction.create({
-          data: {
-            userId: request.user!.id,
-            messageId: id,
-            reactionType,
-          },
-        }),
-        prisma.message.update({
-          where: { id },
-          data: isPositive
-            ? { positiveReactionCount: { increment: 1 } }
-            : { negativeReactionCount: { increment: 1 } },
-        }),
-      ]);
+      throw error;
+    });
 
-      return { success: true, created: true, isPositive };
-    }
+    return result;
   });
 
   // Regenerate AI message

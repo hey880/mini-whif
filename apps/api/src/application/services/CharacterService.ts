@@ -4,6 +4,7 @@ import {
   CreateCharacterParams,
   CharacterWithRelations,
   CharacterDetail,
+  CharacterSummary,
 } from '../../domain/repositories/ICharacterRepository.js';
 
 /**
@@ -32,11 +33,17 @@ export class CharacterService {
   }> {
     const { characters, total } = await this.characterRepo.findMany(params);
 
-    const limit = params.limit || 16;
     const offset = params.offset || 0;
     const hasMore = offset + characters.length < total;
 
     return { characters, total, hasMore };
+  }
+
+  /**
+   * 유니버스 내 공개 캐릭터 목록 조회
+   */
+  async listCharactersByUniverse(universeId: string): Promise<CharacterSummary[]> {
+    return await this.characterRepo.listByUniverse(universeId);
   }
 
   /**

@@ -7,18 +7,21 @@ export interface FindPersonasParams {
   userId: string;
   limit?: number;
   offset?: number;
+  /** true이면 캐릭터 기반 페르소나(sourceCharacterId != null)를 제외 */
+  excludeCharacterBased?: boolean;
 }
 
 /**
- * 페르소나 생성 파라미터
+ * 페르소나 생성/수정 파라미터
  */
 export interface CreatePersonaParams {
   userId: string;
   name: string;
-  description?: string;
-  avatarUrl?: string;
+  /** 페르소나 설명 텍스트 */
+  persona: string;
+  gender?: string;
+  sourceCharacterId?: string;
   isDefault?: boolean;
-  data?: any;
 }
 
 /**
@@ -67,7 +70,7 @@ export interface IPersonaRepository {
   update(
     id: string,
     userId: string,
-    data: Partial<CreatePersonaParams>
+    data: Partial<Omit<CreatePersonaParams, 'userId'>>
   ): Promise<UserPersona>;
 
   /**

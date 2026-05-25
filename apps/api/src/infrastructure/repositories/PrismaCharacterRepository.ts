@@ -5,6 +5,7 @@ import {
   CreateCharacterParams,
   CharacterWithRelations,
   CharacterDetail,
+  CharacterSummary,
 } from '../../domain/repositories/ICharacterRepository.js';
 
 /**
@@ -31,21 +32,29 @@ export class PrismaCharacterRepository implements ICharacterRepository {
             avatarUrl: true,
           },
         },
+        _count: {
+          select: {
+            chatRooms: true,
+          },
+        },
       },
-    });
+    }) as CharacterDetail | null;
   }
 
   async findMany(params: FindCharactersParams): Promise<{
     characters: CharacterWithRelations[];
     total: number;
   }> {
-    const { keyword, universeId, visibility, creatorId, limit = 16, offset = 0 } = params;
+    const { keyword, name, universeId, visibility, isNsfw, creatorId, limit = 16, offset = 0 } = params;
 
-    // Build where clause
     const where: any = {};
 
     if (visibility) {
       where.visibility = visibility;
+    }
+
+    if (isNsfw !== undefined) {
+      where.isNsfw = isNsfw;
     }
 
     if (creatorId) {
@@ -56,13 +65,19 @@ export class PrismaCharacterRepository implements ICharacterRepository {
       where.universeId = universeId;
     }
 
-    // Keyword search across multiple fields
+    // name 단독 검색 (keyword와 별개)
+    if (name) {
+      where.name = { contains: name, mode: 'insensitive' };
+    }
+
+    // keyword: 이름, 태그라인, universe.name, creator.displayName 등 통합 검색
     if (keyword) {
       where.OR = [
         { name: { contains: keyword, mode: 'insensitive' } },
-        { tagline: { contains: keyword, mode: 'insensitive' } },
-        { description: { contains: keyword, mode: 'insensitive' } },
         { keywords: { has: keyword } },
+        { tagline: { contains: keyword, mode: 'insensitive' } },
+        { universe: { name: { contains: keyword, mode: 'insensitive' } } },
+        { creator: { displayName: { contains: keyword, mode: 'insensitive' } } },
       ];
     }
 
@@ -111,7 +126,24 @@ export class PrismaCharacterRepository implements ICharacterRepository {
       this.prisma.character.count({ where }),
     ]);
 
-    return { characters, total };
+    return { characters: characters as unknown as CharacterWithRelations[], total };
+  }
+
+  async listByUniverse(universeId: string): Promise<CharacterSummary[]> {
+    return await this.prisma.character.findMany({
+      where: {
+        universeId,
+        visibility: 'public',
+      },
+      select: {
+        id: true,
+        name: true,
+        imageUrl: true,
+        tagline: true,
+        description: true,
+      },
+      orderBy: { name: 'asc' },
+    });
   }
 
   async create(params: CreateCharacterParams): Promise<Character> {
@@ -121,6 +153,7 @@ export class PrismaCharacterRepository implements ICharacterRepository {
         creatorId: params.creatorId,
         tagline: params.tagline,
         description: params.description,
+        aiPromptDescription: params.aiPromptDescription,
         greeting: params.greeting,
         imageUrl: params.imageUrl,
         bannerImageUrl: params.bannerImageUrl,
@@ -154,6 +187,7 @@ export class PrismaCharacterRepository implements ICharacterRepository {
         ...(data.name && { name: data.name }),
         ...(data.tagline !== undefined && { tagline: data.tagline }),
         ...(data.description !== undefined && { description: data.description }),
+        ...(data.aiPromptDescription !== undefined && { aiPromptDescription: data.aiPromptDescription }),
         ...(data.greeting !== undefined && { greeting: data.greeting }),
         ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
         ...(data.bannerImageUrl !== undefined && { bannerImageUrl: data.bannerImageUrl }),

@@ -1,237 +1,107 @@
 import type { ServiceImpl, HandlerContext } from '@connectrpc/connect';
 import { Code, ConnectError } from '@connectrpc/connect';
 import { PersonaService } from '@persona-chat/proto/gen/ts/persona_connect.js';
-import { prisma } from '../config/prisma.js';
+import { UserPersona } from '@prisma/client';
+import { PersonaService as PersonaAppService } from '../application/services/PersonaService.js';
 import { userContextKey } from '../context.js';
 
-export const personaHandler: ServiceImpl<typeof PersonaService> = {
-  async listPersonas(req, context: HandlerContext) {
-    // Verify authentication
-    const user = context.values.get(userContextKey);
-    if (!user) {
-      throw new ConnectError('Unauthorized', Code.Unauthenticated);
-    }
+function mapPersonaToProto(p: UserPersona) {
+  return {
+    id: p.id,
+    userId: p.userId,
+    name: p.name,
+    persona: p.persona,
+    isDefault: p.isDefault,
+    gender: p.gender || undefined,
+    sourceCharacterId: p.sourceCharacterId || undefined,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  };
+}
 
-    // List personas for the authenticated user (exclude character-based personas)
-    const personas = await prisma.userPersona.findMany({
-      where: {
+function toNotFound(error: unknown): never {
+  if (error instanceof Error) {
+    throw new ConnectError(error.message, Code.NotFound);
+  }
+  throw error;
+}
+
+export function createPersonaHandler(
+  personaService: PersonaAppService
+): ServiceImpl<typeof PersonaService> {
+  return {
+    async listPersonas(_req, context: HandlerContext) {
+      const user = context.values.get(userContextKey);
+      if (!user) throw new ConnectError('Unauthorized', Code.Unauthenticated);
+
+      const { personas } = await personaService.listPersonas({
         userId: user.id,
-        sourceCharacterId: null  // Only show user-created personas, not character-based ones
-      },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
-    });
+        excludeCharacterBased: true,
+      });
 
-    return {
-      personas: personas.map((p: any) => ({
-        id: p.id,
-        userId: p.userId,
-        name: p.name,
-        persona: p.persona,
-        isDefault: p.isDefault,
-        gender: p.gender || undefined,
-        sourceCharacterId: p.sourceCharacterId || undefined,
-        createdAt: p.createdAt.toISOString(),
-        updatedAt: p.updatedAt.toISOString(),
-      })),
-    };
-  },
+      return { personas: personas.map(mapPersonaToProto) };
+    },
 
-  async getPersona(req, context: HandlerContext) {
-    // Verify authentication
-    const user = context.values.get(userContextKey);
-    if (!user) {
-      throw new ConnectError('Unauthorized', Code.Unauthenticated);
-    }
+    async getPersona(req, context: HandlerContext) {
+      const user = context.values.get(userContextKey);
+      if (!user) throw new ConnectError('Unauthorized', Code.Unauthenticated);
 
-    const persona = await prisma.userPersona.findUnique({
-      where: { id: req.id },
-    });
+      const persona = await personaService.getPersona(req.id, user.id);
+      if (!persona) throw new ConnectError('Persona not found', Code.NotFound);
 
-    if (!persona) {
-      throw new ConnectError('Persona not found', Code.NotFound);
-    }
+      return { persona: mapPersonaToProto(persona) };
+    },
 
-    // Verify ownership
-    if (persona.userId !== user.id) {
-      throw new ConnectError('Forbidden', Code.PermissionDenied);
-    }
+    async createPersona(req, context: HandlerContext) {
+      const user = context.values.get(userContextKey);
+      if (!user) throw new ConnectError('Unauthorized', Code.Unauthenticated);
 
-    return {
-      persona: {
-        id: persona.id,
-        userId: persona.userId,
-        name: persona.name,
-        persona: persona.persona,
-        isDefault: persona.isDefault,
-        gender: persona.gender || undefined,
-        sourceCharacterId: persona.sourceCharacterId || undefined,
-        createdAt: persona.createdAt.toISOString(),
-        updatedAt: persona.updatedAt.toISOString(),
-      },
-    };
-  },
-
-  async createPersona(req, context: HandlerContext) {
-    // Verify authentication
-    const user = context.values.get(userContextKey);
-    if (!user) {
-      throw new ConnectError('Unauthorized', Code.Unauthenticated);
-    }
-
-    const persona = await prisma.userPersona.create({
-      data: {
+      const persona = await personaService.createPersona({
         userId: user.id,
         name: req.name,
         persona: req.persona,
         gender: req.gender || undefined,
         sourceCharacterId: req.sourceCharacterId || undefined,
         isDefault: req.isDefault || false,
-      },
-    });
-
-    // If this is marked as default, unset other defaults
-    if (req.isDefault) {
-      await prisma.userPersona.updateMany({
-        where: {
-          userId: user.id,
-          id: { not: persona.id },
-        },
-        data: { isDefault: false },
       });
-    }
 
-    return {
-      persona: {
-        id: persona.id,
-        userId: persona.userId,
-        name: persona.name,
-        persona: persona.persona,
-        isDefault: persona.isDefault,
-        gender: persona.gender || undefined,
-        sourceCharacterId: persona.sourceCharacterId || undefined,
-        createdAt: persona.createdAt.toISOString(),
-        updatedAt: persona.updatedAt.toISOString(),
-      },
-    };
-  },
+      return { persona: mapPersonaToProto(persona) };
+    },
 
-  async updatePersona(req, context: HandlerContext) {
-    // Verify authentication
-    const user = context.values.get(userContextKey);
-    if (!user) {
-      throw new ConnectError('Unauthorized', Code.Unauthenticated);
-    }
+    async updatePersona(req, context: HandlerContext) {
+      const user = context.values.get(userContextKey);
+      if (!user) throw new ConnectError('Unauthorized', Code.Unauthenticated);
 
-    // Verify ownership
-    const existing = await prisma.userPersona.findUnique({
-      where: { id: req.id },
-    });
+      const updateData: any = {};
+      if (req.name !== undefined) updateData.name = req.name;
+      if (req.persona !== undefined) updateData.persona = req.persona;
+      if (req.gender !== undefined) updateData.gender = req.gender;
 
-    if (!existing) {
-      throw new ConnectError('Persona not found', Code.NotFound);
-    }
+      const persona = await personaService
+        .updatePersona(req.id, user.id, updateData)
+        .catch(toNotFound);
 
-    if (existing.userId !== user.id) {
-      throw new ConnectError('Forbidden', Code.PermissionDenied);
-    }
+      return { persona: mapPersonaToProto(persona) };
+    },
 
-    // Build update data
-    const updateData: any = {};
-    if (req.name !== undefined) updateData.name = req.name;
-    if (req.persona !== undefined) updateData.persona = req.persona;
-    if (req.gender !== undefined) updateData.gender = req.gender;
+    async deletePersona(req, context: HandlerContext) {
+      const user = context.values.get(userContextKey);
+      if (!user) throw new ConnectError('Unauthorized', Code.Unauthenticated);
 
-    const persona = await prisma.userPersona.update({
-      where: { id: req.id },
-      data: updateData,
-    });
+      await personaService.deletePersona(req.id, user.id).catch(toNotFound);
 
-    return {
-      persona: {
-        id: persona.id,
-        userId: persona.userId,
-        name: persona.name,
-        persona: persona.persona,
-        isDefault: persona.isDefault,
-        gender: persona.gender || undefined,
-        sourceCharacterId: persona.sourceCharacterId || undefined,
-        createdAt: persona.createdAt.toISOString(),
-        updatedAt: persona.updatedAt.toISOString(),
-      },
-    };
-  },
+      return { success: true };
+    },
 
-  async deletePersona(req, context: HandlerContext) {
-    // Verify authentication
-    const user = context.values.get(userContextKey);
-    if (!user) {
-      throw new ConnectError('Unauthorized', Code.Unauthenticated);
-    }
+    async setDefaultPersona(req, context: HandlerContext) {
+      const user = context.values.get(userContextKey);
+      if (!user) throw new ConnectError('Unauthorized', Code.Unauthenticated);
 
-    // Verify ownership
-    const persona = await prisma.userPersona.findUnique({
-      where: { id: req.id },
-    });
+      const persona = await personaService
+        .setDefaultPersona(req.id, user.id)
+        .catch(toNotFound);
 
-    if (!persona) {
-      throw new ConnectError('Persona not found', Code.NotFound);
-    }
-
-    if (persona.userId !== user.id) {
-      throw new ConnectError('Forbidden', Code.PermissionDenied);
-    }
-
-    await prisma.userPersona.delete({
-      where: { id: req.id },
-    });
-
-    return { success: true };
-  },
-
-  async setDefaultPersona(req, context: HandlerContext) {
-    // Verify authentication
-    const user = context.values.get(userContextKey);
-    if (!user) {
-      throw new ConnectError('Unauthorized', Code.Unauthenticated);
-    }
-
-    // Verify ownership
-    const persona = await prisma.userPersona.findUnique({
-      where: { id: req.id },
-    });
-
-    if (!persona) {
-      throw new ConnectError('Persona not found', Code.NotFound);
-    }
-
-    if (persona.userId !== user.id) {
-      throw new ConnectError('Forbidden', Code.PermissionDenied);
-    }
-
-    // Unset all defaults for this user
-    await prisma.userPersona.updateMany({
-      where: { userId: user.id },
-      data: { isDefault: false },
-    });
-
-    // Set this persona as default
-    const updatedPersona = await prisma.userPersona.update({
-      where: { id: req.id },
-      data: { isDefault: true },
-    });
-
-    return {
-      persona: {
-        id: updatedPersona.id,
-        userId: updatedPersona.userId,
-        name: updatedPersona.name,
-        persona: updatedPersona.persona,
-        isDefault: updatedPersona.isDefault,
-        gender: updatedPersona.gender || undefined,
-        sourceCharacterId: updatedPersona.sourceCharacterId || undefined,
-        createdAt: updatedPersona.createdAt.toISOString(),
-        updatedAt: updatedPersona.updatedAt.toISOString(),
-      },
-    };
-  },
-};
+      return { persona: mapPersonaToProto(persona) };
+    },
+  };
+}

@@ -28,9 +28,12 @@ export class PrismaPersonaRepository implements IPersonaRepository {
     personas: UserPersona[];
     total: number;
   }> {
-    const { userId, limit = 20, offset = 0 } = params;
+    const { userId, limit = 20, offset = 0, excludeCharacterBased = false } = params;
 
-    const where = { userId };
+    const where: any = { userId };
+    if (excludeCharacterBased) {
+      where.sourceCharacterId = null;
+    }
 
     const [personas, total] = await Promise.all([
       this.prisma.userPersona.findMany({
@@ -55,18 +58,13 @@ export class PrismaPersonaRepository implements IPersonaRepository {
   }
 
   async create(params: CreatePersonaParams): Promise<UserPersona> {
-    const { userId, name, description, avatarUrl, isDefault, data } = params;
+    const { userId, name, persona, gender, sourceCharacterId, isDefault } = params;
 
     // 기본 페르소나로 설정하는 경우, 기존 기본 페르소나 해제
     if (isDefault) {
       await this.prisma.userPersona.updateMany({
-        where: {
-          userId,
-          isDefault: true,
-        },
-        data: {
-          isDefault: false,
-        },
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
       });
     }
 
@@ -74,7 +72,9 @@ export class PrismaPersonaRepository implements IPersonaRepository {
       data: {
         userId,
         name,
-        persona: description || '',
+        persona: persona || '',
+        gender: gender || undefined,
+        sourceCharacterId: sourceCharacterId || undefined,
         isDefault: isDefault || false,
       },
     });
@@ -83,36 +83,29 @@ export class PrismaPersonaRepository implements IPersonaRepository {
   async update(
     id: string,
     userId: string,
-    data: Partial<CreatePersonaParams>
+    data: Partial<Omit<CreatePersonaParams, 'userId'>>
   ): Promise<UserPersona> {
     // 권한 검증: 본인 페르소나만 수정 가능
-    const persona = await this.findById(id, userId);
-    if (!persona) {
+    const existing = await this.findById(id, userId);
+    if (!existing) {
       throw new Error('Persona not found or forbidden');
     }
 
-    // 기본 페르소나로 변경하는 경우
+    // 기본 페르소나로 변경하는 경우, 다른 기본 페르소나 해제
     if (data.isDefault) {
       await this.prisma.userPersona.updateMany({
-        where: {
-          userId,
-          isDefault: true,
-          id: { not: id }, // 현재 페르소나 제외
-        },
-        data: {
-          isDefault: false,
-        },
+        where: { userId, isDefault: true, id: { not: id } },
+        data: { isDefault: false },
       });
     }
 
     return await this.prisma.userPersona.update({
       where: { id },
       data: {
-        ...(data.name && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.avatarUrl !== undefined && { avatarUrl: data.avatarUrl }),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.persona !== undefined && { persona: data.persona }),
+        ...(data.gender !== undefined && { gender: data.gender }),
         ...(data.isDefault !== undefined && { isDefault: data.isDefault }),
-        ...(data.data && { data: data.data }),
       },
     });
   }
@@ -142,21 +135,14 @@ export class PrismaPersonaRepository implements IPersonaRepository {
 
       // 기존 기본 페르소나 해제
       await tx.userPersona.updateMany({
-        where: {
-          userId,
-          isDefault: true,
-        },
-        data: {
-          isDefault: false,
-        },
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
       });
 
       // 새 기본 페르소나 설정
       return await tx.userPersona.update({
         where: { id },
-        data: {
-          isDefault: true,
-        },
+        data: { isDefault: true },
       });
     });
   }

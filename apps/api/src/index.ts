@@ -27,8 +27,8 @@ import { LlmModelService } from '@persona-chat/proto/gen/ts/llmmodel_connect.js'
 import { UniverseService } from '@persona-chat/proto/gen/ts/universe_connect.js';
 
 // ConnectRPC Handlers
-import { characterHandler } from './rpc/character.handler.js';
-import { personaHandler } from './rpc/persona.handler.js';
+import { createCharacterHandler } from './rpc/character.handler.js';
+import { createPersonaHandler } from './rpc/persona.handler.js';
 import { chatRoomHandler } from './rpc/chatroom.handler.js';
 import { llmModelHandler } from './rpc/llmmodel.handler.js';
 import { universeHandler } from './rpc/universe.handler.js';
@@ -130,8 +130,8 @@ async function start() {
     // Register ConnectRPC plugin
     await server.register(fastifyConnectPlugin, {
       routes(router) {
-        router.service(CharacterService, characterHandler);
-        router.service(PersonaService, personaHandler);
+        router.service(CharacterService, createCharacterHandler(characterService));
+        router.service(PersonaService, createPersonaHandler(personaService));
         router.service(ChatRoomService, chatRoomHandler);
         router.service(LlmModelService, llmModelHandler);
         router.service(UniverseService, universeHandler);
@@ -154,7 +154,7 @@ async function start() {
     await server.register(chatRoutes, { chatService });
 
     await server.register(paymentsRoutes);
-    await server.register(messageRoutes);
+    await server.register(messageRoutes, { messageService });
     await server.register(chatroomExtraRoutes);
 
     // Health check
