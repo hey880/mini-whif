@@ -210,6 +210,8 @@ export class AIStreamingService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+    let accumulated = '';
+
     try {
       const aiResponse = await fetch(`${aiServerUrl}/v1/chats`, {
         method: 'POST',
@@ -291,7 +293,6 @@ export class AIStreamingService {
 
       const reader = aiResponse.body!.getReader();
       const decoder = new TextDecoder();
-      let accumulated = '';
       let buffer = ''; // Buffer for incomplete SSE events
       let lastChunkTime = Date.now();
       const STREAM_CHUNK_TIMEOUT = 30000; // 30초
