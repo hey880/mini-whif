@@ -14,7 +14,7 @@ COPY apps/ai-server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY apps/ai-server/app ./app
+COPY apps/ai-server/app ./apps/ai-server/app
 
 # Copy New Relic config
 COPY apps/ai-server/newrelic.ini ./
