@@ -81,5 +81,11 @@ COPY --from=builder /app/apps/web/next.config.mjs ./apps/web/
 # Expose port
 EXPOSE 3000
 
+RUN addgroup -g 1000 ubuntu && \
+    adduser -D -u 1000 -G ubuntu ubuntu && \
+    chown -R ubuntu:ubuntu /app
+
+USER ubuntu
+
 # Start Next.js
 CMD ["pnpm", "--filter", "@persona-chat/web", "start"]

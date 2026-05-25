@@ -84,5 +84,11 @@ EXPOSE 3000
 
 WORKDIR /app/apps/api
 
+RUN addgroup -g 1000 ubuntu && \
+    adduser -D -u 1000 -G ubuntu ubuntu && \
+    chown -R ubuntu:ubuntu /app
+
+USER ubuntu
+
 # Start server
 CMD ["node", "dist/index.js"]

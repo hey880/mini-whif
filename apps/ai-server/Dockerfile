@@ -24,6 +24,12 @@ EXPOSE 8000
 
 WORKDIR /app/ai-server
 
+RUN groupadd -g 1000 ubuntu && \
+    useradd -u 1000 -g ubuntu -m ubuntu && \
+    chown -R ubuntu:ubuntu /app
+
+USER ubuntu
+
 # Start server with New Relic wrapper if configured
 CMD if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then \
       newrelic-admin run-program uvicorn app.main:app --host 0.0.0.0 --port 8000; \
