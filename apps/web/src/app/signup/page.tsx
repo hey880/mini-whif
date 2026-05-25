@@ -17,27 +17,39 @@ function SignUpForm() {
   const [error, setError] = useState('');
   const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            display_name: displayName,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?returnUrl=${returnUrl}`,
+      // Call backend API instead of direct Supabase call
+      const response = await fetch(`${apiUrl}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          password,
+          displayName,
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
 
+      if (!response.ok) {
+        throw new Error(result.error?.message || 'Sign up failed');
+      }
+
+      // Set session in Supabase client
+      const { data } = result;
       if (data.session) {
-        // AuthProvider가 자동으로 세션을 동기화하므로 여기서는 제거
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
         router.push(returnUrl);
       } else {
         setShowEmailConfirmModal(true);

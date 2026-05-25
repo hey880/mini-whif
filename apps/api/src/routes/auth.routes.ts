@@ -78,6 +78,28 @@ export async function authRoutes(server: FastifyInstance) {
     }
   );
 
+  // POST /auth/ensure-profile (for OAuth users)
+  server.post(
+    '/auth/ensure-profile',
+    { preHandler: [authenticateUser] },
+    async (request, reply) => {
+      try {
+        const profile = await authService.ensureProfile(request.user!.id);
+
+        return reply.send({
+          data: profile,
+        });
+      } catch (error: any) {
+        return reply.status(500).send({
+          error: {
+            code: 'ENSURE_PROFILE_FAILED',
+            message: error.message,
+          },
+        });
+      }
+    }
+  );
+
   // DELETE /auth/account
   server.delete(
     '/auth/account',

@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const returnUrl = searchParams.get('returnUrl') ?? '/';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   if (code) {
     const cookieStore = await cookies();
@@ -28,7 +29,29 @@ export async function GET(request: Request) {
     );
 
     try {
-      await supabase.auth.exchangeCodeForSession(code);
+      // Exchange code for session
+      const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      // Ensure profile exists (for OAuth users)
+      if (data.session) {
+        try {
+          await fetch(`${apiUrl}/auth/ensure-profile`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${data.session.access_token}`,
+            },
+            body: JSON.stringify({}), // Empty body to satisfy Fastify
+          });
+        } catch (profileError) {
+          console.error('Error ensuring profile:', profileError);
+          // Continue anyway - profile might already exist
+        }
+      }
     } catch (error) {
       console.error('Error exchanging code for session:', error);
       return NextResponse.redirect(`${appUrl}/login?error=auth_callback_error`);

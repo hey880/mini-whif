@@ -133,6 +133,81 @@ export class AuthService {
   }
 
   /**
+   * Ensure profile exists for OAuth users
+   * Creates profile + gem wallet if not exists (idempotent)
+   */
+  async ensureProfile(userId: string) {
+    // Check if profile already exists
+    const existingProfile = await prisma.profile.findUnique({
+      where: { id: userId },
+      include: {
+        gemWallet: true,
+      },
+    });
+
+    if (existingProfile) {
+      console.log('✅ [EnsureProfile] Profile already exists for user:', userId);
+      return existingProfile;
+    }
+
+    console.log('🔵 [EnsureProfile] Creating profile for OAuth user:', userId);
+
+    // Fetch user data from Supabase Auth
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+
+    if (authError || !authUser.user) {
+      throw new Error('Failed to fetch user from auth');
+    }
+
+    const email = authUser.user.email!;
+    const displayName =
+      authUser.user.user_metadata?.display_name ||
+      authUser.user.user_metadata?.full_name ||
+      email.split('@')[0];
+
+    // Create profile, gem wallet, and initial gem log in a transaction
+    const profile = await prisma.$transaction(async (tx) => {
+      console.log('🔵 [EnsureProfile] Step 1: Creating profile');
+      const newProfile = await tx.profile.create({
+        data: {
+          id: userId,
+          email,
+          displayName,
+          avatarUrl: authUser.user.user_metadata?.avatar_url || null,
+        },
+      });
+      console.log('✅ [EnsureProfile] Profile created:', newProfile.id);
+
+      console.log('🔵 [EnsureProfile] Step 2: Creating gem wallet');
+      const wallet = await tx.gemWallet.create({
+        data: {
+          userId: newProfile.id,
+          freeDailyGemAmount: 200,
+        },
+      });
+      console.log('✅ [EnsureProfile] Wallet created:', wallet.id);
+
+      console.log('🔵 [EnsureProfile] Step 3: Creating initial gem log');
+      await tx.gemLog.create({
+        data: {
+          userId: newProfile.id,
+          amount: 200,
+          gemType: 'free_daily',
+          logType: 'daily_refill',
+          balanceAfter: 200,
+          memo: '회원가입 축하 보너스',
+        },
+      });
+      console.log('✅ [EnsureProfile] Gem log created');
+
+      return newProfile;
+    });
+
+    console.log('✅ [EnsureProfile] Transaction completed successfully');
+    return profile;
+  }
+
+  /**
    * Delete user account
    * Deletes profile data and Supabase auth user
    */
