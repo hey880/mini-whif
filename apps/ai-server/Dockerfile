@@ -24,11 +24,11 @@ EXPOSE 8000
 
 WORKDIR /app/ai-server
 
-RUN groupadd -g 1000 ubuntu && \
-    useradd -u 1000 -g ubuntu -m ubuntu && \
-    chown -R ubuntu:ubuntu /app
+RUN groupadd -g 1001 whif && \
+    useradd -u 1001 -g whif -m whif && \
+    chown -R whif:whif /app
 
-USER ubuntu
+USER whif
 
 # Start server with New Relic wrapper if configured
 CMD if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then \
