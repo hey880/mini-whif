@@ -35,6 +35,7 @@ export default function HomePage() {
         keyword: searchKeyword || undefined,
         limit: 16,
         offset: 0,
+        visibility: 'public',
         isNsfw: showNsfw ? undefined : false,
       });
       return response;

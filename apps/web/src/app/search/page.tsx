@@ -24,6 +24,7 @@ function SearchContent() {
         keyword: keyword || undefined,
         limit: 20,
         offset: 0,
+        visibility: 'public',
         isNsfw: showNsfw ? undefined : false,
       });
       return response;
