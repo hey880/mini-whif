@@ -69,7 +69,10 @@ export default function ChatsPage() {
 
   const chatRooms = chatRoomsData?.chatRooms || [];
 
-  // Group chat rooms by date
+  const pinnedRooms = chatRooms.filter((room) => room.isPinned);
+  const unpinnedRooms = chatRooms.filter((room) => !room.isPinned);
+
+  // Group unpinned rooms by date
   const groupChatRoomsByDate = () => {
     const groups: {
       today: typeof chatRooms;
@@ -83,7 +86,7 @@ export default function ChatsPage() {
       older: [],
     };
 
-    chatRooms.forEach((room) => {
+    unpinnedRooms.forEach((room) => {
       if (!room.lastMessageAt) {
         groups.older.push(room);
         return;
@@ -194,6 +197,7 @@ export default function ChatsPage() {
         {/* Chat Rooms List */}
         {!isLoading && chatRooms.length > 0 && (
           <div>
+            <DateSection title="고정됨" rooms={pinnedRooms} />
             <DateSection title="Today" rooms={groupedRooms.today} />
             <DateSection title="Yesterday" rooms={groupedRooms.yesterday} />
             <DateSection title="This Week" rooms={groupedRooms.thisWeek} />
