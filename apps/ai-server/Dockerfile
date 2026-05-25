@@ -14,13 +14,15 @@ COPY apps/ai-server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY apps/ai-server/app ./apps/ai-server/app
+COPY apps/ai-server/app ./ai-server/app
 
 # Copy New Relic config
-COPY apps/ai-server/newrelic.ini ./
+COPY apps/ai-server/newrelic.ini ./ai-server/
 
 # Expose port
 EXPOSE 8000
+
+WORKDIR /app/ai-server
 
 # Start server with New Relic wrapper if configured
 CMD if [ -n "$NEW_RELIC_LICENSE_KEY" ]; then \

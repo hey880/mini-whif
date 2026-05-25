@@ -19,6 +19,9 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_PORTONE_STORE_ID=$NEXT_PUBLIC_PORTONE_STORE_ID
 ENV NEXT_PUBLIC_PORTONE_CHANNEL_KEY=$NEXT_PUBLIC_PORTONE_CHANNEL_KEY
 
+# Timezone setting
+RUN apk add --no-cache tzdata && ln -snf /usr/share/zoninfo/Asia/Seoul /etc/localtime
+
 # Install pnpm
 RUN npm install -g pnpm
 

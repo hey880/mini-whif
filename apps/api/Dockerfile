@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install system dependencies
-RUN apk add --no-cache openssl-dev
+RUN apk add --no-cache openssl-dev tzdata && ln -snf /usr/share/zoninfo/Asia/Seoul /etc/localtime
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -82,5 +82,7 @@ COPY apps/api/newrelic.cjs ./apps/api/
 # Expose port
 EXPOSE 3000
 
+WORKDIR /app/apps/api
+
 # Start server
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["node", "dist/index.js"]
