@@ -36,7 +36,9 @@ describe('ChatService', () => {
 
     // Mock Repositories
     mockChatRoomRepo = {};
-    mockMessageRepo = {};
+    mockMessageRepo = {
+      findRecent: vi.fn().mockResolvedValue([]), // Mock findRecent method
+    };
     mockGemWalletRepo = {
       hasSufficientBalance: vi.fn(),
       getBalance: vi.fn(),
@@ -59,8 +61,13 @@ describe('ChatService', () => {
       },
     };
 
-    const mockVectorSearchRepo = {} as any;
-    const mockEmbeddingService = {} as any;
+    const mockVectorSearchRepo = {
+      searchConversationMemories: vi.fn().mockResolvedValue([]), // Mock vector search
+    } as any;
+    const mockEmbeddingService = {
+      generateEmbedding: vi.fn().mockResolvedValue([]), // Mock embedding generation
+      embedMessageAsync: vi.fn().mockResolvedValue(undefined), // Mock async embedding
+    } as any;
 
     chatService = new ChatService(
       mockPrisma as PrismaClient,
