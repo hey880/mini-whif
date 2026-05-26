@@ -196,6 +196,16 @@ export async function messageRoutes(server: FastifyInstance, options: { messageS
   // Regenerate AI message
   server.post('/messages/:id/regenerate', {
     preHandler: [authenticateUser],
+    config: {
+      rateLimit: {
+        max: 10, // 사용자당 10회 재생성/분
+        timeWindow: '1 minute',
+        keyGenerator: (request) => {
+          // 사용자 ID 기반 레이트 리밋
+          return (request as any).user?.id || request.ip;
+        },
+      },
+    },
     schema: {
       tags: ['Messages'],
       description: 'Regenerate AI response for a message with SSE streaming',

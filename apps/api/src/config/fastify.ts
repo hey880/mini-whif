@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import pino from 'pino';
@@ -96,6 +97,26 @@ export function createServer() {
       'Grpc-Status',
       'Grpc-Message',
     ],
+  });
+
+  // Rate limiting configuration
+  server.register(rateLimit, {
+    global: true,
+    max: 100, // 기본: IP당 100 요청/분
+    timeWindow: '1 minute',
+    errorResponseBuilder: (_request, context) => {
+      return {
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: `요청 제한을 초과했습니다. ${Math.ceil(context.after / 1000)}초 후 다시 시도하세요.`,
+          retryAfter: context.after,
+        },
+      };
+    },
+    // IP 주소 추출 (프록시 뒤에 있을 경우 X-Forwarded-For 사용)
+    keyGenerator: (request) => {
+      return request.headers['x-forwarded-for'] as string || request.ip;
+    },
   });
 
   // Swagger documentation

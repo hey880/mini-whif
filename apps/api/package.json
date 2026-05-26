@@ -23,6 +23,7 @@
     "@connectrpc/connect-fastify": "^1.4.0",
     "@fastify/cors": "^9.0.0",
     "@fastify/jwt": "^8.0.0",
+    "@fastify/rate-limit": "^10.3.0",
     "@fastify/swagger": "^8.14.0",
     "@fastify/swagger-ui": "^4.0.0",
     "@persona-chat/proto": "workspace:*",

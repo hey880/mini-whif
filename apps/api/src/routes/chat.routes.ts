@@ -24,6 +24,16 @@ export async function chatRoutes(
     '/chat-rooms/:roomId/messages',
     {
       preHandler: [authenticateUser],
+      config: {
+        rateLimit: {
+          max: 20, // 사용자당 20회 메시지/분
+          timeWindow: '1 minute',
+          keyGenerator: (request) => {
+            // 사용자 ID 기반 레이트 리밋 (IP 대신)
+            return (request as any).user?.id || request.ip;
+          },
+        },
+      },
       schema: {
         tags: ['Chat'],
         description: 'Send a message to a chat room and stream AI response via SSE',
