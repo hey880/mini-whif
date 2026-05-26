@@ -75,3 +75,4 @@ load-tests/results/archive/
 
 # Logs
 logs/
+!logs/batch/.gitkeep
