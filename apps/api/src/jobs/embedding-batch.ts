@@ -1,6 +1,52 @@
 import { PrismaClient } from '@prisma/client';
 import { EmbeddingService } from '../application/services/EmbeddingService.js';
 import { PrismaVectorSearchRepository } from '../infrastructure/repositories/PrismaVectorSearchRepository.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 로그 디렉토리 및 파일 설정
+const LOG_DIR = path.join(__dirname, '../../../../logs/batch');
+const LOG_FILE = path.join(LOG_DIR, 'embedding-batch.log');
+
+// 로그 디렉토리 생성
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+
+// 간단한 로깅 헬퍼 (콘솔 + 파일 동시 출력)
+const logger = {
+  info: (msgOrObj: string | object, msg?: string) => {
+    const timestamp = new Date().toISOString();
+    let logLine: string;
+
+    if (typeof msgOrObj === 'string') {
+      logLine = JSON.stringify({ level: 'info', time: timestamp, msg: msgOrObj });
+      console.log(`[${timestamp}] INFO: ${msgOrObj}`);
+    } else {
+      logLine = JSON.stringify({ level: 'info', time: timestamp, ...msgOrObj, msg });
+      console.log(`[${timestamp}] INFO:`, msgOrObj, msg || '');
+    }
+
+    fs.appendFileSync(LOG_FILE, logLine + '\n');
+  },
+
+  error: (msgOrObj: { error?: any; [key: string]: any }, msg: string) => {
+    const timestamp = new Date().toISOString();
+    const logLine = JSON.stringify({
+      level: 'error',
+      time: timestamp,
+      ...msgOrObj,
+      msg,
+      error: msgOrObj.error?.message || msgOrObj.error,
+    });
+    console.error(`[${timestamp}] ERROR:`, msgOrObj, msg);
+    fs.appendFileSync(LOG_FILE, logLine + '\n');
+  },
+};
 
 const prisma = new PrismaClient();
 
@@ -14,7 +60,7 @@ const prisma = new PrismaClient();
  * Cron 스케줄: 0 0 * * * (매일 자정)
  */
 export async function runEmbeddingBatch(): Promise<void> {
-  console.log('[EmbeddingBatch] Starting embedding batch job...');
+  logger.info('[EmbeddingBatch] Starting embedding batch job...');
 
   const embeddingService = new EmbeddingService(prisma);
   const vectorSearchRepo = new PrismaVectorSearchRepository(prisma);
@@ -23,14 +69,14 @@ export async function runEmbeddingBatch(): Promise<void> {
     // ============================================
     // 1. 임베딩 누락 메시지 처리
     // ============================================
-    console.log('[EmbeddingBatch] Step 1: Processing messages without embeddings...');
+    logger.info('[EmbeddingBatch] Step 1: Processing messages without embeddings...');
 
     const messagesWithoutEmbedding = await vectorSearchRepo.findMessagesWithoutEmbedding({
       limit: 1000,
       daysAgo: 7, // 최근 7일만
     });
 
-    console.log(`[EmbeddingBatch] Found ${messagesWithoutEmbedding.length} messages without embeddings`);
+    logger.info(`[EmbeddingBatch] Found ${messagesWithoutEmbedding.length} messages without embeddings`);
 
     if (messagesWithoutEmbedding.length > 0) {
       await embeddingService.embedMessageBatch(
@@ -40,13 +86,13 @@ export async function runEmbeddingBatch(): Promise<void> {
         }))
       );
 
-      console.log(`[EmbeddingBatch] Embedded ${messagesWithoutEmbedding.length} messages`);
+      logger.info(`[EmbeddingBatch] Embedded ${messagesWithoutEmbedding.length} messages`);
     }
 
     // ============================================
     // 2. 대화 요약 기억 생성 (활성 채팅방)
     // ============================================
-    console.log('[EmbeddingBatch] Step 2: Creating conversation memories...');
+    logger.info('[EmbeddingBatch] Step 2: Creating conversation memories...');
 
     // 최근 24시간 동안 활동이 있는 채팅방 조회
     const cutoffDate = new Date();
@@ -63,7 +109,7 @@ export async function runEmbeddingBatch(): Promise<void> {
       },
     });
 
-    console.log(`[EmbeddingBatch] Found ${activeChatRooms.length} active chat rooms`);
+    logger.info(`[EmbeddingBatch] Found ${activeChatRooms.length} active chat rooms`);
 
     let memoriesCreated = 0;
 
@@ -93,12 +139,12 @@ export async function runEmbeddingBatch(): Promise<void> {
         // Rate limiting (OpenAI API)
         await sleep(500);
       } catch (error) {
-        console.error(`[EmbeddingBatch] Failed to create memory for room ${room.id}:`, error);
+        logger.error({ error, roomId: room.id }, '[EmbeddingBatch] Failed to create memory for room');
         // Continue with next room
       }
     }
 
-    console.log(`[EmbeddingBatch] Created ${memoriesCreated} conversation memories`);
+    logger.info(`[EmbeddingBatch] Created ${memoriesCreated} conversation memories`);
 
     // ============================================
     // 3. 통계 출력
@@ -113,12 +159,14 @@ export async function runEmbeddingBatch(): Promise<void> {
       SELECT COUNT(*) FROM conversation_memories
     `;
 
-    console.log('[EmbeddingBatch] Batch job completed successfully!');
-    console.log(`[EmbeddingBatch] Statistics:`);
-    console.log(`  - Total embedded messages: ${totalEmbeddedMessages}`);
-    console.log(`  - Total conversation memories: ${totalConversationMemories}`);
+    logger.info({
+      totalEmbeddedMessages,
+      totalConversationMemories,
+      messagesProcessed: messagesWithoutEmbedding.length,
+      memoriesCreated,
+    }, '[EmbeddingBatch] Batch job completed successfully');
   } catch (error) {
-    console.error('[EmbeddingBatch] Batch job failed:', error);
+    logger.error({ error }, '[EmbeddingBatch] Batch job failed');
     throw error;
   } finally {
     await prisma.$disconnect();
@@ -133,14 +181,19 @@ function sleep(ms: number): Promise<void> {
 }
 
 // CLI에서 직접 실행할 수 있도록
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Windows 경로 호환성을 위해 fileURLToPath 사용
+const isMainModule = fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMainModule) {
   runEmbeddingBatch()
     .then(() => {
-      console.log('[EmbeddingBatch] Done!');
-      process.exit(0);
+      logger.info('[EmbeddingBatch] Done!');
+      // Flush logs before exit
+      setTimeout(() => process.exit(0), 100);
     })
     .catch((error) => {
-      console.error('[EmbeddingBatch] Error:', error);
-      process.exit(1);
+      logger.error({ error }, '[EmbeddingBatch] Error');
+      // Flush logs before exit
+      setTimeout(() => process.exit(1), 100);
     });
 }
