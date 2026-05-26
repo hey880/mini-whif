@@ -94,12 +94,12 @@ EXPOSE 3000
 
 WORKDIR /app/apps/api
 
-# Create whif user/group and set up log directory with group write permissions
+# Create whif user/group and set up log directories with group write permissions
 RUN groupadd -g 1001 whif && \
     useradd -u 1001 -g whif -s /bin/sh -m whif && \
-    mkdir -p /app/apps/api/logs && \
+    mkdir -p /app/apps/api/logs /app/logs/batch && \
     chown -R whif:whif /app && \
-    chmod -R 775 /app/apps/api/logs
+    chmod -R 775 /app/apps/api/logs /app/logs/batch
 
 USER whif
 

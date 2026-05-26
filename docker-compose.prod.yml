@@ -23,10 +23,12 @@ services:
       - NEW_RELIC_CONFIG_FILE=/app/apps/api/newrelic.cjs
       - PORTONE_API_KEY=${PORTONE_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - LOG_LEVEL=${LOG_LEVEL:-info}
     volumes:
       # 호스트 디렉토리 직접 마운트
       - ./logs/api:/app/apps/api/logs
+      - ./logs/batch:/app/logs/batch
       - /etc/localtime:/etc/localtime:ro
     depends_on:
       - ai-server
