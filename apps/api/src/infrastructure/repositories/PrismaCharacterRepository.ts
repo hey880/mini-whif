@@ -163,6 +163,7 @@ export class PrismaCharacterRepository implements ICharacterRepository {
         keywords: params.keywords || [],
         data: params.data,
         lorebook: params.lorebook,
+        defaultLlmModelId: params.defaultLlmModelId,
       },
     });
   }
@@ -197,6 +198,7 @@ export class PrismaCharacterRepository implements ICharacterRepository {
         ...(data.keywords && { keywords: data.keywords }),
         ...(data.data && { data: data.data }),
         ...(data.lorebook !== undefined && { lorebook: data.lorebook }),
+        ...(data.defaultLlmModelId !== undefined && { defaultLlmModelId: data.defaultLlmModelId }),
       },
     });
   }

@@ -59,12 +59,17 @@ describe('ChatService', () => {
       },
     };
 
+    const mockVectorSearchRepo = {} as any;
+    const mockEmbeddingService = {} as any;
+
     chatService = new ChatService(
       mockPrisma as PrismaClient,
       mockChatRoomRepo as IChatRoomRepository,
       mockMessageRepo as IMessageRepository,
       mockGemWalletRepo as IGemWalletRepository,
       mockLlmModelRepo as ILlmModelRepository,
+      mockVectorSearchRepo,
+      mockEmbeddingService,
       mockAIStreamingService as AIStreamingService,
       mockServer as any
     );

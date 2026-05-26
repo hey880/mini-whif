@@ -43,13 +43,19 @@ import { PrismaGemWalletRepository } from './infrastructure/repositories/PrismaG
 import { PrismaLlmModelRepository } from './infrastructure/repositories/PrismaLlmModelRepository.js';
 import { PrismaCharacterRepository } from './infrastructure/repositories/PrismaCharacterRepository.js';
 import { PrismaPersonaRepository } from './infrastructure/repositories/PrismaPersonaRepository.js';
+import { PrismaVectorSearchRepository } from './infrastructure/repositories/PrismaVectorSearchRepository.js';
 
 // Phase 3: Services
 import { ChatService } from './application/services/ChatService.js';
 import { MessageService } from './application/services/MessageService.js';
 import { CharacterService as CharacterAppService } from './application/services/CharacterService.js';
 import { PersonaService as PersonaAppService } from './application/services/PersonaService.js';
+import { EmbeddingService } from './application/services/EmbeddingService.js';
 import { AIStreamingService } from './services/ai-streaming.service.js';
+
+// Cron Jobs
+import cron from 'node-cron';
+import { runEmbeddingBatch } from './jobs/embedding-batch.js';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = '0.0.0.0';
@@ -66,9 +72,11 @@ async function start() {
   const llmModelRepo = new PrismaLlmModelRepository(prisma);
   const characterRepo = new PrismaCharacterRepository(prisma);
   const personaRepo = new PrismaPersonaRepository(prisma);
+  const vectorSearchRepo = new PrismaVectorSearchRepository(prisma);
 
   // 2. Initialize Services (with injected dependencies)
   const aiStreamingService = new AIStreamingService();
+  const embeddingService = new EmbeddingService(prisma);
 
   const chatService = new ChatService(
     prisma,
@@ -76,6 +84,8 @@ async function start() {
     messageRepo,
     gemWalletRepo,
     llmModelRepo,
+    vectorSearchRepo,
+    embeddingService,
     aiStreamingService,
     server
   );
@@ -170,6 +180,25 @@ async function start() {
     console.log(`   Server listening on http://localhost:${PORT}`);
     console.log(`   Swagger docs: http://localhost:${PORT}/docs`);
     console.log(`   ConnectRPC services: CharacterService, PersonaService, ChatRoomService, LlmModelService, UniverseService`);
+    console.log('');
+
+    // ============================================
+    // Register Cron Jobs
+    // ============================================
+
+    // 임베딩 배치 작업: 매일 자정 실행
+    cron.schedule('0 0 * * *', async () => {
+      console.log('[Cron] Running embedding batch job...');
+      try {
+        await runEmbeddingBatch();
+        console.log('[Cron] Embedding batch job completed');
+      } catch (error) {
+        console.error('[Cron] Embedding batch job failed:', error);
+      }
+    });
+
+    console.log('⏰ Cron jobs registered:');
+    console.log('   - Embedding batch: Daily at 00:00 (0 0 * * *)');
     console.log('');
   } catch (error) {
     server.log.error(error);

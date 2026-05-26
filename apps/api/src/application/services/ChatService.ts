@@ -4,7 +4,9 @@ import { IChatRoomRepository } from '../../domain/repositories/IChatRoomReposito
 import { IMessageRepository } from '../../domain/repositories/IMessageRepository.js';
 import { IGemWalletRepository } from '../../domain/repositories/IGemWalletRepository.js';
 import { ILlmModelRepository } from '../../domain/repositories/ILlmModelRepository.js';
+import { IVectorSearchRepository } from '../../domain/repositories/IVectorSearchRepository.js';
 import { AIStreamingService } from '../../services/ai-streaming.service.js';
+import { EmbeddingService } from './EmbeddingService.js';
 import type { FastifyInstance } from 'fastify';
 
 /**
@@ -21,6 +23,11 @@ interface AIContext {
   personaName: string;
   lorebookEntries: any[];
   situationalImagesInfo: any[];
+  relevantMemories?: Array<{
+    summary: string;
+    similarity: number;
+    importance: number;
+  }>;
 }
 
 /**
@@ -38,6 +45,8 @@ export class ChatService {
     private messageRepo: IMessageRepository,
     private gemWalletRepo: IGemWalletRepository,
     private llmModelRepo: ILlmModelRepository,
+    private vectorSearchRepo: IVectorSearchRepository,
+    private embeddingService: EmbeddingService,
     private aiStreamingService: AIStreamingService,
     private server: FastifyInstance
   ) {}
@@ -71,6 +80,9 @@ export class ChatService {
               tagline: true,
               lorebook: true,
               data: true,
+              isNsfw: true,
+              defaultLlmModelId: true,
+              defaultLlmModel: true,
               universeId: true,
               universe: {
                 select: {
@@ -98,10 +110,28 @@ export class ChatService {
       throw new Error('Chat room not found or forbidden');
     }
 
-    // 2. Get model (chosen or default to cheapest)
-    let model = profile?.chosenLlmModel;
-    if (!model) {
-      model = await this.llmModelRepo.findDefaultModel();
+    // 2. Get model (priority: character default > user chosen > system default)
+    let model = null;
+
+    // 1순위: 캐릭터 지정 모델
+    if (room.character.defaultLlmModelId && room.character.defaultLlmModel) {
+      model = room.character.defaultLlmModel;
+    }
+    // 2순위: 사용자 선택 모델
+    else if (profile?.chosenLlmModel) {
+      model = profile.chosenLlmModel;
+    }
+    // 3순위: NSFW 캐릭터면 NSFW 기본 모델, 아니면 일반 기본 모델
+    else {
+      if (room.character.isNsfw) {
+        model = await this.llmModelRepo.findDefaultNsfwModel();
+        // NSFW 모델이 없으면 일반 기본 모델로 fallback
+        if (!model) {
+          model = await this.llmModelRepo.findDefaultModel();
+        }
+      } else {
+        model = await this.llmModelRepo.findDefaultModel();
+      }
     }
 
     if (!model) {
@@ -151,6 +181,20 @@ export class ChatService {
     // 6. Build AI context
     const aiContext = this.buildAIContext(room, persona);
 
+    // 6.5. RAG: Search for relevant memories (Graceful degradation)
+    if (content) {
+      try {
+        const relevantMemories = await this.searchRelevantMemories(roomId, content);
+        aiContext.relevantMemories = relevantMemories;
+      } catch (error) {
+        console.error('[ChatService] Failed to search relevant memories:', error);
+        // Continue without RAG
+      }
+    }
+
+    // 6.6. Fetch recent message history (last 50 messages)
+    const messageHistory = await this.messageRepo.findRecent(roomId, 50);
+
     // 7. Stream AI response
     await this.aiStreamingService.streamAIResponse({
       userId,
@@ -167,9 +211,56 @@ export class ChatService {
       personaName: aiContext.personaName,
       userNote: room.userNote,
       conversationSummary: room.conversationSummary,
+      relevantMemories: aiContext.relevantMemories,
+      messageHistory: messageHistory.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
       reply,
       server: this.server,
     });
+
+    // 8. 비동기로 사용자 메시지 임베딩 생성 (fire and forget)
+    if (userMessage) {
+      this.embeddingService
+        .embedMessageAsync(userMessage.id, content || '')
+        .catch((err) => {
+          console.error('[ChatService] Failed to embed user message:', err);
+        });
+    }
+  }
+
+  /**
+   * RAG: 관련 기억 검색
+   *
+   * 사용자 메시지와 유사한 과거 대화 기억을 검색합니다.
+   * 중요도와 유사도를 결합하여 상위 3개 반환
+   */
+  private async searchRelevantMemories(
+    roomId: string,
+    userMessage: string
+  ): Promise<Array<{ summary: string; similarity: number; importance: number }>> {
+    try {
+      // 사용자 메시지 임베딩 생성
+      const queryEmbedding = await this.embeddingService.generateEmbedding(userMessage);
+
+      // 유사한 대화 기억 검색
+      const memories = await this.vectorSearchRepo.searchConversationMemories({
+        roomId,
+        queryEmbedding,
+        limit: 3,
+        importanceWeight: 0.3, // 중요도 30%, 유사도 70%
+      });
+
+      return memories.map((mem) => ({
+        summary: mem.summary,
+        similarity: mem.similarity,
+        importance: mem.importance,
+      }));
+    } catch (error) {
+      console.error('[ChatService] Failed to search relevant memories:', error);
+      return [];
+    }
   }
 
   /**

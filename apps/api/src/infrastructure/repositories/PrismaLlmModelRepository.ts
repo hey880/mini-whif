@@ -54,8 +54,21 @@ export class PrismaLlmModelRepository implements ILlmModelRepository {
 
   async findDefaultModel(): Promise<LlmModel | null> {
     return await this.prisma.llmModel.findFirst({
-      where: { isActive: true },
-      orderBy: { gemCostPerMessage: 'asc' }, // 가장 저렴한 모델
+      where: {
+        isActive: true,
+        isNsfwCapable: false, // NSFW 전용 모델 제외 - 일반 용도는 품질 모델 사용
+      },
+      orderBy: { gemCostPerMessage: 'asc' }, // 가장 저렴한 일반 모델
+    });
+  }
+
+  async findDefaultNsfwModel(): Promise<LlmModel | null> {
+    return await this.prisma.llmModel.findFirst({
+      where: {
+        isActive: true,
+        isNsfwCapable: true,
+      },
+      orderBy: { gemCostPerMessage: 'asc' }, // 가장 저렴한 NSFW 모델
     });
   }
 

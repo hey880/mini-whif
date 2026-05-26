@@ -289,6 +289,13 @@ export class CreateCharacterRequest extends Message<CreateCharacterRequest> {
    */
   lorebookJson?: string;
 
+  /**
+   * 기본 AI 모델 ID
+   *
+   * @generated from field: optional string default_llm_model_id = 14;
+   */
+  defaultLlmModelId?: string;
+
   constructor(data?: PartialMessage<CreateCharacterRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -310,6 +317,7 @@ export class CreateCharacterRequest extends Message<CreateCharacterRequest> {
     { no: 11, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 12, name: "data_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 13, name: "lorebook_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 14, name: "default_llm_model_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateCharacterRequest {
@@ -444,6 +452,13 @@ export class UpdateCharacterRequest extends Message<UpdateCharacterRequest> {
    */
   lorebookJson?: string;
 
+  /**
+   * 기본 AI 모델 ID
+   *
+   * @generated from field: optional string default_llm_model_id = 15;
+   */
+  defaultLlmModelId?: string;
+
   constructor(data?: PartialMessage<UpdateCharacterRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -466,6 +481,7 @@ export class UpdateCharacterRequest extends Message<UpdateCharacterRequest> {
     { no: 12, name: "keywords", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 13, name: "data_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
     { no: 14, name: "lorebook_json", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 15, name: "default_llm_model_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateCharacterRequest {
@@ -709,6 +725,13 @@ export class Character extends Message<Character> {
    */
   creatorDisplayName?: string;
 
+  /**
+   * 기본 AI 모델 ID
+   *
+   * @generated from field: optional string default_llm_model_id = 22;
+   */
+  defaultLlmModelId?: string;
+
   constructor(data?: PartialMessage<Character>) {
     super();
     proto3.util.initPartial(data, this);
@@ -738,6 +761,7 @@ export class Character extends Message<Character> {
     { no: 19, name: "total_message_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 20, name: "avg_rating", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
     { no: 21, name: "creator_display_name", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
+    { no: 22, name: "default_llm_model_id", kind: "scalar", T: 9 /* ScalarType.STRING */, opt: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Character {

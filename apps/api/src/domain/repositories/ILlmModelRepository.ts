@@ -58,6 +58,12 @@ export interface ILlmModelRepository {
   findDefaultModel(): Promise<LlmModel | null>;
 
   /**
+   * 기본 NSFW 모델 조회 (가장 저렴한 NSFW 가능 활성 모델)
+   * @returns LlmModel 또는 null
+   */
+  findDefaultNsfwModel(): Promise<LlmModel | null>;
+
+  /**
    * 모델 생성
    * @param params 생성 파라미터
    * @returns 생성된 LlmModel

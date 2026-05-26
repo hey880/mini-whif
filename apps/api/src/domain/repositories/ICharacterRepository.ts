@@ -33,6 +33,7 @@ export interface CreateCharacterParams {
   keywords?: string[];
   data: any;
   lorebook?: any;
+  defaultLlmModelId?: string;
 }
 
 /**

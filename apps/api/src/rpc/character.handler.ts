@@ -54,6 +54,7 @@ function mapCharacterDetailToProto(char: CharacterDetail) {
     totalMessageCount: 0,
     avgRating: 0,
     creatorDisplayName: (char.creator as any)?.displayName ?? '',
+    defaultLlmModelId: (char as any).defaultLlmModelId || undefined,
   };
 }
 
@@ -113,6 +114,7 @@ export function createCharacterHandler(
         keywords: req.keywords || [],
         data: req.dataJson ? JSON.parse(req.dataJson) : {},
         lorebook: req.lorebookJson ? JSON.parse(req.lorebookJson) : null,
+        defaultLlmModelId: req.defaultLlmModelId || undefined,
       });
 
       return {
@@ -143,6 +145,7 @@ export function createCharacterHandler(
       if (req.lorebookJson !== undefined) {
         updateData.lorebook = req.lorebookJson ? JSON.parse(req.lorebookJson) : null;
       }
+      if (req.defaultLlmModelId !== undefined) updateData.defaultLlmModelId = req.defaultLlmModelId;
 
       const character = await characterService
         .updateCharacter(req.id, user.id, updateData)
