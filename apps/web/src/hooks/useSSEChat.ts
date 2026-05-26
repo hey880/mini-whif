@@ -71,7 +71,9 @@ export function useSSEChat() {
 
         if (contentType?.includes('application/json')) {
           const error = await response.json();
-          throw new Error(error.error || 'Failed to send message');
+          // Include details if available for better error messages
+          const errorMessage = error.details || error.error || 'Failed to send message';
+          throw new Error(errorMessage);
         } else {
           // Handle SSE error stream
           const text = await response.text();

@@ -426,9 +426,16 @@ export default function CharacterDetailPage() {
               disabled={createChatMutation.isPending || cloneChatMutation.isPending}
               className="w-full glow-button disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {createChatMutation.isPending || cloneChatMutation.isPending
-                ? 'Processing...'
-                : 'Start Conversation'}
+              {createChatMutation.isPending || cloneChatMutation.isPending ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined animate-spin">
+                    progress_activity
+                  </span>
+                  생성중...
+                </span>
+              ) : (
+                '대화 시작하기'
+              )}
             </button>
           ) : (
             <button

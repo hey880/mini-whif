@@ -59,7 +59,7 @@ export async function chatRoutes(
       try {
         await chatService.sendMessage(dto);
       } catch (error) {
-        server.log.error({ error }, 'Error sending chat message');
+        server.log.error(error, 'Error sending chat message');
 
         if (!reply.raw.headersSent) {
           if (error instanceof Error && error.message.includes('Insufficient gems')) {
