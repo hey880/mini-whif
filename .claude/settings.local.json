@@ -56,7 +56,10 @@
       "Bash(npx prisma db execute:*)",
       "Bash(npx prisma generate:*)",
       "Bash(git reset:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(pnpm prisma generate:*)",
+      "Bash(venvScriptspython.exe:*)",
+      "Bash(./venv/Scripts/python.exe:*)"
     ]
   }
 }
