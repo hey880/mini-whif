@@ -23,6 +23,35 @@ export class PrismaVectorSearchRepository implements IVectorSearchRepository {
   constructor(private prisma: PrismaClient) {}
 
   /**
+   * 임베딩 벡터 검증 및 안전한 문자열 변환
+   * SQL 인젝션 방지를 위해 모든 요소가 유효한 숫자인지 확인
+   */
+  private validateAndStringifyEmbedding(embedding: unknown): string {
+    if (!Array.isArray(embedding)) {
+      throw new Error('Invalid embedding: must be an array');
+    }
+
+    if (embedding.length !== 1536) {
+      throw new Error(
+        `Invalid embedding: must have 1536 dimensions, got ${embedding.length}`
+      );
+    }
+
+    // 모든 요소가 유효한 숫자인지 검증
+    for (let i = 0; i < embedding.length; i++) {
+      const value = embedding[i];
+      if (typeof value !== 'number' || !isFinite(value)) {
+        throw new Error(
+          `Invalid embedding: element at index ${i} is not a valid number`
+        );
+      }
+    }
+
+    // 안전한 문자열 변환: 각 숫자를 직접 join
+    return `[${embedding.join(',')]`;
+  }
+
+  /**
    * 유사한 메시지 검색
    *
    * pgvector의 코사인 거리 연산자(<=>)를 사용
@@ -39,6 +68,9 @@ export class PrismaVectorSearchRepository implements IVectorSearchRepository {
     } = params;
 
     try {
+      // 임베딩 벡터 검증 및 안전한 문자열 변환
+      const vectorString = this.validateAndStringifyEmbedding(queryEmbedding);
+
       // pgvector 쿼리: 코사인 유사도 기반 검색
       const results = await this.prisma.$queryRaw<
         Array<{
@@ -56,14 +88,14 @@ export class PrismaVectorSearchRepository implements IVectorSearchRepository {
           role,
           content,
           created_at,
-          1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) AS similarity
+          1 - (embedding <=> ${vectorString}::vector) AS similarity
         FROM messages
         WHERE
           room_id = ${roomId}::uuid
           AND embedding IS NOT NULL
           AND role IN ('user', 'assistant')
-          AND 1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) >= ${similarityThreshold}
-        ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+          AND 1 - (embedding <=> ${vectorString}::vector) >= ${similarityThreshold}
+        ORDER BY embedding <=> ${vectorString}::vector
         LIMIT ${limit}
       `;
 
@@ -98,6 +130,9 @@ export class PrismaVectorSearchRepository implements IVectorSearchRepository {
     } = params;
 
     try {
+      // 임베딩 벡터 검증 및 안전한 문자열 변환
+      const vectorString = this.validateAndStringifyEmbedding(queryEmbedding);
+
       const results = await this.prisma.$queryRaw<
         Array<{
           id: string;
@@ -117,8 +152,8 @@ export class PrismaVectorSearchRepository implements IVectorSearchRepository {
           message_range,
           importance,
           created_at,
-          1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) AS similarity,
-          (1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector)) * ${1 - importanceWeight} +
+          1 - (embedding <=> ${vectorString}::vector) AS similarity,
+          (1 - (embedding <=> ${vectorString}::vector)) * ${1 - importanceWeight} +
             (importance::float / 10) * ${importanceWeight} AS combined_score
         FROM conversation_memories
         WHERE
@@ -152,10 +187,13 @@ export class PrismaVectorSearchRepository implements IVectorSearchRepository {
     const { messageId, embedding, model } = params;
 
     try {
+      // 임베딩 벡터 검증 및 안전한 문자열 변환
+      const vectorString = this.validateAndStringifyEmbedding(embedding);
+
       await this.prisma.$executeRaw`
         UPDATE messages
         SET
-          embedding = ${JSON.stringify(embedding)}::vector,
+          embedding = ${vectorString}::vector,
           embedding_model = ${model},
           embedded_at = NOW()
         WHERE id = ${messageId}::uuid
