@@ -13,6 +13,78 @@ export const GEM_PRODUCTS = [
   { id: 'gem_91908', gemAmount: 91908, baseAmount: 79920, bonusAmount: 11988, price: 99900, badge: '가장 저렴' },
 ];
 
+/**
+ * PortOne API로 결제 검증
+ * @returns 검증 결과 (성공 시 실제 결제 금액 포함)
+ */
+async function verifyPortOnePayment(
+  paymentId: string,
+  expectedAmount: number
+): Promise<{
+  success: boolean;
+  actualAmount?: number;
+  status?: string;
+  error?: string;
+}> {
+  const PORTONE_API_KEY = process.env.PORTONE_API_KEY;
+  const PORTONE_API_SECRET = process.env.PORTONE_API_SECRET;
+
+  if (!PORTONE_API_KEY) {
+    return { success: false, error: 'PortOne API key not configured' };
+  }
+
+  try {
+    // PortOne API로 결제 정보 조회
+    const response = await fetch(`https://api.portone.io/payments/${paymentId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `PortOne ${PORTONE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        success: false,
+        error: `PortOne API error: ${response.status} ${errorText}`,
+      };
+    }
+
+    const paymentData = await response.json();
+
+    // 결제 상태 검증
+    if (paymentData.status !== 'paid' && paymentData.status !== 'PAID') {
+      return {
+        success: false,
+        status: paymentData.status,
+        error: `Payment not completed. Current status: ${paymentData.status}`,
+      };
+    }
+
+    // 결제 금액 검증 (중요!)
+    const actualAmount = paymentData.amount?.total || paymentData.totalAmount;
+    if (actualAmount !== expectedAmount) {
+      return {
+        success: false,
+        actualAmount,
+        error: `Amount mismatch: expected ${expectedAmount}, got ${actualAmount}`,
+      };
+    }
+
+    return {
+      success: true,
+      actualAmount,
+      status: paymentData.status,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
 export async function paymentsRoutes(server: FastifyInstance) {
   const PORTONE_CONFIGURED = !!process.env.PORTONE_API_KEY;
 
@@ -162,52 +234,97 @@ export async function paymentsRoutes(server: FastifyInstance) {
       return reply.status(400).send({ error: 'Order already paid' });
     }
 
+    // 결제 검증 (프로덕션 환경에서는 필수)
     if (PORTONE_CONFIGURED) {
-      // TODO: Verify payment with PortOne API
-      server.log.info('Verifying payment with PortOne API...');
-      // Example:
-      // const verification = await verifyPortOnePayment(paymentTransactionId);
-      // if (!verification.success) {
-      //   return reply.status(400).send({ error: 'Payment verification failed' });
-      // }
+      if (!paymentTransactionId) {
+        return reply.status(400).send({
+          error: 'Payment transaction ID is required',
+        });
+      }
+
+      server.log.info({
+        orderId,
+        paymentTransactionId,
+        expectedAmount: order.priceAmount,
+      }, 'Verifying payment with PortOne API...');
+
+      const verification = await verifyPortOnePayment(
+        paymentTransactionId,
+        order.priceAmount
+      );
+
+      if (!verification.success) {
+        server.log.error({
+          orderId,
+          paymentTransactionId,
+          error: verification.error,
+          expectedAmount: order.priceAmount,
+          actualAmount: verification.actualAmount,
+          status: verification.status,
+        }, '❌ Payment verification failed');
+
+        return reply.status(400).send({
+          error: 'Payment verification failed',
+          details: verification.error,
+        });
+      }
+
+      server.log.info({
+        orderId,
+        paymentTransactionId,
+        amount: verification.actualAmount,
+        status: verification.status,
+      }, '✅ Payment verified successfully');
     } else {
+      // Mock 모드는 개발 환경에서만 허용
+      if (process.env.NODE_ENV === 'production') {
+        return reply.status(501).send({
+          error: 'Payment gateway not configured',
+        });
+      }
       server.log.warn(`⚠️  Mock payment verification for order ${orderId} (PortOne not configured)`);
     }
 
-    // Update order status
-    await prisma.gemOrder.update({
-      where: { id: orderId },
-      data: {
-        paymentStatus: 'paid',
-        paymentTransactionId: paymentTransactionId || 'MOCK_TXN_ID',
-        paidAt: new Date(),
-      },
-    });
-
-    // Add gems to wallet
-    const updatedWallet = await prisma.gemWallet.update({
-      where: { userId: order.userId },
-      data: {
-        paidGemAmount: {
-          increment: order.gemAmount,
+    // 트랜잭션으로 원자성 보장: 주문 업데이트 + Gem 지급 + 로그 기록
+    await prisma.$transaction(async (tx) => {
+      // 주문 상태 업데이트
+      await tx.gemOrder.update({
+        where: { id: orderId },
+        data: {
+          paymentStatus: 'paid',
+          paymentTransactionId: paymentTransactionId || 'MOCK_TXN_ID',
+          paidAt: new Date(),
         },
-      },
-    });
+      });
 
-    // Calculate total balance after purchase
-    const totalAfter = updatedWallet.paidGemAmount + updatedWallet.freeDailyGemAmount + updatedWallet.freePromoGemAmount;
+      // Gem 지급
+      const updatedWallet = await tx.gemWallet.update({
+        where: { userId: order.userId },
+        data: {
+          paidGemAmount: {
+            increment: order.gemAmount,
+          },
+        },
+      });
 
-    // Log transaction
-    await prisma.gemLog.create({
-      data: {
-        userId: order.userId,
-        amount: order.gemAmount,
-        gemType: 'paid',
-        logType: 'purchase',
-        balanceAfter: totalAfter,
-        relatedOrderId: orderId,
-        memo: `Purchased ${order.gemAmount} gems (${order.productId})`,
-      },
+      // 총 잔액 계산
+      const totalAfter =
+        updatedWallet.paidGemAmount +
+        updatedWallet.freeDailyGemAmount +
+        updatedWallet.freePromoGemAmount;
+
+      // 거래 로그 기록
+      await tx.gemLog.create({
+        data: {
+          userId: order.userId,
+          amount: order.gemAmount,
+          gemType: 'paid',
+          logType: 'purchase',
+          balanceAfter: totalAfter,
+          relatedOrderId: orderId,
+          memo: `Purchased ${order.gemAmount} gems (${order.productId})`,
+        },
+      });
     });
 
     server.log.info(`✅ Payment confirmed for order ${orderId} - Added ${order.gemAmount} gems to user ${order.userId}`);
