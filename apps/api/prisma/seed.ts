@@ -19,6 +19,7 @@ async function main() {
       maxOutputTokens: 8192,
       gemCostPerMessage: 5,
       isActive: true,
+      isNsfwCapable: false,
     },
     {
       name: '아이리스',
@@ -28,6 +29,7 @@ async function main() {
       maxOutputTokens: 8192,
       gemCostPerMessage: 10,
       isActive: true,
+      isNsfwCapable: false,
     },
     {
       name: '벨벳',
@@ -37,6 +39,30 @@ async function main() {
       maxOutputTokens: 8192,
       gemCostPerMessage: 8,
       isActive: true,
+      isNsfwCapable: false,
+    },
+    // NSFW-capable models
+    // 기존 Mythomax 비활성화 (Euryale로 완전 교체)
+    {
+      name: 'Mythomax L2 13B (Deprecated)',
+      slug: 'gryphe/mythomax-l2-13b',
+      provider: 'OpenRouter',
+      contextWindow: 8192,
+      maxOutputTokens: 2048,
+      gemCostPerMessage: 0,
+      isActive: false, // 비활성화
+      isNsfwCapable: true,
+    },
+    // Euryale 70B - 고품질 NSFW 모델 (영어 프롬프트 사용)
+    {
+      name: 'Euryale 70B',
+      slug: 'sao10k/l3.3-euryale-70b',
+      provider: 'OpenRouter',
+      contextWindow: 131072, // 131K tokens
+      maxOutputTokens: 16384,
+      gemCostPerMessage: 10, // 고품질 유료 모델
+      isActive: true,
+      isNsfwCapable: true,
     },
   ];
 
