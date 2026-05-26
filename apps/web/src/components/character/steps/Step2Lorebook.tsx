@@ -5,6 +5,7 @@ import { Plus, BookOpen, X } from 'lucide-react';
 import { useCharacterWizardStore } from '@/stores/characterWizardStore';
 import { LorebookEntry as LorebookEntryCard } from '../components/LorebookEntry';
 import type { LorebookEntry } from '@/stores/characterWizardStore';
+import { v4 as uuidv4 } from 'uuid';
 
 export function Step2Lorebook() {
   const { formData, updateFormData } = useCharacterWizardStore();
@@ -45,7 +46,7 @@ export function Step2Lorebook() {
     }
 
     const entry: LorebookEntry = {
-      id: editingEntry?.id || crypto.randomUUID(),
+      id: editingEntry?.id || uuidv4(),
       key: formKey,
       content: formContent,
       triggers: formTriggers,

@@ -6,6 +6,7 @@ import { useCharacterWizardStore } from '@/stores/characterWizardStore';
 import { RelatedContentCard } from '../components/RelatedContentCard';
 import type { RelatedContent } from '@/stores/characterWizardStore';
 import { uploadImage, validateImageFile } from '@/lib/uploadImage';
+import { v4 as uuidv4 } from 'uuid';
 
 export function Step5RelatedContent() {
   const { formData, updateFormData } = useCharacterWizardStore();
@@ -114,7 +115,7 @@ export function Step5RelatedContent() {
     }
 
     const content: RelatedContent = {
-      id: editingContent?.id || crypto.randomUUID(),
+      id: editingContent?.id || uuidv4(),
       type: formType,
       url: formUrl,
       title: formTitle.trim() || undefined,

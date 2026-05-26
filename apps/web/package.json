@@ -29,6 +29,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.7",
+    "uuid": "^14.0.0",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
@@ -36,6 +37,7 @@
     "@types/node": "^20.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/uuid": "^11.0.0",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.56.0",
     "eslint-config-next": "^15.0.0",

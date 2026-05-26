@@ -5,6 +5,7 @@ import { Plus, MessageSquare, X } from 'lucide-react';
 import { useCharacterWizardStore } from '@/stores/characterWizardStore';
 import { GreetingCard } from '../components/GreetingCard';
 import type { Greeting } from '@/stores/characterWizardStore';
+import { v4 as uuidv4 } from 'uuid';
 
 export function Step3Greetings() {
   const { formData, updateFormData } = useCharacterWizardStore();
@@ -40,7 +41,7 @@ export function Step3Greetings() {
     }
 
     const greeting: Greeting = {
-      id: editingGreeting?.id || crypto.randomUUID(),
+      id: editingGreeting?.id || uuidv4(),
       title: formTitle,
       content: formContent,
       isDefault: formIsDefault,

@@ -7,6 +7,7 @@ import { uploadImage, validateImageFile } from '@/lib/uploadImage';
 import { useQuery } from '@tanstack/react-query';
 import { universeClient } from '@/lib/connectrpc/client';
 import { useAuthStore } from '@/stores/authStore';
+import { v4 as uuidv4 } from 'uuid';
 
 export function Step1BasicSettings() {
   const { formData, updateFormData } = useCharacterWizardStore();
@@ -102,7 +103,7 @@ export function Step1BasicSettings() {
       exampleDialogues: [
         ...formData.exampleDialogues,
         {
-          id: crypto.randomUUID(),
+          id: uuidv4(),
           situation: '',
           response: '',
         },

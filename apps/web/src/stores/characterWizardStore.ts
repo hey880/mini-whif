@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { v4 as uuidv4 } from 'uuid';
 
 // Types
 export interface ExampleDialogue {
@@ -181,7 +182,7 @@ export const useCharacterWizardStore = create<CharacterWizardState>((set, get) =
     // Handle old characters with single greeting
     const greetings = data.greetings || [
       {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         title: '기본 도입부',
         content: character.greeting || '',
         isDefault: true,

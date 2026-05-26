@@ -6,6 +6,7 @@ import { useCharacterWizardStore } from '@/stores/characterWizardStore';
 import { SituationalImageCard } from '../components/SituationalImageCard';
 import type { SituationalImage } from '@/stores/characterWizardStore';
 import { uploadImage, validateImageFile } from '@/lib/uploadImage';
+import { v4 as uuidv4 } from 'uuid';
 
 export function Step4SituationalImages() {
   const { formData, updateFormData } = useCharacterWizardStore();
@@ -113,7 +114,7 @@ export function Step4SituationalImages() {
     }
 
     const image: SituationalImage = {
-      id: editingImage?.id || crypto.randomUUID(),
+      id: editingImage?.id || uuidv4(),
       imageUrl: formImageUrl,
       triggers: formTriggers,
       description: formDescription.trim() || undefined,
