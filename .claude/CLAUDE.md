@@ -161,12 +161,115 @@ packages/
 └── shared-types/                # 공유 TypeScript 타입
 ```
 
+## RAG (검색 증강 생성) 시스템
+
+### 개요
+OpenAI 임베딩 기반 대화 기억 검색으로 AI가 과거 대화를 참조합니다.
+
+### 아키텍처
+```
+사용자 메시지 → EmbeddingService.generateEmbedding()
+                ↓
+            Vector 검색 (pgvector)
+                ↓
+    VectorSearchRepository.searchConversationMemories()
+                ↓
+            관련 기억 3개 반환 → AI 프롬프트에 포함
+```
+
+### 핵심 컴포넌트
+- **EmbeddingService**: OpenAI text-embedding-3-small (1536차원) 임베딩 생성
+- **VectorSearchRepository**: pgvector 코사인 유사도 검색
+- **conversation_memories 테이블**: 10개 메시지마다 자동 요약 저장
+- **임베딩 배치 작업**: 매일 자정 누락된 메시지 임베딩 처리
+
+### 임베딩 관련 중요 사항
+- **embeddedAt 필드 사용**: Prisma에서 `embedding` 필드는 where 절에서 사용 불가 (Unsupported type)
+- **해결 방법**: `embeddedAt IS NULL` 또는 `embeddedAt IS NOT NULL`로 임베딩 여부 확인
+- **예시**:
+```typescript
+// ❌ 작동 안 함
+await prisma.message.findMany({ where: { embedding: null } });
+
+// ✅ 올바름
+await prisma.message.findMany({ where: { embeddedAt: null } });
+```
+
+### 임베딩 배치 작업 실행
+```bash
+cd apps/api
+node run-embedding.mjs  # 수동 실행 (개발용)
+```
+
+### 메시지 히스토리 설정
+- 현재: 최근 **50개** 메시지를 AI에 전달 (ChatService.ts)
+- RAG와 조합하여 장기 기억 + 단기 기억 구현
+
+## NSFW 모델 지원
+
+### 모델 자동 선택 로직
+캐릭터가 NSFW로 표시된 경우 NSFW 가능 모델을 자동 선택합니다.
+
+**우선순위**:
+1. 캐릭터 지정 모델 (`character.defaultLlmModelId`)
+2. 사용자 선택 모델 (`profile.chosenLlmModel`)
+3. NSFW 캐릭터면 NSFW 기본 모델, 아니면 일반 기본 모델
+
+### 관련 필드
+- `LlmModel.isNsfwCapable`: 모델이 NSFW 콘텐츠 생성 가능한지 여부
+- `LlmModel.isDefaultNsfw`: NSFW 캐릭터의 기본 모델
+- `Character.isNsfw`: 캐릭터가 NSFW 콘텐츠를 포함하는지 여부
+- `Character.defaultLlmModelId`: 캐릭터별 기본 모델 지정 (선택)
+
+## 스트리밍 중단 처리
+
+### 클라이언트 연결 끊김 감지
+AI 스트리밍 중 사용자가 중단 버튼을 누르면 서버가 즉시 감지하고 스트림을 취소합니다.
+
+**구현 위치**: `apps/api/src/services/ai-streaming.service.ts`
+
+```typescript
+// 클라이언트 연결 끊김 이벤트 리스너
+reply.raw.on('close', () => {
+  clientDisconnected = true;
+  reader.cancel();  // AI 서버 스트림 즉시 취소
+});
+
+// 루프 내에서 연결 상태 체크
+while (true) {
+  if (clientDisconnected || reply.raw.destroyed) {
+    reader.cancel();
+    break;
+  }
+  // ...
+}
+```
+
+### 부분 메시지 저장
+중단 시 현재까지 생성된 내용을 자동으로 DB에 저장합니다.
+
+```typescript
+finally {
+  if (clientDisconnected && accumulated) {
+    await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        content: accumulated,
+        metadata: { aborted: true }
+      }
+    });
+    await gemService.deductGems(userId, gemCost, messageId);
+  }
+}
+```
+
 ## 환경 변수
 - `DATABASE_URL`: PostgreSQL 연결 (Transaction Pooler 사용)
 - `DIRECT_URL`: Prisma 마이그레이션용 직접 연결
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`: Supabase 인증
 - `AI_SERVER_URL`: AI 서버 내부 URL
-- `OPENROUTER_API_KEY`: LLM API 키
+- `OPENROUTER_API_KEY`: OpenRouter LLM API 키
+- `OPENAI_API_KEY`: OpenAI 임베딩 API 키 (RAG용)
 - `NEXT_PUBLIC_*`: 프론트엔드 환경 변수 (빌드 시 인라인)
 
 ## 배포
