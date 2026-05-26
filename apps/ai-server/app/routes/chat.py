@@ -7,9 +7,17 @@ from fastapi.responses import StreamingResponse
 from ..models.schemas import ChatRequest, ChatResponseChunk
 from ..services.llm_service import stream_chat_completion
 from ..services.prompt_builder import PromptBuilder
-from ..config.supabase import supabase
+from ..services.prompt_builder_english import PromptBuilderEnglish
 
 logger = logging.getLogger(__name__)
+
+# 영어 프롬프트가 필요한 모델 리스트 (영어 중심 학습 모델)
+ENGLISH_PROMPT_MODELS = [
+    'sao10k/l3.3-euryale-70b',
+    'sao10k/l3.3-euryale-70b-v2.3',
+    'sao10k/l3-euryale-70b',
+    # 필요시 추가 가능
+]
 
 router = APIRouter(prefix="/v1/chats", tags=["chat"])
 
@@ -36,56 +44,27 @@ async def send_chat_message(
         StreamingResponse with SSE events
     """
     try:
+        logger.info(f"Processing chat request for room {request.room_id}")
+        logger.info(f"Request data - user: {request.user_id}, model: {request.model_slug}")
+        logger.info(f"Character provided: {bool(request.character)}")
+        logger.info(f"Message history provided: {bool(request.message_history)}")
+
         # Use character and lorebook data from API server
         character_data = request.character
         lorebook_entries = request.lorebook_entries or []
         situational_triggers = request.situational_triggers or []
 
-        # OPTIMIZATION: Use persona_name from API server if provided (avoid DB query)
-        if request.persona_name:
-            # Use pre-loaded persona name
-            persona_data = {"persona": request.persona_name}
-            # Fetch only room metadata (no joins)
-            room_response = supabase.table("chat_rooms").select("*").eq("id", request.room_id).single().execute()
+        # OPTIMIZATION: Use persona_name and message_history from API server (avoid DB queries)
+        persona_data = {"persona": request.persona_name} if request.persona_name else None
+
+        # Use message history from API server if provided
+        if request.message_history:
+            logger.info(f"Message history: {len(request.message_history)} messages")
+            message_history = PromptBuilder.format_messages_history(request.message_history)
         else:
-            # Fallback: fetch room with persona (for backward compatibility)
-            room_response = supabase.table("chat_rooms").select(
-                """
-                *,
-                persona:user_personas(
-                    persona
-                )
-                """
-            ).eq("id", request.room_id).single().execute()
-
-        if not room_response.data:
-            async def error_stream():
-                error_data = ChatResponseChunk(
-                    event_id=0,
-                    content="Error: Chat room not found",
-                    is_final_event=True
-                )
-                yield f"data: {error_data.model_dump_json()}\n\n"
-
-            return StreamingResponse(
-                error_stream(),
-                media_type="text/event-stream"
-            )
-
-        room = room_response.data
-        if not request.persona_name:
-            persona_data = room.get("persona")
-
-        # Fetch recent messages (last 20)
-        messages_response = supabase.table("messages").select(
-            "role, content"
-        ).eq("room_id", request.room_id).order(
-            "created_at", desc=False
-        ).limit(20).execute()
-
-        message_history = PromptBuilder.format_messages_history(
-            messages_response.data or []
-        )
+            # Fallback: empty history (should not happen with new API)
+            logger.warning(f"No message_history provided for room {request.room_id}")
+            message_history = []
 
         # Format example dialogues if they exist in data
         if "exampleDialogues" in character_data and isinstance(character_data["exampleDialogues"], list):
@@ -98,9 +77,7 @@ async def send_chat_message(
 
         # Filter lorebook entries by keyword triggers
         # Only include lorebook entries that are triggered by keywords in the conversation
-        logger.debug(f"📚 Total lorebook entries available: {len(lorebook_entries)}")
-        for entry in lorebook_entries:
-            logger.debug(f"  - Entry: {entry.get('name', 'Unknown')} | Keywords: {entry.get('keywords', entry.get('triggers', []))} | Source: {entry.get('source', 'unknown')}")
+        logger.info(f"📚 Total lorebook entries available: {len(lorebook_entries)}")
 
         triggered_lorebook_entries = PromptBuilder.filter_triggered_lorebook_entries(
             lorebook_entries=lorebook_entries,
@@ -108,19 +85,29 @@ async def send_chat_message(
             new_message=request.message
         )
 
-        logger.debug(f"✅ Triggered lorebook entries: {len(triggered_lorebook_entries)}")
-        for entry in triggered_lorebook_entries:
-            logger.debug(f"  - Triggered: {entry.get('name', 'Unknown')} | Keywords: {entry.get('keywords', entry.get('triggers', []))}")
+        logger.info(f"✅ Triggered lorebook entries: {len(triggered_lorebook_entries)}")
 
-        system_prompt = PromptBuilder.build_system_prompt(
+        # 모델에 따라 적절한 PromptBuilder 선택
+        use_english_prompt = request.model_slug in ENGLISH_PROMPT_MODELS
+        builder = PromptBuilderEnglish if use_english_prompt else PromptBuilder
+
+        if use_english_prompt:
+            logger.info(f"🌍 Using ENGLISH prompt builder for model: {request.model_slug}")
+        else:
+            logger.info(f"🇰🇷 Using KOREAN prompt builder for model: {request.model_slug}")
+
+        logger.info("Building system prompt...")
+        system_prompt = builder.build_system_prompt(
             character_data=character_data,
             lorebook={"entries": triggered_lorebook_entries} if triggered_lorebook_entries else None,
             user_persona=persona_data.get("persona") if persona_data else None,
-            user_note=request.user_note or room.get("user_note"),
-            conversation_summary=request.conversation_summary or room.get("conversation_summary"),
+            user_note=request.user_note,
+            conversation_summary=request.conversation_summary,
             situational_triggers=situational_triggers if situational_triggers else None,
             hint=request.hint,  # Layer 1 enforcement
+            relevant_memories=request.relevant_memories,  # RAG: 관련 기억
         )
+        logger.info(f"System prompt built: {len(system_prompt)} chars")
 
         # Proactive diversity check: analyze recent assistant messages BEFORE generation
         recent_assistant_messages = [
@@ -129,7 +116,7 @@ async def send_chat_message(
             if msg.get("role") == "assistant"
         ][-3:]  # Last 3 assistant messages
 
-        needs_diversity, similar_messages = PromptBuilder.should_add_diversity_prompt(
+        needs_diversity, similar_messages = builder.should_add_diversity_prompt(
             recent_assistant_messages, threshold=0.85
         )
 
@@ -138,7 +125,7 @@ async def send_chat_message(
                 f"🎨 Proactive diversity: Detected {len(similar_messages)} similar recent responses "
                 f"(threshold: 0.85), adding diversity prompt to prevent repetition"
             )
-            diversity_prompt = PromptBuilder.build_diversity_prompt(similar_messages)
+            diversity_prompt = builder.build_diversity_prompt(similar_messages)
             system_prompt = system_prompt + "\n\n" + diversity_prompt
 
         # Debug log for hint
@@ -146,26 +133,23 @@ async def send_chat_message(
             logger.info(f"Regenerating with hint: {request.hint}")
 
         # Build full message array
-        messages = PromptBuilder.build_full_messages(
+        logger.info("Building full messages array...")
+        messages = builder.build_full_messages(
             system_prompt=system_prompt,
             message_history=message_history,
             new_user_message=request.message,
             hint=request.hint,  # Layers 2 & 3 enforcement
             character_name=character_data.get("name"),  # For assistant prefill
         )
-
-        # Debug log for messages
-        if request.hint:
-            logger.info(f"Total messages in prompt: {len(messages)}")
-            for i, msg in enumerate(messages):
-                if "힌트" in msg.get("content", ""):
-                    logger.info(f"Hint message at index {i}: {msg['content'][:200]}...")
+        logger.info(f"Built {len(messages)} messages for LLM")
 
         # Stream response
+        logger.info(f"Starting LLM streaming with model: {request.model_slug}")
         async def sse_generator():
             event_id = 0
             accumulated = ""
 
+            logger.info("Calling stream_chat_completion...")
             async for chunk in stream_chat_completion(
                 room_id=request.room_id,
                 user_id=request.user_id,
@@ -210,12 +194,13 @@ async def send_chat_message(
         )
 
     except Exception as e:
-        logger.error(f"Error processing chat request: {e}")
+        logger.error(f"Error processing chat request: {e}", exc_info=True)
+        error_message = str(e)
 
         async def error_stream():
             error_data = ChatResponseChunk(
                 event_id=0,
-                content=f"Error: {str(e)}",
+                content=f"Error: {error_message}",
                 is_final_event=True
             )
             yield f"data: {error_data.model_dump_json()}\n\n"

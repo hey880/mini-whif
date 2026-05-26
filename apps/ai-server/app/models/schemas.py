@@ -22,6 +22,8 @@ class ChatRequest(BaseModel):
     persona_name: str | None = Field(default=None, description="User persona name")
     user_note: str | None = Field(default=None, description="User note about the conversation")
     conversation_summary: str | None = Field(default=None, description="Previous conversation summary")
+    relevant_memories: list[dict] | None = Field(default=None, description="RAG: Relevant past conversation memories")
+    message_history: list[dict] | None = Field(default=None, description="Recent message history (last 20)")
 
 
 class ChatResponseChunk(BaseModel):

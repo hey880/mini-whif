@@ -36,6 +36,9 @@ export function PersonaSelectionModal({
     queryKey: ['personas'],
     queryFn: async () => {
       const response = await personaClient.listPersonas({});
+      console.log('listPersonas response:', response);
+      console.log('response.personas:', response.personas);
+      console.log('Is personas an array?', Array.isArray(response.personas));
       return response.personas;
     },
     enabled: isOpen,
@@ -78,7 +81,9 @@ export function PersonaSelectionModal({
     if (isOpen) {
       setIsAnimating(true);
       // Set default persona if exists
-      const defaultPersona = personas?.find((p) => p.isDefault);
+      const defaultPersona = Array.isArray(personas)
+        ? personas.find((p) => p.isDefault)
+        : undefined;
       if (defaultPersona) {
         setSelectedPersonaId(defaultPersona.id);
       }
@@ -208,7 +213,7 @@ export function PersonaSelectionModal({
                 className="w-full px-4 py-3 pr-10 rounded-xl bg-surface-container border border-outline-variant focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer"
               >
                 <option value="">페르소나를 선택하세요...</option>
-                {personas?.map((persona) => (
+                {Array.isArray(personas) && personas.map((persona) => (
                   <option key={persona.id} value={persona.id}>
                     {persona.name} {persona.isDefault && '(기본)'}
                   </option>
@@ -222,7 +227,8 @@ export function PersonaSelectionModal({
                 <div className="text-body-small text-on-surface-variant">
                   선택된 페르소나:{' '}
                   <span className="text-on-surface font-medium">
-                    {personas?.find((p) => p.id === selectedPersonaId)?.name}
+                    {Array.isArray(personas) &&
+                      personas.find((p) => p.id === selectedPersonaId)?.name}
                   </span>
                 </div>
               </div>

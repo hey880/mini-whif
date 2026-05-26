@@ -32,6 +32,15 @@ interface StreamAIResponseParams {
   personaName: string; // OPTIMIZATION: pre-loaded persona name
   userNote?: string | null;
   conversationSummary?: string | null;
+  relevantMemories?: Array<{
+    summary: string;
+    similarity: number;
+    importance: number;
+  }>;
+  messageHistory?: Array<{
+    role: string;
+    content: string;
+  }>;
   reply: any;
   server: FastifyInstance;
 }
@@ -213,6 +222,13 @@ export class AIStreamingService {
     let accumulated = '';
 
     try {
+      server.log.info({
+        roomId: params.roomId,
+        messageHistoryLength: params.messageHistory?.length,
+        hasCharacter: !!params.characterContext,
+        hasPersonaName: !!params.personaName,
+      }, 'Sending request to AI server');
+
       const aiResponse = await fetch(`${aiServerUrl}/v1/chats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -229,6 +245,8 @@ export class AIStreamingService {
           persona_name: params.personaName, // OPTIMIZATION: send persona name to avoid AI server DB query
           user_note: params.userNote,
           conversation_summary: params.conversationSummary,
+          relevant_memories: params.relevantMemories, // RAG: 관련 기억
+          message_history: params.messageHistory || [], // OPTIMIZATION: send message history to avoid AI server DB query
         }),
         signal: controller.signal,
       });
@@ -296,6 +314,14 @@ export class AIStreamingService {
       let buffer = ''; // Buffer for incomplete SSE events
       let lastChunkTime = Date.now();
       const STREAM_CHUNK_TIMEOUT = 30000; // 30초
+      let clientDisconnected = false;
+
+      // 클라이언트 연결 끊김 감지
+      reply.raw.on('close', () => {
+        server.log.info('Client disconnected, cancelling AI stream');
+        clientDisconnected = true;
+        reader.cancel();
+      });
 
       // 청크 타임아웃 체크
       const checkTimeout = setInterval(() => {
@@ -308,6 +334,13 @@ export class AIStreamingService {
 
       try {
         while (true) {
+          // 클라이언트가 연결을 끊었으면 즉시 중단
+          if (clientDisconnected || reply.raw.destroyed) {
+            server.log.info('Client connection lost, stopping stream');
+            reader.cancel();
+            break;
+          }
+
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -324,7 +357,18 @@ export class AIStreamingService {
           // Send each complete SSE event individually with immediate flush
           for (const event of events) {
             if (event.trim()) {
-              reply.raw.write(event + '\n\n');
+              // 클라이언트가 연결을 끊었는지 다시 확인
+              if (clientDisconnected || reply.raw.destroyed) {
+                server.log.info('Client disconnected during write, stopping');
+                reader.cancel();
+                break;
+              }
+
+              const writeSuccess = reply.raw.write(event + '\n\n');
+              if (!writeSuccess) {
+                server.log.warn('Write buffer full or connection closed');
+              }
+
               // Force immediate transmission by yielding to event loop
               await new Promise(resolve => setImmediate(resolve));
             }
@@ -392,9 +436,44 @@ export class AIStreamingService {
         }
       } finally {
         clearInterval(checkTimeout);
+
+        // 클라이언트가 중단한 경우 부분 메시지 저장
+        if (clientDisconnected && accumulated && accumulated.trim()) {
+          server.log.info({
+            messageId: params.messageId,
+            contentLength: accumulated.length
+          }, 'Saving partial message after client disconnect');
+
+          try {
+            await prisma.message.update({
+              where: { id: params.messageId },
+              data: {
+                content: accumulated,
+                metadata: {
+                  aborted: true,
+                  abortedAt: new Date().toISOString()
+                }
+              }
+            });
+
+            // Gem 차감 (스트림이 시작되었으므로)
+            await this.gemService.deductGems(params.userId, gemCost, params.messageId);
+
+            // 채팅방 업데이트
+            await prisma.chatRoom.update({
+              where: { id: params.roomId },
+              data: { lastMessageAt: new Date() }
+            });
+          } catch (saveError) {
+            server.log.error({ error: saveError }, 'Failed to save partial message');
+          }
+        }
       }
 
-      reply.raw.end();
+      // 정상 종료 시에만 end() 호출
+      if (!clientDisconnected && !reply.raw.destroyed) {
+        reply.raw.end();
+      }
     } catch (error) {
       clearTimeout(timeoutId);
 
@@ -441,9 +520,14 @@ export class AIStreamingService {
 
       server.log.error({
         error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
         roomId: params.roomId,
         messageId: params.messageId,
-        headersSent: reply.raw.headersSent
+        userId: params.userId,
+        modelSlug: params.modelSlug,
+        headersSent: reply.raw.headersSent,
+        accumulated: accumulated.substring(0, 100) // First 100 chars
       }, 'Error during AI streaming');
 
       // ✅ 헤더가 이미 전송된 경우 (SSE 진행 중)

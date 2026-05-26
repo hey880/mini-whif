@@ -14,6 +14,7 @@ class PromptBuilder:
         conversation_summary: str | None,
         situational_triggers: list[dict[str, Any]] | None = None,
         hint: str | None = None,
+        relevant_memories: list[dict[str, Any]] | None = None,
     ) -> str:
         """
         Construct system prompt from character and context.
@@ -24,6 +25,7 @@ class PromptBuilder:
             user_persona: Optional user persona description
             user_note: Optional user note about the conversation
             conversation_summary: Optional summary of previous conversation
+            relevant_memories: Optional RAG memories from similar past conversations
 
         Returns:
             Formatted system prompt
@@ -196,6 +198,27 @@ Use this to understand who they are, but remember: YOU are the character, THEY a
         # Conversation summary
         if conversation_summary:
             sections.append(f"# Previous Conversation Summary\n{conversation_summary}")
+
+        # RAG: Relevant Past Conversations (Long-term Memory)
+        if relevant_memories:
+            memory_items = []
+            for memory in relevant_memories:
+                summary = memory.get("summary", "")
+                similarity = memory.get("similarity", 0)
+                importance = memory.get("importance", 5)
+
+                # 중요도를 별 이모지로 표시 (1~5개)
+                stars = "🌟" * min(5, max(1, importance // 2))
+                similarity_pct = int(similarity * 100)
+
+                memory_items.append(f"{stars} {summary} (유사도: {similarity_pct}%)")
+
+            if memory_items:
+                sections.append(
+                    "# Relevant Past Conversations (Long-term Memory)\n"
+                    "Based on the current context, here are relevant memories from previous conversations:\n" +
+                    "\n".join(memory_items)
+                )
 
         # Example dialogues
         if examples := character_data.get("exampleDialogues"):

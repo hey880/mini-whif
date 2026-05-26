@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatStore } from '@/stores/chatStore';
 import { supabase } from '@/lib/supabase';
+import { useRef } from 'react';
 
 interface SSEEvent {
   event_id: number;
@@ -14,8 +15,13 @@ interface SSEEvent {
 export function useSSEChat() {
   const { setStreaming, appendStreamChunk, resetStream, setOptimisticUserMessage } = useChatStore();
   const queryClient = useQueryClient();
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const currentRoomIdRef = useRef<string | null>(null);
 
   const sendMessage = async (roomId: string, message: string, hint?: string) => {
+    // Store current room ID for abort handling
+    currentRoomIdRef.current = roomId;
+
     // Optimistic UI: Show user message immediately
     if (message) {
       setOptimisticUserMessage({
@@ -27,6 +33,9 @@ export function useSSEChat() {
 
     setStreaming(true);
     resetStream();
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
 
     // Get auth token
     const {
@@ -51,6 +60,7 @@ export function useSSEChat() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(body),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -181,7 +191,15 @@ export function useSSEChat() {
           setOptimisticUserMessage(null);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      // AbortError는 사용자가 중단한 것이므로 에러로 처리하지 않음
+      if (error.name === 'AbortError') {
+        console.log('✅ Message streaming was stopped by user');
+        // 에러를 throw하지 않고 조용히 종료
+        return;
+      }
+
+      // 실제 에러인 경우에만 로그
       console.error('Error sending message:', error);
 
       // 상태 정리
@@ -197,8 +215,35 @@ export function useSSEChat() {
       }, 1000);
 
       throw error;
+    } finally {
+      // AbortController 정리
+      abortControllerRef.current = null;
     }
   };
 
-  return { sendMessage };
+  const stopStreaming = () => {
+    if (abortControllerRef.current) {
+      console.log('🛑 Stopping streaming...');
+
+      // AbortController로 fetch 중단
+      abortControllerRef.current.abort();
+
+      // 스트리밍 상태 정리
+      setStreaming(false);
+      setOptimisticUserMessage(null);
+
+      // 메시지 목록 갱신 (서버가 중단된 내용을 자동 저장함)
+      const roomId = currentRoomIdRef.current;
+      if (roomId) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: ['messages', roomId],
+            refetchType: 'active',
+          });
+        }, 500);
+      }
+    }
+  };
+
+  return { sendMessage, stopStreaming };
 }

@@ -47,7 +47,7 @@ export default function ChatPage() {
   const [isSummarizingMessages, setIsSummarizingMessages] = useState(false);
 
   const { isStreaming, streamingContent, optimisticUserMessage } = useChatStore();
-  const { sendMessage } = useSSEChat();
+  const { sendMessage, stopStreaming } = useSSEChat();
 
   // Fetch chat room
   const { data: room, isLoading: loadingRoom } = useQuery({
@@ -896,16 +896,32 @@ export default function ChatPage() {
       {/* Input */}
       <div className="border-t border-outline-variant/30">
         <div className="max-w-5xl mx-auto px-container-padding py-4">
-          <ChatInput
-            onSend={handleSendMessage}
-            onSendEmpty={() => setIsContinueModalOpen(true)}
-            disabled={isStreaming}
-            placeholder={
-              isStreaming
-                ? 'Waiting for response...'
-                : `Message ${room.character?.name || 'character'}...`
-            }
-          />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <ChatInput
+                onSend={handleSendMessage}
+                onSendEmpty={() => setIsContinueModalOpen(true)}
+                disabled={isStreaming}
+                placeholder={
+                  isStreaming
+                    ? 'Waiting for response...'
+                    : `Message ${room.character?.name || 'character'}...`
+                }
+              />
+            </div>
+
+            {/* Stop Streaming Button */}
+            {isStreaming && (
+              <button
+                onClick={stopStreaming}
+                className="px-4 py-3 rounded-lg bg-error text-on-error hover:bg-error/90 transition-colors flex items-center gap-2 font-medium shadow-md hover:shadow-lg"
+                title="스트리밍 중단"
+              >
+                <span className="material-symbols-outlined">stop_circle</span>
+                <span className="hidden sm:inline">중단</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
