@@ -135,4 +135,12 @@ export class PrismaMessageRepository implements IMessageRepository {
       return version;
     });
   }
+
+  async findRecent(roomId: string, limit: number = 20): Promise<Message[]> {
+    return await this.prisma.message.findMany({
+      where: { roomId },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+    }) as Message[];
+  }
 }

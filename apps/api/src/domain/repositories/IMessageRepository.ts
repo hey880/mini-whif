@@ -102,4 +102,12 @@ export interface IMessageRepository {
    * @returns 생성된 버전
    */
   saveAsVersion(messageId: string): Promise<MessageVersion>;
+
+  /**
+   * 채팅방의 최근 메시지 조회
+   * @param roomId 채팅방 ID
+   * @param limit 가져올 메시지 개수 (기본값: 20)
+   * @returns 최근 메시지 목록 (오래된 순)
+   */
+  findRecent(roomId: string, limit?: number): Promise<Message[]>;
 }
