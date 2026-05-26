@@ -161,7 +161,7 @@ export default function ChatsPage() {
         <div className="mb-8">
           <h1 className="text-display-small font-display mb-2">My Chats</h1>
           <p className="text-body-large text-on-surface-variant">
-            Continue your conversations with AI characters
+            AI 캐릭터와의 대화를 이어가세요.
           </p>
         </div>
 
@@ -182,13 +182,13 @@ export default function ChatsPage() {
                 chat_bubble
               </span>
               <h2 className="text-headline-medium font-headline mb-2">
-                No conversations yet
+                아직 대화가 없습니다.
               </h2>
               <p className="text-body-large text-on-surface-variant mb-6">
-                Start a conversation with a character to see your chat history here
+                대화 목록 조회를 위해서는 캐릭터와의 대화 기록이 있어야 합니다.
               </p>
               <Link href="/" className="glow-button inline-block">
-                Explore Characters
+                캐릭터 탐색
               </Link>
             </div>
           </div>

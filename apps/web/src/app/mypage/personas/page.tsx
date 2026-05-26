@@ -135,13 +135,13 @@ export default function PersonasPage() {
           <div>
             <h1 className="text-display-small font-display mb-2">내 페르소나</h1>
             <p className="text-body-large text-on-surface-variant">
-              Create and manage your roleplay personas
+              캐릭터와 대화할 사용자 페르소나 관리
             </p>
           </div>
           <button onClick={handleCreateClick} className="glow-button">
             <span className="flex items-center gap-2">
               <span className="material-symbols-outlined">add</span>
-              New Persona
+              페르소나 만들기
             </span>
           </button>
         </div>
@@ -164,16 +164,16 @@ export default function PersonasPage() {
               face
             </span>
             <h2 className="text-headline-medium font-headline mb-2">
-              No personas yet
+              아직 페르소나가 없습니다.
             </h2>
             <p className="text-body-large text-on-surface-variant mb-6">
-              Create your first persona to customize how AI characters interact with
-              you. Define your personality, role, and background.
+              AI 캐릭터와 대화할 첫 페르소나를 만들어보세요. 페르소나의 성격, 역할, 배경
+              등을 설정해 캐릭터와 대화해 보세요.
             </p>
             <button onClick={handleCreateClick} className="glow-button">
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined">add</span>
-                Create Your First Persona
+                첫 페르소나 만들기
               </span>
             </button>
           </div>

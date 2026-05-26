@@ -167,7 +167,7 @@ export function CharacterFormModal({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-headline-large font-headline">
-            {initialData ? 'Edit Character' : 'Create New Character'}
+            {initialData ? '캐릭터 수정' : '새 캐릭터 만들기'}
           </h2>
           <button
             onClick={onClose}

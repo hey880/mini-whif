@@ -90,7 +90,7 @@ export function PersonaFormModal({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-headline-large font-headline">
-            {initialData ? 'Edit Persona' : 'Create New Persona'}
+            {initialData ? '페르소나 수정' : '새 페르소나 만들기'}
           </h2>
           <button
             onClick={onClose}
@@ -106,7 +106,7 @@ export function PersonaFormModal({
           {/* Name Field */}
           <div>
             <label className="block text-label-large font-medium mb-2">
-              Name <span className="text-error">*</span>
+              이름 <span className="text-error">*</span>
             </label>
             <input
               type="text"
@@ -134,7 +134,7 @@ export function PersonaFormModal({
           {/* Gender Selection */}
           <div>
             <label className="block text-label-large font-medium mb-2">
-              Gender
+              성별
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
@@ -166,7 +166,7 @@ export function PersonaFormModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-label-large font-medium">
-                Persona Description <span className="text-error">*</span>
+                페르소나 설명 <span className="text-error">*</span>
               </label>
               <button
                 type="button"
@@ -186,7 +186,7 @@ export function PersonaFormModal({
                 setFormData({ ...formData, persona: e.target.value })
               }
               className="input-glow w-full min-h-[120px] resize-y"
-              placeholder="Describe your persona in detail. This will affect how the AI responds to you..."
+              placeholder="페르소나 상세 설정을 저장하세요. 이 설정은 캐릭터의 답변에 영향을 줍니다."
               maxLength={500}
               disabled={isLoading}
             />
@@ -216,7 +216,7 @@ export function PersonaFormModal({
                 disabled={isLoading}
               />
               <label htmlFor="isDefault" className="text-body-medium flex-1">
-                Set as default persona
+                기본 페르소나 지정
               </label>
             </div>
           )}
@@ -229,7 +229,7 @@ export function PersonaFormModal({
               className="flex-1 px-6 py-3 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors text-label-large font-medium"
               disabled={isLoading}
             >
-              Cancel
+              취소
             </button>
             <button
               type="submit"
@@ -241,12 +241,12 @@ export function PersonaFormModal({
                   <span className="material-symbols-outlined animate-spin">
                     progress_activity
                   </span>
-                  Saving...
+                  저장중...
                 </span>
               ) : initialData ? (
-                'Update Persona'
+                '페르소나 수정'
               ) : (
-                'Create Persona'
+                '페르소나 생성'
               )}
             </button>
           </div>

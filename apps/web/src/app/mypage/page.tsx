@@ -90,7 +90,7 @@ export default function MyPage() {
           </div>
         </div>
         <p className="text-body-large text-on-surface-variant">
-          Manage your profile and gems
+          프로필과 Gem 요금 관리
         </p>
       </div>
 
@@ -118,9 +118,9 @@ export default function MyPage() {
               diamond
             </span>
             <div>
-              <h2 className="text-headline-medium font-headline">Gem Treasury</h2>
+              <h2 className="text-headline-medium font-headline">Gem 지갑</h2>
               <p className="text-body-medium text-on-surface-variant">
-                Your virtual currency for AI conversations
+                남은 Gem 잔액이 표시됩니다.
               </p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function MyPage() {
           {/* Purchase Button */}
           <div className="mt-6">
             <Link href="/gem-store" className="glow-button w-full block text-center">
-              Purchase Gems
+              Gem 결제
             </Link>
           </div>
         </div>

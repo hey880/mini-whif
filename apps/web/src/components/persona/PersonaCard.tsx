@@ -45,7 +45,7 @@ export function PersonaCard({
           className="flex items-center gap-1 px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors text-label-large"
         >
           <span className="material-symbols-outlined text-lg">edit</span>
-          Edit
+          수정
         </button>
 
         {!isDefault && (
@@ -55,7 +55,7 @@ export function PersonaCard({
               className="flex items-center gap-1 px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors text-label-large"
             >
               <span className="material-symbols-outlined text-lg">star</span>
-              Set Default
+              기본 페르소나 지정
             </button>
 
             <button
@@ -63,7 +63,7 @@ export function PersonaCard({
               className="flex items-center gap-1 px-4 py-2 rounded-lg bg-error-container/20 hover:bg-error-container/30 text-error transition-colors text-label-large ml-auto"
             >
               <span className="material-symbols-outlined text-lg">delete</span>
-              Delete
+              삭제
             </button>
           </>
         )}
