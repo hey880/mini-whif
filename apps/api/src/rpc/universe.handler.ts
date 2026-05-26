@@ -3,6 +3,7 @@ import { Code, ConnectError } from '@connectrpc/connect';
 import { UniverseService } from '@persona-chat/proto/gen/ts/universe_connect.js';
 import { prisma } from '../config/prisma.js';
 import { userContextKey } from '../context.js';
+import { safeJSONParseOptional } from '../utils/safe-json.js';
 
 export const universeHandler: ServiceImpl<typeof UniverseService> = {
   async listUniverses(req) {
@@ -134,9 +135,9 @@ export const universeHandler: ServiceImpl<typeof UniverseService> = {
       throw new ConnectError('Unauthorized', Code.Unauthenticated);
     }
 
-    // Parse JSON fields
-    const data = req.dataJson ? JSON.parse(req.dataJson) : {};
-    const lorebook = req.lorebookJson ? JSON.parse(req.lorebookJson) : null;
+    // Parse JSON fields with prototype pollution protection
+    const data = safeJSONParseOptional(req.dataJson, 'dataJson', {});
+    const lorebook = safeJSONParseOptional(req.lorebookJson, 'lorebookJson', null);
 
     const universe = await prisma.universe.create({
       data: {
@@ -211,9 +212,11 @@ export const universeHandler: ServiceImpl<typeof UniverseService> = {
     if (req.imageUrl !== undefined) updateData.imageUrl = req.imageUrl;
     if (req.genre !== undefined) updateData.genre = req.genre;
     if (req.tags !== undefined) updateData.tags = req.tags;
-    if (req.dataJson !== undefined) updateData.data = JSON.parse(req.dataJson);
+    if (req.dataJson !== undefined) {
+      updateData.data = safeJSONParseOptional(req.dataJson, 'dataJson', {});
+    }
     if (req.lorebookJson !== undefined) {
-      updateData.lorebook = req.lorebookJson ? JSON.parse(req.lorebookJson) : null;
+      updateData.lorebook = safeJSONParseOptional(req.lorebookJson, 'lorebookJson', null);
     }
 
     const universe = await prisma.universe.update({

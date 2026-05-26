@@ -4,6 +4,7 @@ import { CharacterService } from '@persona-chat/proto/gen/ts/character_connect.j
 import { CharacterService as CharacterAppService } from '../application/services/CharacterService.js';
 import { CharacterDetail, CharacterWithRelations } from '../domain/repositories/ICharacterRepository.js';
 import { userContextKey } from '../context.js';
+import { safeJSONParseOptional } from '../utils/safe-json.js';
 
 function mapCharacterListItemToProto(char: CharacterWithRelations) {
   return {
@@ -112,8 +113,8 @@ export function createCharacterHandler(
         isNsfw: req.isNsfw || false,
         universeId: req.universeId || undefined,
         keywords: req.keywords || [],
-        data: req.dataJson ? JSON.parse(req.dataJson) : {},
-        lorebook: req.lorebookJson ? JSON.parse(req.lorebookJson) : null,
+        data: safeJSONParseOptional(req.dataJson, 'dataJson', {}),
+        lorebook: safeJSONParseOptional(req.lorebookJson, 'lorebookJson', null),
         defaultLlmModelId: req.defaultLlmModelId || undefined,
       });
 
@@ -141,9 +142,11 @@ export function createCharacterHandler(
       if (req.isNsfw !== undefined) updateData.isNsfw = req.isNsfw;
       if (req.universeId !== undefined) updateData.universeId = req.universeId;
       if (req.keywords !== undefined) updateData.keywords = req.keywords;
-      if (req.dataJson !== undefined) updateData.data = JSON.parse(req.dataJson);
+      if (req.dataJson !== undefined) {
+        updateData.data = safeJSONParseOptional(req.dataJson, 'dataJson', {});
+      }
       if (req.lorebookJson !== undefined) {
-        updateData.lorebook = req.lorebookJson ? JSON.parse(req.lorebookJson) : null;
+        updateData.lorebook = safeJSONParseOptional(req.lorebookJson, 'lorebookJson', null);
       }
       if (req.defaultLlmModelId !== undefined) updateData.defaultLlmModelId = req.defaultLlmModelId;
 
