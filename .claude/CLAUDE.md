@@ -180,8 +180,8 @@ OpenAI 임베딩 기반 대화 기억 검색으로 AI가 과거 대화를 참조
 ### 핵심 컴포넌트
 - **EmbeddingService**: OpenAI text-embedding-3-small (1536차원) 임베딩 생성
 - **VectorSearchRepository**: pgvector 코사인 유사도 검색
-- **conversation_memories 테이블**: 10개 메시지마다 자동 요약 저장
-- **임베딩 배치 작업**: 매일 자정 누락된 메시지 임베딩 처리
+- **conversation_memories 테이블**: 활성 채팅방의 최근 10개 메시지로 요약 생성
+- **임베딩 배치 작업**: 매일 자정 자동 실행 (node-cron)
 
 ### 임베딩 관련 중요 사항
 - **embeddedAt 필드 사용**: Prisma에서 `embedding` 필드는 where 절에서 사용 불가 (Unsupported type)
@@ -195,10 +195,24 @@ await prisma.message.findMany({ where: { embedding: null } });
 await prisma.message.findMany({ where: { embeddedAt: null } });
 ```
 
-### 임베딩 배치 작업 실행
+### 배치 작업 스케줄러
+- **위치**: `apps/api/src/index.ts:190-198`
+- **스케줄**: 매일 자정 (cron: `0 0 * * *`)
+- **라이브러리**: node-cron
+- **로그**: `logs/batch/embedding-batch.log` (파일 + 콘솔 동시 출력)
+- **작업 내용**:
+  1. 임베딩 누락 메시지 처리 (최근 7일, 최대 1000개)
+  2. 활성 채팅방의 대화 요약 생성 (최근 24시간, 10개 이상 메시지)
+
+### 임베딩 배치 작업 수동 실행
 ```bash
 cd apps/api
-node run-embedding.mjs  # 수동 실행 (개발용)
+node run-embedding.mjs  # 수동 실행 (빌드 필요)
+# 또는
+tsx src/jobs/embedding-batch.ts  # 직접 실행 (빌드 불필요)
+
+# 로그 확인
+tail -f ../../logs/batch/embedding-batch.log
 ```
 
 ### 메시지 히스토리 설정
@@ -276,7 +290,10 @@ finally {
 - **개발**: `pnpm dev` (모든 서비스 병렬 실행)
 - **프로덕션**: Docker Compose (`docker-compose -f docker-compose.prod.yml up -d`)
 - **CI/CD**: GitHub Actions → AWS EC2 배포 (`.github/workflows/deploy.yml`)
-- **로그**: `logs/api/api.log`, `logs/ai/ai-server.log`
+- **로그**:
+  - API: `logs/api/api.log`
+  - AI Server: `logs/ai/ai-server.log`
+  - Batch Jobs: `logs/batch/embedding-batch.log`
 
 ## 테스팅
 - API: Vitest (`apps/api/src/**/__tests__/*.test.ts`)

@@ -9,7 +9,7 @@
 
 ## 🚀 최근 개선사항
 
-### Phase 1: 성능 최적화 (2025년 1월)
+### 성능 최적화
 
 API 서버의 주요 성능 병목을 제거했습니다:
 
@@ -18,7 +18,7 @@ API 서버의 주요 성능 병목을 제거했습니다:
 - ✅ **Reaction 트랜잭션 추가**: race condition 방지로 데이터 정합성 보장
 - ✅ **리스트 엔드포인트 최적화**: 무거운 JSON 필드 제외 (2초 → 0.3초, 6배 향상)
 
-### Phase 2: Repository 레이어 도입 (2025년 1월)
+### Repository 레이어 도입
 
 Clean Architecture 기반 Repository 패턴을 구현했습니다:
 
@@ -28,7 +28,7 @@ Clean Architecture 기반 Repository 패턴을 구현했습니다:
 - ✅ **테스트 가능한 구조**: Mock Repository 사용 가능
 - ✅ **Phase 1 최적화 계승**: createMany, Promise.all, select 패턴 적용
 
-### Phase 3: Service 레이어 강화 (2025년 1월)
+### Service 레이어 강화
 
 비즈니스 로직을 Service 레이어로 분리했습니다:
 
@@ -38,7 +38,17 @@ Clean Architecture 기반 Repository 패턴을 구현했습니다:
 - ✅ **비즈니스 로직 재사용**: Repository 조합으로 복잡한 작업 처리
 - ✅ **AI 컨텍스트 구성**: Lorebook 파싱, Placeholder 치환 로직 캡슐화
 
-**아키텍처 성숙도:** 2/5점 → **4/5점** (Clean Architecture 달성)
+### RAG 및 스트리밍 처리
+
+AI 채팅의 품질과 안정성을 향상시켰습니다:
+
+- ✅ **RAG 시스템 구축**: OpenAI 임베딩 기반 대화 기억 검색 (장기 기억 구현)
+- ✅ **NSFW 모델 자동 선택**: 캐릭터별 기본 모델 설정 및 NSFW 가능 모델 자동 매칭
+- ✅ **스트리밍 중단 처리**: 클라이언트 연결 끊김 즉시 감지 및 부분 메시지 저장
+- ✅ **Reasoning 모델 대응**: OpenAI o1, o3 등 thinking 단계 모델 지원
+- ✅ **Vector 검색 최적화**: pgvector 코사인 유사도로 관련 대화 3개 자동 참조
+
+**아키텍처 성숙도:** 2/5점 → **4/5점** (Clean Architecture + AI 고급 기능 달성)
 
 자세한 내용은 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)를 참조하세요.
 
@@ -48,8 +58,9 @@ Persona Chat은 다음을 보여주는 정교한 AI 캐릭터 챗봇 플랫폼�
 
 - **모노레포 아키텍처**: 효율적인 멀티 패키지 관리를 위한 Turborepo + pnpm 워크스페이스
 - **타입 안전 RPC**: 프론트엔드-백엔드 통신의 타입 불일치를 방지하는 ConnectRPC + Protocol Buffers
-- **스트리밍 AI**: Server-Sent Events(SSE)를 통한 실시간 AI 응답
-- **모던 스택**: Next.js 15, Fastify, FastAPI, Prisma, Supabase
+- **스트리밍 AI**: Server-Sent Events(SSE)를 통한 실시간 AI 응답 + 중단 처리
+- **RAG 시스템**: OpenAI 임베딩 기반 대화 기억 검색으로 장기 기억 구현
+- **모던 스택**: Next.js 15, Fastify, FastAPI, Prisma, Supabase, pgvector
 - **프로덕션 패턴**: 인증, 결제 처리, 모니터링 및 분석
 
 ## 🏗️ 아키텍처
@@ -84,19 +95,21 @@ persona-chat/
 - Prisma ORM with PostgreSQL
 - Supabase Auth (JWT 검증)
 - Swagger/OpenAPI 문서
+- OpenAI API (임베딩 생성)
 
 **AI 서비스** (apps/ai-server):
 
 - FastAPI (async Python)
 - OpenRouter (멀티 모델 AI 접근)
 - Langfuse (LLM 모니터링 및 분석)
-- Server-Sent Events (스트리밍)
+- Server-Sent Events (스트리밍 + 중단 처리)
+- Reasoning 모델 지원 (o1, o3 등)
 
 **인프라**:
 
 - Turborepo (모노레포 빌드 오케스트레이션)
 - pnpm (효율적인 패키지 관리)
-- PostgreSQL (Supabase)
+- PostgreSQL + pgvector (Supabase)
 - Docker Compose (로컬 개발)
 
 ## 🚀 빠른 시작
@@ -129,10 +142,17 @@ cp .env.example .env
 필수 환경 변수:
 
 ```env
+# Supabase
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# Database
 DATABASE_URL=postgresql://...
 DIRECT_URL=postgresql://...
+
+# AI Services
+OPENROUTER_API_KEY=sk-or-...
+OPENAI_API_KEY=sk-...  # RAG 임베딩용
 ```
 
 ### 3. Proto 코드 생성
@@ -207,23 +227,24 @@ vs Express/NestJS: NestJS보다 단순하고, Express보다 빠름
 
 ## 🗄️ 데이터베이스 스키마
 
-최적화된 인덱스를 가진 14개 테이블 (`apps/api/prisma/schema.prisma` 참조):
+최적화된 인덱스를 가진 15개 테이블 (`apps/api/prisma/schema.prisma` 참조):
 
 **핵심 엔티티**:
 
 - `profiles` - 사용자 계정 (Supabase Auth 통합)
-- `llm_models` - 사용 가능한 AI 모델 (Claude, Gemini 등)
-- `characters` - 성격 데이터를 가진 AI 캐릭터
+- `llm_models` - 사용 가능한 AI 모델 (Claude, Gemini 등) + NSFW 지원 플래그
+- `characters` - 성격 데이터를 가진 AI 캐릭터 + 기본 모델 설정
 - `universes` - 캐릭터 세계관 그룹
 
 **채팅 시스템**:
 
 - `chat_rooms` - 대화 세션
-- `messages` - 버저닝을 가진 개별 메시지
+- `messages` - 버저닝을 가진 개별 메시지 + 임베딩 벡터 (1536차원)
 - `message_versions` - 대체 AI 응답
 - `user_reactions` - 좋아요/싫어요 피드백
+- `conversation_memories` - RAG용 대화 요약 (배치 작업으로 활성 채팅방의 최근 10개 메시지 요약)
 
-**Gems (가상 화폐)**:
+**Gems (요금)**:
 
 - `gem_wallets` - 사용자 젬 잔액 (유료, 일일 무료, 프로모)
 - `gem_logs` - 거래 내역
@@ -240,6 +261,7 @@ vs Express/NestJS: NestJS보다 단순하고, Express보다 빠름
 - 빠른 배열 검색을 위한 `character.keywords`의 GIN 인덱스
 - 페이지네이션을 위한 `(userId, createdAt DESC)` 복합 인덱스
 - 모든 관계에 대한 외래 키 인덱스
+- Vector 검색을 위한 `message.embedding` IVFFlat 인덱스 (pgvector)
 
 ## 🎨 디자인 시스템
 
@@ -289,7 +311,7 @@ vs Express/NestJS: NestJS보다 단순하고, Express보다 빠름
    - 프론트엔드: `supabase.auth.signInWithOAuth()`
    - 콜백: `/auth/callback`의 Next.js Route Handler
 
-## 💬 채팅 흐름 (SSE 스트리밍)
+## 💬 채팅 흐름 (SSE 스트리밍 + RAG)
 
 1. 사용자가 프론트엔드를 통해 메시지 전송
 2. 프론트엔드 → Fastify (`POST /chat-rooms/:roomId/messages`)
@@ -297,21 +319,51 @@ vs Express/NestJS: NestJS보다 단순하고, Express보다 빠름
    - 방 소유권 확인
    - 젬 잔액 확인
    - 사용자 메시지를 DB에 저장
+   - **RAG 검색**: 메시지를 임베딩하여 관련 과거 대화 3개 검색
    - AI 메시지 플레이스홀더 생성
 4. Fastify → FastAPI (`POST /v1/chats?stream=true`)
 5. FastAPI:
    - 캐릭터 + 페르소나 + 메시지 기록 가져오기
-   - 시스템 프롬프트 구성
+   - **RAG 컨텍스트 포함**: 검색된 과거 대화를 시스템 프롬프트에 추가
+   - NSFW 캐릭터면 NSFW 가능 모델 자동 선택
    - OpenRouter에서 스트리밍
    - SSE 이벤트 전송
 6. Fastify가 SSE를 프론트엔드로 중계
+   - **중단 감지**: 클라이언트 연결 끊김 시 즉시 스트림 취소
 7. 프론트엔드가 점진적 텍스트 표시
 8. 완료 시:
    - DB에서 AI 메시지 업데이트
+   - **부분 메시지 저장**: 중단 시 현재까지 생성된 내용 자동 저장
+   - 10개 메시지마다 대화 요약 생성 (RAG용)
    - 젬 차감 (우선순위: 일일 → 프로모 → 유료)
    - 거래 로그 기록
 
-## 💎 Gem 경제
+## 🧠 RAG (검색 증강 생성) 시스템
+
+AI가 과거 대화를 기억하고 참조하는 장기 기억 시스템입니다.
+
+**작동 방식**:
+
+1. **임베딩 생성**: 사용자 메시지를 OpenAI text-embedding-3-small 모델로 1536차원 벡터로 변환
+2. **Vector 검색**: pgvector의 코사인 유사도로 관련 과거 대화 3개 검색
+3. **컨텍스트 주입**: 검색된 대화를 AI 프롬프트에 추가하여 맥락 제공
+4. **자동 요약**: 최근 24시간 활성 채팅방의 최근 10개 메시지로 요약 생성
+5. **배치 처리**: 매일 자정 자동 실행 (node-cron 스케줄러)
+   - 누락된 메시지 임베딩 생성 (최근 7일, 최대 1000개)
+   - 활성 채팅방의 대화 요약 생성
+   - 로그 파일: `logs/batch/embedding-batch.log`
+
+**성능 특징**:
+
+- 50개 최근 메시지 + 3개 관련 과거 대화 = 장기/단기 기억 조합
+- IVFFlat 인덱스로 대규모 벡터 검색 최적화
+- `embeddedAt` 필드로 임베딩 여부 추적 (Prisma에서 Vector 필드는 where 절 사용 불가)
+
+**비용**:
+
+- text-embedding-3-small: $0.00002/1K 토큰 (100만 메시지 ≈ $20)
+
+## 💎 Gem 요금제
 
 **Gem 종류**:
 
@@ -330,6 +382,63 @@ vs Express/NestJS: NestJS보다 단순하고, Express보다 빠름
 - Starter: 500 gems → ₩1,100
 - Pro: 1,200 gems → ₩2,200
 - Whale: 3,000 gems → ₩5,500
+
+## 🔞 NSFW 모델 지원
+
+캐릭터가 NSFW로 표시된 경우 NSFW 가능 모델을 자동 선택합니다.
+
+**모델 선택 우선순위**:
+
+1. **캐릭터 기본 모델** (`character.defaultLlmModelId`) - 캐릭터별 최적 모델 지정
+2. **사용자 선택 모델** (`profile.chosenLlmModel`) - 사용자 선호 모델
+3. **NSFW 자동 선택** - NSFW 캐릭터면 `isDefaultNsfw=true` 모델, 아니면 일반 기본 모델
+
+**관련 필드**:
+
+- `LlmModel.isNsfwCapable` - 모델이 NSFW 콘텐츠 생성 가능한지 여부
+- `LlmModel.isDefaultNsfw` - NSFW 캐릭터의 기본 모델 (예: Gemini Flash Thinking)
+- `Character.isNsfw` - 캐릭터가 NSFW 콘텐츠를 포함하는지 여부
+- `Character.defaultLlmModelId` - 캐릭터별 기본 모델 지정 (선택)
+
+**예시**:
+
+- NSFW 캐릭터 + 캐릭터 기본 모델 설정 → 캐릭터 모델 사용
+- NSFW 캐릭터 + 설정 없음 → Gemini Flash Thinking (NSFW 기본)
+- 일반 캐릭터 → Claude Sonnet 4.5 또는 사용자 선택 모델
+
+## ⏹️ 스트리밍 중단 처리
+
+사용자가 AI 응답 생성 중 중단 버튼을 누르면 즉시 감지하고 처리합니다.
+
+**클라이언트 연결 끊김 감지** (`ai-streaming.service.ts`):
+
+```typescript
+reply.raw.on('close', () => {
+  clientDisconnected = true;
+  reader.cancel();  // AI 서버 스트림 즉시 취소
+});
+
+while (true) {
+  if (clientDisconnected || reply.raw.destroyed) {
+    reader.cancel();
+    break;
+  }
+  // 스트리밍 계속...
+}
+```
+
+**부분 메시지 저장**:
+
+- 중단 시 현재까지 생성된 내용을 자동으로 DB에 저장
+- `metadata: { aborted: true }` 플래그 추가
+- 실제로 생성된 토큰만큼만 Gem 차감
+- 재생성 또는 수정 가능
+
+**이점**:
+
+- 불필요한 AI 비용 절감 (중단 즉시 OpenRouter 요청 취소)
+- 부분 응답 보존으로 사용자 경험 향상
+- Reasoning 모델 (o1, o3 등)의 긴 thinking 단계도 중단 가능
 
 ## 🧪 테스팅
 
@@ -558,12 +667,14 @@ docker-compose -f docker-compose.prod.yml up -d --build web
 - `SUPABASE_SERVICE_ROLE_KEY` - Supabase 서비스 키
 - `AI_SERVER_URL` - AI 서버 내부 URL
 - `OPENROUTER_API_KEY` - OpenRouter API 키
+- `OPENAI_API_KEY` - OpenAI API 키 (RAG 임베딩용)
 - `LOG_LEVEL` - 로그 레벨 (debug, info, warn, error)
 
 **AI-Server**:
 - `OPENROUTER_API_KEY` - OpenRouter API 키
 - `LANGFUSE_PUBLIC_KEY` - Langfuse 공개 키 (선택)
 - `LANGFUSE_SECRET_KEY` - Langfuse 비밀 키 (선택)
+- `LANGFUSE_HOST` - Langfuse host url (선택)
 - `LOG_LEVEL` - 로그 레벨 (DEBUG, INFO, WARNING, ERROR)
 
 ## 🔧 개발 명령어
@@ -583,6 +694,12 @@ pnpm db:studio    # Prisma Studio 열기
 
 # Proto
 pnpm proto:gen    # .proto 파일에서 TypeScript 생성
+
+# RAG 임베딩 배치 (apps/api)
+cd apps/api
+pnpm tsx src/jobs/embedding-batch.ts  # 수동 실행 (개발/테스트용)
+# 자동 실행: 매일 자정 (node-cron)
+# 로그: logs/batch/embedding-batch.log
 ```
 
 ## 📝 API 문서
@@ -738,10 +855,11 @@ MIT License - 자세한 내용은 LICENSE 파일 참조
 
 ## 🙏 도움 받은 서비스
 
-- [Supabase](https://supabase.com) - 백엔드 인프라
+- [Supabase](https://supabase.com) - 백엔드 인프라 (PostgreSQL + pgvector)
 - [OpenRouter](https://openrouter.ai) - 멀티 모델 AI 접근
+- [OpenAI](https://openai.com) - 임베딩 API (RAG)
 - [Langfuse](https://langfuse.com) - LLM 모니터링 및 분석
-- [ConnectRPC](https://connectrpc.com) - Type Safty RPC 프레임워크
+- [ConnectRPC](https://connectrpc.com) - Type Safety RPC 프레임워크
 - [Turborepo](https://turbo.build) - 모노레포 빌드 시스템
 
 ---
