@@ -19,7 +19,7 @@ describe('PrismaMessageRepository', () => {
     await prisma.profile.create({
       data: {
         id: testUserId,
-        email: `test-${Date.now()}@example.com`,
+        email: `test-${randomUUID()}@example.com`, // Use UUID for guaranteed uniqueness
         displayName: 'Test User',
       },
     });
@@ -113,7 +113,7 @@ describe('PrismaMessageRepository', () => {
     });
 
     it('should return null for non-existent message', async () => {
-      const found = await repo.findById('non-existent-id');
+      const found = await repo.findById(randomUUID()); // Use valid UUID format
 
       expect(found).toBeNull();
     });

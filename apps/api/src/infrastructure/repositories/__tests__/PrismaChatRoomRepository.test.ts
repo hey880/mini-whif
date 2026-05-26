@@ -19,7 +19,7 @@ describe('PrismaChatRoomRepository', () => {
     await prisma.profile.create({
       data: {
         id: testUserId,
-        email: `test-${Date.now()}@example.com`,
+        email: `test-${randomUUID()}@example.com`,
         displayName: 'Test User',
       },
     });
@@ -74,7 +74,7 @@ describe('PrismaChatRoomRepository', () => {
     });
 
     it('should return null for non-existent room', async () => {
-      const room = await repo.findById('non-existent-id', testUserId);
+      const room = await repo.findById(randomUUID(), testUserId); // Use valid UUID format
 
       expect(room).toBeNull();
     });

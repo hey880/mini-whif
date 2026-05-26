@@ -17,7 +17,7 @@ describe('PrismaGemWalletRepository', () => {
     await prisma.profile.create({
       data: {
         id: testUserId,
-        email: `test-${Date.now()}@example.com`,
+        email: `test-${randomUUID()}@example.com`,
         displayName: 'Test User',
         gemWallet: {
           create: {
@@ -49,7 +49,7 @@ describe('PrismaGemWalletRepository', () => {
     });
 
     it('should return null for non-existent wallet', async () => {
-      const wallet = await repo.findByUserId('non-existent-id');
+      const wallet = await repo.findByUserId(randomUUID()); // Use valid UUID format
 
       expect(wallet).toBeNull();
     });
