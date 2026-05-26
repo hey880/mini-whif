@@ -54,14 +54,17 @@ model LlmModel {
   maxOutputTokens Int      @map("max_output_tokens")
   gemCostPerMessage Int    @map("gem_cost_per_message")
   isActive        Boolean  @default(true) @map("is_active")
+  isNsfwCapable   Boolean  @default(false) @map("is_nsfw_capable")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  profilesUsingModel Profile[]
+  profilesUsingModel       Profile[]
+  charactersUsingAsDefault Character[] @relation("CharacterDefaultModel")
 
   @@index([isActive])
   @@index([slug])
+  @@index([isNsfwCapable])
   @@map("llm_models")
 }
 
@@ -177,6 +180,7 @@ model Character {
   isNsfw                Boolean  @default(false) @map("is_nsfw")
   creatorId             String   @map("creator_id") @db.Uuid
   universeId            String?  @map("universe_id") @db.Uuid
+  defaultLlmModelId     String?  @map("default_llm_model_id") @db.Uuid
   keywords              String[] @default([])
   data                  Json     @default("{}")
   lorebook              Json?
@@ -186,6 +190,7 @@ model Character {
   // Relations
   creator           Profile       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   universe          Universe?     @relation(fields: [universeId], references: [id], onDelete: SetNull)
+  defaultLlmModel   LlmModel?     @relation("CharacterDefaultModel", fields: [defaultLlmModelId], references: [id], onDelete: SetNull)
   chatRooms         ChatRoom[]
   personasBasedOnMe UserPersona[]
 
@@ -194,6 +199,7 @@ model Character {
   @@index([creatorId])
   @@index([visibility, isNsfw])
   @@index([universeId])
+  @@index([defaultLlmModelId])
   @@index([createdAt(sort: Desc)])
   @@map("characters")
 }
@@ -242,10 +248,11 @@ model ChatRoom {
   updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  user      Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  character Character    @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  persona   UserPersona? @relation(fields: [personaId], references: [id], onDelete: SetNull)
-  messages  Message[]
+  user                 Profile                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character            Character              @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  persona              UserPersona?           @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  messages             Message[]
+  conversationMemories ConversationMemory[]
 
   @@index([userId, lastMessageAt(sort: Desc)])
   @@index([userId, isPinned])
@@ -265,6 +272,9 @@ model Message {
   positiveReactionCount  Int      @default(0) @map("positive_reaction_count")
   negativeReactionCount  Int      @default(0) @map("negative_reaction_count")
   metadata               Json?    // For storing triggered images and other metadata
+  embedding              Unsupported("vector(1536)")? // OpenAI text-embedding-3-small (1536 dimensions)
+  embeddingModel         String?  @map("embedding_model")
+  embeddedAt             DateTime? @map("embedded_at") @db.Timestamptz(6)
   createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -277,6 +287,7 @@ model Message {
   gemLogs        GemLog[]
 
   @@index([roomId, createdAt])
+  @@index([roomId, embeddedAt(sort: Desc)])
   @@index([parentMessageId])
   @@map("messages")
 }
@@ -327,4 +338,26 @@ model Keyword {
 
   @@index([usageCount(sort: Desc)])
   @@map("keywords")
+}
+
+// ============================================
+// CONVERSATION MEMORY (RAG)
+// ============================================
+
+model ConversationMemory {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomId       String   @map("room_id") @db.Uuid
+  summary      String   @db.Text
+  embedding    Unsupported("vector(1536)")
+  messageRange Json     @map("message_range") // { startMessageId, endMessageId, count }
+  importance   Int      @default(5) // 1-10, based on user reactions
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, importance(sort: Desc)])
+  @@index([roomId, createdAt(sort: Desc)])
+  @@map("conversation_memories")
 }
